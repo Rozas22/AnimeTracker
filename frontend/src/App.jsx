@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Tv, BookOpen, Clock, Settings, ShieldAlert } from 'lucide-react';
+import { LogIn, LogOut, User, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star } from 'lucide-react';
 import Callback from './components/Callback';
 
 export default function App() {
@@ -32,6 +32,17 @@ export default function App() {
   useEffect(() => {
     fetchFriends();
   }, [token]);
+
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedAnime, setSelectedAnime] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [formStatus, setFormStatus] = useState('CURRENT');
+  const [formProgress, setFormProgress] = useState(0);
+  const [formScore, setFormScore] = useState(10);
+  const [savingAnime, setSavingAnime] = useState(false);
 
   // Fetch AniList user profile when token is set
   useEffect(() => {
@@ -100,7 +111,7 @@ export default function App() {
     };
 
     fetchUserProfile();
-  }, [token]);
+  }, [token, refetchTrigger]);
 
   // Handle initiating login
   const handleLoginClick = async () => {
@@ -148,6 +159,114 @@ export default function App() {
     localStorage.removeItem('anilist_token');
     setToken('');
     setUserData(null);
+    setSearchResults([]);
+    setSearchQuery('');
+  };
+
+  // Search anime on AniList GraphQL API
+  const handleSearch = async (e) => {
+    if (e) e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    setSearching(true);
+    setError('');
+    
+    const query = `
+      query ($search: String) {
+        Page(page: 1, perPage: 10) {
+          media(search: $search, type: ANIME) {
+            id
+            title {
+              userPreferred
+            }
+            coverImage {
+              large
+            }
+            episodes
+            format
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables: { search: searchQuery }
+        })
+      });
+
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0].message || 'Error al buscar anime.');
+      }
+
+      setSearchResults(result.data.Page.media);
+    } catch (err) {
+      console.error('Anime search error:', err);
+      setError('No se pudo completar la búsqueda. Inténtalo de nuevo.');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const openModal = (anime) => {
+    setSelectedAnime(anime);
+    setFormStatus('CURRENT');
+    setFormProgress(0);
+    setFormScore(10);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setSelectedAnime(null);
+    setModalOpen(false);
+  };
+
+  // Save anime status & score to AniList
+  const handleSaveAnime = async (e) => {
+    e.preventDefault();
+    if (!selectedAnime) return;
+
+    setSavingAnime(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/anime/save', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          mediaId: selectedAnime.id,
+          status: formStatus,
+          progress: formProgress,
+          score: formScore
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al guardar el anime en AniList.');
+      }
+
+      closeModal();
+      // Trigger a profile refetch to update Statistics!
+      setRefetchTrigger(prev => prev + 1);
+    } catch (err) {
+      console.error('Error saving anime list entry:', err);
+      setError(err.message || 'Error al guardar los datos del anime.');
+    } finally {
+      setSavingAnime(false);
+    }
   };
 
   // If callback route, render Callback component
@@ -231,123 +350,269 @@ export default function App() {
         ) : (
           /* DASHBOARD (LOGGED IN) */
           userData && (
-            <div className="dashboard-layout">
-              {/* LEFT COLUMN: USER PROFILE */}
-              <div className="card profile-card">
-                <div className="profile-header">
-                  <img 
-                    src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                    alt={userData.name} 
-                    className="avatar" 
+            <>
+              {/* ANIME SEARCH CARD */}
+              <div className="search-card">
+                <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>Buscador de Anime</h2>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                  Busca series o películas de anime para agregarlas a tu lista o actualizar tu progreso.
+                </p>
+                <form onSubmit={handleSearch} className="search-input-group">
+                  <input 
+                    type="text" 
+                    placeholder="Ej: Frieren, Shingeki no Kyojin, One Piece..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="search-input"
                   />
-                  <div className="profile-meta">
-                    <h2>Bienvenido, {userData.name}</h2>
-                    <p>ID de AniList: #{userData.id}</p>
-                    <a 
-                      href={userData.siteUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
-                    >
-                      Ver perfil en AniList.co →
-                    </a>
-                  </div>
-                </div>
+                  <button type="submit" className="btn-primary" disabled={searching}>
+                    <Search size={18} />
+                    {searching ? 'Buscando...' : 'Buscar'}
+                  </button>
+                </form>
 
-                {userData.about && (
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre mí</h3>
-                    <div 
-                      style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
-                      dangerouslySetInnerHTML={{ __html: userData.about }}
-                    />
-                  </div>
-                )}
-
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
-                  
-                  <div className="stats-grid">
-                    <div className="stat-item">
-                      <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                      <div className="stat-value">{userData.statistics?.anime?.count || 0}</div>
-                      <div className="stat-label">Anime Visto</div>
-                    </div>
-
-                    <div className="stat-item">
-                      <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
-                      <div className="stat-value">
-                        {Math.round((userData.statistics?.anime?.minutesWatched || 0) / 60)}
-                      </div>
-                      <div className="stat-label">Horas Vistas</div>
-                    </div>
-
-                    <div className="stat-item">
-                      <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                      <div className="stat-value">{userData.statistics?.manga?.count || 0}</div>
-                      <div className="stat-label">Manga Leído</div>
-                    </div>
-                  </div>
-                </div>
-
-                <details className="token-inspector">
-                  <summary>Inspeccionar token de autenticación (Debug)</summary>
-                  <code>{token}</code>
-                </details>
-              </div>
-
-              {/* RIGHT COLUMN: FRIENDS CARD ("EL GRUPO") */}
-              <div className="friends-card">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '1rem' }}>
-                  <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>El Grupo</h2>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--color-anilist-blue)', backgroundColor: 'rgba(61, 180, 242, 0.1)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: '600' }}>
-                    {friends.length} {friends.length === 1 ? 'miembro' : 'miembros'}
-                  </span>
-                </div>
-
-                {loadingFriends ? (
-                  <div style={{ textAlign: 'center', padding: '3rem 0' }}>
-                    <div className="loader" style={{ width: '30px', height: '30px', margin: '0 auto 1rem auto' }}></div>
-                    <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Cargando amigos...</p>
-                  </div>
-                ) : friends.length === 0 ? (
-                  <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', marginTop: '2rem', textAlign: 'center', lineHeight: '1.6' }}>
-                    Aún no hay amigos registrados en el grupo.<br />
-                    ¡Comparte el enlace de la web con tus amigos para que inicien sesión!
-                  </p>
-                ) : (
-                  <div className="friends-list">
-                    {friends.map((friend) => (
-                      <a 
-                        key={friend.id} 
-                        href={friend.siteUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="friend-item"
-                        title="Ver perfil en AniList"
-                      >
+                {/* SEARCH RESULTS */}
+                {searchResults.length > 0 && (
+                  <div className="anime-grid">
+                    {searchResults.map((anime) => (
+                      <div key={anime.id} className="anime-card" onClick={() => openModal(anime)}>
                         <img 
-                          src={friend.avatar || 'https://anilist.co/img/icons/icon.svg'} 
-                          alt={friend.name} 
-                          className="friend-avatar" 
+                          src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                          alt={anime.title?.userPreferred} 
+                          className="anime-cover"
                         />
-                        <div className="friend-info">
-                          <span className="friend-name">{friend.name}</span>
-                          <span className="friend-status">
-                            Activo: {new Date(friend.updatedAt).toLocaleDateString('es-ES', { 
-                              day: 'numeric', 
-                              month: 'short', 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}
+                        <div className="anime-info">
+                          <span className="anime-title" title={anime.title?.userPreferred}>
+                            {anime.title?.userPreferred}
                           </span>
+                          <div className="anime-meta">
+                            <span>{anime.format || 'ANIME'}</span>
+                            <span>{anime.episodes ? `${anime.episodes} eps` : '?' }</span>
+                          </div>
                         </div>
-                      </a>
+                      </div>
                     ))}
                   </div>
                 )}
+                {searchResults.length > 0 && (
+                  <button 
+                    onClick={() => { setSearchResults([]); setSearchQuery(''); }} 
+                    className="btn-secondary" 
+                    style={{ marginTop: '1.5rem', width: '100%' }}
+                  >
+                    Limpiar Resultados
+                  </button>
+                )}
               </div>
-            </div>
+
+              {/* SPLIT DASHBOARD LAYOUT */}
+              <div className="dashboard-layout">
+                {/* LEFT COLUMN: USER PROFILE */}
+                <div className="card profile-card">
+                  <div className="profile-header">
+                    <img 
+                      src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                      alt={userData.name} 
+                      className="avatar" 
+                    />
+                    <div className="profile-meta">
+                      <h2>Bienvenido, {userData.name}</h2>
+                      <p>ID de AniList: #{userData.id}</p>
+                      <a 
+                        href={userData.siteUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
+                      >
+                        Ver perfil en AniList.co →
+                      </a>
+                    </div>
+                  </div>
+
+                  {userData.about && (
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                      <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre mí</h3>
+                      <div 
+                        style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
+                        dangerouslySetInnerHTML={{ __html: userData.about }}
+                      />
+                    </div>
+                  )}
+
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
+                    
+                    <div className="stats-grid">
+                      <div className="stat-item">
+                        <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
+                        <div className="stat-value">{userData.statistics?.anime?.count || 0}</div>
+                        <div className="stat-label">Anime Visto</div>
+                      </div>
+
+                      <div className="stat-item">
+                        <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
+                        <div className="stat-value">
+                          {Math.round((userData.statistics?.anime?.minutesWatched || 0) / 60)}
+                        </div>
+                        <div className="stat-label">Horas Vistas</div>
+                      </div>
+
+                      <div className="stat-item">
+                        <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                        <div className="stat-value">{userData.statistics?.manga?.count || 0}</div>
+                        <div className="stat-label">Manga Leído</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <details className="token-inspector">
+                    <summary>Inspeccionar token de autenticación (Debug)</summary>
+                    <code>{token}</code>
+                  </details>
+                </div>
+
+                {/* RIGHT COLUMN: FRIENDS CARD ("EL GRUPO") */}
+                <div className="friends-card">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '1rem' }}>
+                    <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>El Grupo</h2>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-anilist-blue)', backgroundColor: 'rgba(61, 180, 242, 0.1)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: '600' }}>
+                      {friends.length} {friends.length === 1 ? 'miembro' : 'miembros'}
+                    </span>
+                  </div>
+
+                  {loadingFriends ? (
+                    <div style={{ textAlign: 'center', padding: '3rem 0' }}>
+                      <div className="loader" style={{ width: '30px', height: '30px', margin: '0 auto 1rem auto' }}></div>
+                      <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Cargando amigos...</p>
+                    </div>
+                  ) : friends.length === 0 ? (
+                    <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', marginTop: '2rem', textAlign: 'center', lineHeight: '1.6' }}>
+                      Aún no hay amigos registrados en el grupo.<br />
+                      ¡Comparte el enlace de la web con tus amigos para que inicien sesión!
+                    </p>
+                  ) : (
+                    <div className="friends-list">
+                      {friends.map((friend) => (
+                        <a 
+                          key={friend.id} 
+                          href={friend.siteUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="friend-item"
+                          title="Ver perfil en AniList"
+                        >
+                          <img 
+                            src={friend.avatar || 'https://anilist.co/img/icons/icon.svg'} 
+                            alt={friend.name} 
+                            className="friend-avatar" 
+                          />
+                          <div className="friend-info">
+                            <span className="friend-name">{friend.name}</span>
+                            <span className="friend-status">
+                              Activo: {new Date(friend.updatedAt).toLocaleDateString('es-ES', { 
+                                day: 'numeric', 
+                                month: 'short', 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
+                            </span>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ANIME LIST EDITOR MODAL */}
+              {modalOpen && selectedAnime && (
+                <div className="modal-overlay" onClick={closeModal}>
+                  <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                    <div className="modal-header">
+                      <img 
+                        src={selectedAnime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                        alt={selectedAnime.title?.userPreferred} 
+                        className="modal-header-image"
+                      />
+                      <div className="modal-header-text">
+                        <h3>{selectedAnime.title?.userPreferred}</h3>
+                        <p>{selectedAnime.format || 'ANIME'} • {selectedAnime.episodes ? `${selectedAnime.episodes} eps` : 'Episodios totales desconocidos'}</p>
+                      </div>
+                      <button onClick={closeModal} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveAnime}>
+                      <div className="modal-body">
+                        {/* STATUS */}
+                        <div className="form-group">
+                          <label className="form-label">Estado</label>
+                          <select 
+                            value={formStatus} 
+                            onChange={(e) => setFormStatus(e.target.value)}
+                            className="form-select"
+                          >
+                            <option value="CURRENT">Viendo</option>
+                            <option value="COMPLETED">Visto</option>
+                            <option value="PLANNING">Planeo Ver</option>
+                            <option value="PAUSED">En Pausa</option>
+                            <option value="DROPPED">Abandonado</option>
+                          </select>
+                        </div>
+
+                        {/* PROGRESS EPISODES */}
+                        <div className="form-group">
+                          <label className="form-label">Episodios Vistos</label>
+                          <input 
+                            type="number" 
+                            min="0"
+                            max={selectedAnime.episodes || undefined}
+                            value={formProgress}
+                            onChange={(e) => setFormProgress(Math.min(selectedAnime.episodes || Infinity, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+                            className="form-number"
+                          />
+                          {selectedAnime.episodes && (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+                              Progreso máximo: {selectedAnime.episodes} episodios.
+                            </span>
+                          )}
+                        </div>
+
+                        {/* SCORE SELECTOR */}
+                        <div className="form-group">
+                          <label className="form-label">Puntuación</label>
+                          <div className="score-slider-group">
+                            <input 
+                              type="range" 
+                              min="1" 
+                              max="10" 
+                              step="1"
+                              value={formScore}
+                              onChange={(e) => setFormScore(parseInt(e.target.value, 10))}
+                              className="score-slider"
+                            />
+                            <span className="score-display">
+                              <Star size={16} fill="var(--color-anilist-blue)" color="var(--color-anilist-blue)" style={{ marginRight: '0.25rem', display: 'inline', verticalAlign: 'middle' }} />
+                              {formScore}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="modal-footer">
+                        <button type="button" onClick={closeModal} className="btn-secondary" disabled={savingAnime}>
+                          Cancelar
+                        </button>
+                        <button type="submit" className="btn-primary" disabled={savingAnime}>
+                          {savingAnime ? 'Guardando...' : 'Guardar en AniList'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+            </>
           )
         )}
       </main>

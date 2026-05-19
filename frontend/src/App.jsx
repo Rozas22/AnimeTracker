@@ -44,6 +44,8 @@ export default function App() {
   const [formScore, setFormScore] = useState(10);
   const [savingAnime, setSavingAnime] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
+  const [filterFormat, setFilterFormat] = useState('');
+  const [filterGenre, setFilterGenre] = useState('');
 
   // Fetch AniList user profile when token is set
   useEffect(() => {
@@ -164,31 +166,44 @@ export default function App() {
     setSearchQuery('');
   };
 
-  // Search anime on AniList GraphQL API
-  const handleSearch = async (e) => {
-    if (e) e.preventDefault();
-    if (!searchQuery.trim()) return;
-
+  // Fetch anime list (handles search query, format filter, genre filter, and trending fallback)
+  const fetchAnimeList = async (searchVal = '', selectedFormat = '', selectedGenre = '') => {
     setSearching(true);
     setError('');
-    
-    const query = `
-      query ($search: String) {
-        Page(page: 1, perPage: 10) {
-          media(search: $search, type: ANIME) {
-            id
-            title {
-              userPreferred
-            }
-            coverImage {
-              large
-            }
-            episodes
-            format
-          }
-        }
-      }
-    `;
+
+    const variables = {};
+    const filterParts = [];
+
+    if (searchVal.trim()) {
+      variables.search = searchVal.trim();
+      filterParts.push('search: $search');
+    } else {
+      variables.sort = 'POPULARITY_DESC';
+      filterParts.push('sort: [$sort]');
+    }
+
+    if (selectedFormat) {
+      variables.format = selectedFormat;
+      filterParts.push('format: $format');
+    }
+
+    if (selectedGenre) {
+      variables.genre = selectedGenre;
+      filterParts.push('genre: $genre');
+    }
+
+    const filterString = filterParts.length ? `(${filterParts.join(', ')}, type: ANIME)` : '(type: ANIME)';
+
+    const queryArgs = [
+      searchVal.trim() ? '$search: String' : '',
+      selectedFormat ? '$format: MediaFormat' : '',
+      selectedGenre ? '$genre: String' : '',
+      !searchVal.trim() ? '$sort: [MediaSort]' : ''
+    ].filter(Boolean).join(', ');
+
+    const query = queryArgs 
+      ? `query (${queryArgs}) { Page(page: 1, perPage: 12) { media ${filterString} { id title { userPreferred } coverImage { large } episodes format } } }`
+      : `query { Page(page: 1, perPage: 12) { media (type: ANIME) { id title { userPreferred } coverImage { large } episodes format } } }`;
 
     try {
       const response = await fetch('https://graphql.anilist.co', {
@@ -199,7 +214,7 @@ export default function App() {
         },
         body: JSON.stringify({
           query,
-          variables: { search: searchQuery }
+          variables
         })
       });
 
@@ -208,7 +223,7 @@ export default function App() {
         throw new Error(result.errors[0].message || 'Error al buscar anime.');
       }
 
-      setSearchResults(result.data.Page.media);
+      setSearchResults(result.data.Page.media || []);
     } catch (err) {
       console.error('Anime search error:', err);
       setError('No se pudo completar la búsqueda. Inténtalo de nuevo.');
@@ -216,6 +231,37 @@ export default function App() {
       setSearching(false);
     }
   };
+
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    fetchAnimeList(searchQuery, filterFormat, filterGenre);
+  };
+
+  const handleFormatChange = (e) => {
+    const val = e.target.value;
+    setFilterFormat(val);
+    fetchAnimeList(searchQuery, val, filterGenre);
+  };
+
+  const handleGenreChange = (e) => {
+    const val = e.target.value;
+    setFilterGenre(val);
+    fetchAnimeList(searchQuery, filterFormat, val);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setFilterFormat('');
+    setFilterGenre('');
+    fetchAnimeList('', '', '');
+  };
+
+  // Automatically fetch trending or filtered list on entering the search tab
+  useEffect(() => {
+    if (activeTab === 'search') {
+      fetchAnimeList(searchQuery, filterFormat, filterGenre);
+    }
+  }, [activeTab]);
 
   const openModal = (anime) => {
     setSelectedAnime(anime);
@@ -347,22 +393,73 @@ export default function App() {
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
               Busca series o películas de anime para agregarlas a tu lista o actualizar tu progreso.
             </p>
-            <form onSubmit={handleSearch} className="search-input-group">
-              <input 
-                type="text" 
-                placeholder="Ej: Frieren, Shingeki no Kyojin, One Piece..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
-              <button type="submit" className="btn-primary" disabled={searching}>
-                <Search size={18} />
-                {searching ? 'Buscando...' : 'Buscar'}
-              </button>
+            
+            <form onSubmit={handleSearchSubmit} className="search-form">
+              <div className="search-bar-row">
+                <input 
+                  type="text" 
+                  placeholder="Ej: Frieren, Shingeki no Kyojin, One Piece..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="search-input"
+                />
+                <button type="submit" className="btn-primary" disabled={searching}>
+                  <Search size={18} />
+                  {searching ? 'Buscando...' : 'Buscar'}
+                </button>
+              </div>
+
+              <div className="search-filters-row">
+                <div className="filter-group">
+                  <label htmlFor="filter-format" className="filter-label">Formato</label>
+                  <select 
+                    id="filter-format"
+                    value={filterFormat} 
+                    onChange={handleFormatChange}
+                    className="filter-select"
+                  >
+                    <option value="">Todos los formatos</option>
+                    <option value="TV">Serie (TV)</option>
+                    <option value="MOVIE">Película (Movie)</option>
+                    <option value="OVA">OVA</option>
+                    <option value="SPECIAL">Especial</option>
+                  </select>
+                </div>
+
+                <div className="filter-group">
+                  <label htmlFor="filter-genre" className="filter-label">Género</label>
+                  <select 
+                    id="filter-genre"
+                    value={filterGenre} 
+                    onChange={handleGenreChange}
+                    className="filter-select"
+                  >
+                    <option value="">Todos los géneros</option>
+                    <option value="Action">Acción</option>
+                    <option value="Adventure">Aventura</option>
+                    <option value="Comedy">Comedia</option>
+                    <option value="Drama">Drama</option>
+                    <option value="Fantasy">Fantasía</option>
+                    <option value="Horror">Terror</option>
+                    <option value="Mystery">Misterio</option>
+                    <option value="Psychological">Psicológico</option>
+                    <option value="Romance">Romance</option>
+                    <option value="Sci-Fi">Ciencia Ficción</option>
+                    <option value="Slice of Life">Recuentos de la vida</option>
+                    <option value="Sports">Deportes</option>
+                    <option value="Supernatural">Sobrenatural</option>
+                    <option value="Thriller">Suspense</option>
+                  </select>
+                </div>
+              </div>
             </form>
 
+            <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', marginTop: '2.5rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+              {searchQuery.trim() ? 'Resultados de Búsqueda' : 'Animes del Momento (Tendencias)'}
+            </h3>
+
             {/* SEARCH RESULTS */}
-            {searchResults.length > 0 && (
+            {searchResults.length > 0 ? (
               <div className="anime-grid">
                 {searchResults.map((anime) => (
                   <div key={anime.id} className="anime-card" onClick={() => openModal(anime)}>
@@ -383,14 +480,19 @@ export default function App() {
                   </div>
                 ))}
               </div>
-            )}
-            {searchResults.length > 0 && (
+            ) : !searching ? (
+              <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--color-text-secondary)' }}>
+                No se encontraron resultados para los filtros seleccionados.
+              </div>
+            ) : null}
+
+            {(searchResults.length > 0 || searchQuery || filterFormat || filterGenre) && (
               <button 
-                onClick={() => { setSearchResults([]); setSearchQuery(''); }} 
+                onClick={handleClearSearch} 
                 className="btn-secondary" 
-                style={{ marginTop: '1.5rem', width: '100%' }}
+                style={{ marginTop: '2rem', width: '100%' }}
               >
-                Limpiar Resultados
+                Limpiar Filtros y Búsqueda
               </button>
             )}
           </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid } from 'lucide-react';
 import Callback from './components/Callback';
 
 export default function App() {
@@ -55,6 +55,13 @@ export default function App() {
   const [searchPage, setSearchPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [viewMode, setViewMode] = useState(localStorage.getItem('view_mode') || 'grid'); // 'grid' or 'list'
+
+  const toggleViewMode = () => {
+    const nextMode = viewMode === 'grid' ? 'list' : 'grid';
+    setViewMode(nextMode);
+    localStorage.setItem('view_mode', nextMode);
+  };
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -790,7 +797,7 @@ export default function App() {
         
         return (
           <div className="card mylist-card">
-            {/* Header with Title and Back to Profile button */}
+            {/* Header with Title, View Mode toggle and Back to Profile button */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
               <div>
                 <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', marginBottom: '0.25rem' }}>Mi Lista de Anime</h2>
@@ -798,13 +805,23 @@ export default function App() {
                   Administra tus series en emisión, completadas y planeadas.
                 </p>
               </div>
-              <button 
-                className="btn-secondary" 
-                onClick={() => setActiveTab('profile')}
-                style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
-              >
-                Volver al Perfil
-              </button>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <button 
+                  className="view-mode-toggle"
+                  onClick={toggleViewMode}
+                  title={viewMode === 'grid' ? 'Cambiar a Vista Lista' : 'Cambiar a Vista Mosaico'}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--color-text-primary)', width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'var(--transition-smooth)' }}
+                >
+                  {viewMode === 'grid' ? <List size={18} /> : <Grid size={18} />}
+                </button>
+                <button 
+                  className="btn-secondary" 
+                  onClick={() => setActiveTab('profile')}
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+                >
+                  Volver al Perfil
+                </button>
+              </div>
             </div>
 
             {/* Sub-Tabs Nav: Viendo, Visto, Planeado */}
@@ -852,7 +869,7 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="anime-grid">
+              <div className={`anime-grid ${viewMode === 'list' ? 'view-list' : ''}`}>
                 {groupedList.map((group) => {
                   const anime = group.mostRecent.media;
                   if (!anime) return null;
@@ -1053,7 +1070,17 @@ export default function App() {
       case 'search':
         return (
           <div className="search-card">
-            <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>Buscador de Anime</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', margin: 0 }}>Buscador de Anime</h2>
+              <button 
+                className="view-mode-toggle"
+                onClick={toggleViewMode}
+                title={viewMode === 'grid' ? 'Cambiar a Vista Lista' : 'Cambiar a Vista Mosaico'}
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--color-text-primary)', width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'var(--transition-smooth)' }}
+              >
+                {viewMode === 'grid' ? <List size={18} /> : <Grid size={18} />}
+              </button>
+            </div>
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
               Busca series o películas de anime para agregarlas a tu lista o actualizar tu progreso.
             </p>
@@ -1125,17 +1152,19 @@ export default function App() {
             {/* SEARCH RESULTS */}
             {searchResults.length > 0 ? (
               <>
-                <div className="anime-grid">
+                <div className={`anime-grid ${viewMode === 'list' ? 'view-list' : ''}`}>
                   {searchResults.map((anime) => (
                     <div key={anime.id} className="anime-card" onClick={() => fetchAnimeDetails(anime.id)}>
                       {anime.status && (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') && (
                         <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En Emisión' : 'Próximamente'} />
                       )}
-                      <img 
-                        src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                        alt={anime.title?.userPreferred} 
-                        className="anime-cover"
-                      />
+                      <div className="cover-wrapper" style={{ position: 'relative' }}>
+                        <img 
+                          src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                          alt={anime.title?.userPreferred} 
+                          className="anime-cover"
+                        />
+                      </div>
                       <div className="anime-info">
                         <span className="anime-title" title={anime.title?.userPreferred}>
                           {anime.title?.userPreferred}

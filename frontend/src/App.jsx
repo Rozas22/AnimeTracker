@@ -50,6 +50,7 @@ export default function App() {
   const [filterGenre, setFilterGenre] = useState('Todos');
   const [completedAnime, setCompletedAnime] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState({});
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -78,6 +79,19 @@ export default function App() {
               format
               episodes
               status
+              startDate {
+                year
+                month
+                day
+              }
+              relations {
+                edges {
+                  relationType
+                  node {
+                    id
+                  }
+                }
+              }
             }
           }
         }
@@ -160,6 +174,98 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const groupCompletedAnimeByFranchise = (list) => {
+    if (!list || list.length === 0) return [];
+
+    // 1. Map mediaId to completed list entry
+    const entryMap = {};
+    list.forEach(entry => {
+      if (entry.media) {
+        entryMap[entry.media.id] = entry;
+      }
+    });
+
+    // 2. Build adjacency list of completed items
+    const adj = {};
+    list.forEach(entry => {
+      const media = entry.media;
+      if (!media) return;
+      adj[media.id] = new Set();
+      
+      const relations = media.relations?.edges || [];
+      relations.forEach(edge => {
+        const relId = edge.node?.id;
+        // Only build edge if the related anime is also completed by the user
+        if (relId && entryMap[relId]) {
+          adj[media.id].add(relId);
+          // Ensure it's undirected/mutual for connected component mapping
+          if (!adj[relId]) {
+            adj[relId] = new Set();
+          }
+          adj[relId].add(media.id);
+        }
+      });
+    });
+
+    // 3. Find connected components (franchises)
+    const visited = new Set();
+    const groups = [];
+
+    list.forEach(entry => {
+      const media = entry.media;
+      if (!media || visited.has(media.id)) return;
+
+      const component = [];
+      const queue = [media.id];
+      visited.add(media.id);
+
+      while (queue.length > 0) {
+        const currId = queue.shift();
+        component.push(entryMap[currId]);
+
+        const neighbors = adj[currId] || [];
+        neighbors.forEach(neighborId => {
+          if (!visited.has(neighborId)) {
+            visited.add(neighborId);
+            queue.push(neighborId);
+          }
+        });
+      }
+
+      // Sort items inside the component chronologically
+      component.sort((a, b) => {
+        const dateA = a.media.startDate;
+        const dateB = b.media.startDate;
+        
+        const yearA = dateA?.year || 0;
+        const yearB = dateB?.year || 0;
+        if (yearA !== yearB) return yearA - yearB;
+
+        const monthA = dateA?.month || 0;
+        const monthB = dateB?.month || 0;
+        if (monthA !== monthB) return monthA - monthB;
+
+        const dayA = dateA?.day || 0;
+        const dayB = dateB?.day || 0;
+        return dayA - dayB;
+      });
+
+      // The last element in the sorted chronological list is the most recent one
+      const mostRecentEntry = component[component.length - 1];
+
+      groups.push({
+        id: mostRecentEntry.id, // Group identifier (recent entry's list ID)
+        mostRecent: mostRecentEntry,
+        items: component // All items in the franchise, ordered chronologically
+      });
+    });
+
+    // Sort the groups by recent entry's ID in descending order (latest completed first)
+    groups.sort((a, b) => b.mostRecent.id - a.mostRecent.id);
+
+    return groups;
   };
 
   // Fetch AniList user profile when token is set
@@ -586,30 +692,91 @@ export default function App() {
               </div>
             ) : (
               <div className="anime-grid">
-                {completedAnime.map((item) => {
-                  const anime = item.media;
+                {groupCompletedAnimeByFranchise(completedAnime).map((group) => {
+                  const anime = group.mostRecent.media;
                   if (!anime) return null;
+                  const isExpanded = !!expandedGroups[group.id];
+                  
                   return (
-                    <div key={item.id} className="anime-card" onClick={() => fetchAnimeDetails(anime.id)}>
+                    <div 
+                      key={group.id} 
+                      className={`anime-card franchise-card ${isExpanded ? 'expanded' : ''}`}
+                      onClick={() => setExpandedGroups(prev => ({ ...prev, [group.id]: !prev[group.id] }))}
+                      style={{ height: 'fit-content' }}
+                    >
+                      {/* Live status indicator */}
                       {anime.status && (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') && (
                         <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En Emisión' : 'Próximamente'} />
                       )}
-                      <img 
-                        src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                        alt={anime.title?.userPreferred} 
-                        className="anime-cover"
-                      />
+                      
+                      {/* Main card cover */}
+                      <div className="cover-wrapper" style={{ position: 'relative' }}>
+                        <img 
+                          src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                          alt={anime.title?.userPreferred} 
+                          className="anime-cover"
+                        />
+                        {/* Number of seasons / items badge */}
+                        {group.items.length > 1 && (
+                          <div className="franchise-count-badge">
+                            {group.items.length} {group.items.length === 1 ? 'Temporada' : 'Temporadas'}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Main card details */}
                       <div className="anime-info">
                         <span className="anime-title" title={anime.title?.userPreferred}>
                           {anime.title?.userPreferred}
                         </span>
                         <div className="anime-meta">
                           <span style={{ color: 'var(--color-accent-green)', fontWeight: '600' }}>
-                            Nota: {item.score ? `${item.score}/10` : 'Sin nota'}
+                            Última: {group.mostRecent.score ? `${group.mostRecent.score}/10` : 'Sin nota'}
                           </span>
-                          <span>{anime.episodes ? `${item.progress}/${anime.episodes} eps` : `${item.progress} eps`}</span>
+                          <span>{anime.episodes ? `${group.mostRecent.progress}/${anime.episodes} eps` : `${group.mostRecent.progress} eps`}</span>
                         </div>
                       </div>
+
+                      {/* Expansion Arrow indicator */}
+                      {group.items.length > 1 && (
+                        <div className="franchise-expand-header">
+                          <span>{isExpanded ? 'Ocultar temporadas' : 'Ver temporadas vistas'}</span>
+                          <span className={`arrow-icon ${isExpanded ? 'rotated' : ''}`}>▼</span>
+                        </div>
+                      )}
+
+                      {/* Expanded list of seasons */}
+                      {isExpanded && (
+                        <div className="franchise-seasons-list" onClick={(e) => e.stopPropagation()}>
+                          {group.items.map((item) => {
+                            const seasonMedia = item.media;
+                            if (!seasonMedia) return null;
+                            return (
+                              <div 
+                                key={item.id} 
+                                className="franchise-season-item"
+                                onClick={() => fetchAnimeDetails(seasonMedia.id)}
+                                title="Ver detalles y editar progreso"
+                              >
+                                <img 
+                                  src={seasonMedia.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                                  alt={seasonMedia.title?.userPreferred} 
+                                  className="season-mini-cover"
+                                />
+                                <div className="season-item-info">
+                                  <span className="season-item-title">{seasonMedia.title?.userPreferred}</span>
+                                  <div className="season-item-meta">
+                                    <span className="season-item-format">{seasonMedia.format || 'TV'}</span>
+                                    <span className="season-item-progress">{seasonMedia.episodes ? `${item.progress}/${seasonMedia.episodes} eps` : `${item.progress} eps`}</span>
+                                    <span className="season-item-score">{item.score ? `${item.score}/10` : 'Sin nota'}</span>
+                                  </div>
+                                </div>
+                                <span className="view-details-arrow">→</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

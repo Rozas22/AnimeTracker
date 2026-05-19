@@ -48,11 +48,125 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('profile');
   const [filterFormat, setFilterFormat] = useState('Todos');
   const [filterGenre, setFilterGenre] = useState('Todos');
+  const [completedAnime, setCompletedAnime] = useState([]);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage('');
+    }, 3000);
+  };
+
+  const fetchCompletedAnime = async (userId) => {
+    if (!token) return;
+    const query = `
+      query ($userId: Int) {
+        Page(page: 1, perPage: 100) {
+          mediaList(userId: $userId, type: ANIME, status: COMPLETED) {
+            id
+            progress
+            score(format: POINT_10)
+            media {
+              id
+              title {
+                userPreferred
+              }
+              coverImage {
+                large
+              }
+              format
+              episodes
+              status
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          query,
+          variables: { userId }
+        }),
+      });
+
+      const result = await response.json();
+      if (!result.errors && result.data?.Page?.mediaList) {
+        setCompletedAnime(result.data.Page.mediaList);
+      }
+    } catch (err) {
+      console.error('Error fetching completed anime:', err);
+    }
+  };
+
+  const refreshUserData = async () => {
+    if (!token) return;
+    setLoading(true);
+    
+    const query = `
+      query {
+        Viewer {
+          id
+          name
+          avatar {
+            large
+          }
+          siteUrl
+          about
+          statistics {
+            anime {
+              count
+              minutesWatched
+              episodesWatched
+            }
+            manga {
+              count
+              chaptersRead
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0].message || 'Error al actualizar perfil.');
+      }
+
+      const viewer = result.data.Viewer;
+      setUserData(viewer);
+      await fetchCompletedAnime(viewer.id);
+    } catch (err) {
+      console.error('Error refreshing user data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch AniList user profile when token is set
   useEffect(() => {
     if (!token) {
       setUserData(null);
+      setCompletedAnime([]);
       return;
     }
 
@@ -102,7 +216,9 @@ export default function App() {
           throw new Error(result.errors[0].message || 'Error al obtener perfil de AniList.');
         }
 
-        setUserData(result.data.Viewer);
+        const viewer = result.data.Viewer;
+        setUserData(viewer);
+        await fetchCompletedAnime(viewer.id);
       } catch (err) {
         console.error('Error fetching AniList profile:', err);
         setError('No se pudo cargar el perfil. Puede que el token haya expirado o sea inválido.');
@@ -419,11 +535,13 @@ export default function App() {
         throw new Error(result.error || 'Error al guardar el anime en AniList.');
       }
 
-      closeModal();
-      // Trigger a profile refetch to update Statistics after a small delay to let AniList update.
-      setTimeout(() => {
-        setRefetchTrigger(prev => prev + 1);
-      }, 1000);
+      showToast('¡Guardado con éxito en AniList!');
+      
+      // Refresh user statistics and list info immediately
+      await refreshUserData();
+      
+      // Refresh current detailed view of the anime (which updates status/progress in modal)
+      await fetchAnimeDetails(selectedAnime.id);
     } catch (err) {
       console.error('Error saving anime list entry:', err);
       setError(err.message || 'Error al guardar los datos del anime.');
@@ -435,6 +553,67 @@ export default function App() {
   // Render active tab content
   const renderContent = () => {
     switch (activeTab) {
+      case 'completed':
+        return (
+          <div className="card completed-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
+              <div>
+                <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', marginBottom: '0.25rem' }}>Animes Vistos</h2>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+                  Lista de series y películas que has completado.
+                </p>
+              </div>
+              <button 
+                className="btn-secondary" 
+                onClick={() => setActiveTab('profile')}
+                style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+              >
+                Volver al Perfil
+              </button>
+            </div>
+
+            {completedAnime.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-text-secondary)' }}>
+                <Tv size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+                <p>No tienes ningún anime marcado como "Visto" aún.</p>
+                <button 
+                  className="btn-primary" 
+                  onClick={() => setActiveTab('search')}
+                  style={{ marginTop: '1rem' }}
+                >
+                  Buscar Animes para Añadir
+                </button>
+              </div>
+            ) : (
+              <div className="anime-grid">
+                {completedAnime.map((item) => {
+                  const anime = item.media;
+                  if (!anime) return null;
+                  return (
+                    <div key={item.id} className="anime-card" onClick={() => fetchAnimeDetails(anime.id)}>
+                      <img 
+                        src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                        alt={anime.title?.userPreferred} 
+                        className="anime-cover"
+                      />
+                      <div className="anime-info">
+                        <span className="anime-title" title={anime.title?.userPreferred}>
+                          {anime.title?.userPreferred}
+                        </span>
+                        <div className="anime-meta">
+                          <span style={{ color: 'var(--color-accent-green)', fontWeight: '600' }}>
+                            Nota: {item.score ? `${item.score}/10` : 'Sin nota'}
+                          </span>
+                          <span>{anime.episodes ? `${item.progress}/${anime.episodes} eps` : `${item.progress} eps`}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
       case 'profile':
         return (
           <div className="card profile-card">
@@ -472,10 +651,10 @@ export default function App() {
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
               
               <div className="stats-grid">
-                <div className="stat-item">
+                <div className="stat-item clickable" onClick={() => setActiveTab('completed')} style={{ cursor: 'pointer' }}>
                   <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">{userData.statistics?.anime?.count || 0}</div>
-                  <div className="stat-label">Anime en Lista</div>
+                  <div className="stat-value">{completedAnime.length}</div>
+                  <div className="stat-label">Animes Vistos</div>
                 </div>
 
                 <div className="stat-item">
@@ -791,7 +970,7 @@ export default function App() {
 
         <nav className="sidebar-nav">
           <button 
-            className={`sidebar-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+            className={`sidebar-nav-item ${activeTab === 'profile' || activeTab === 'completed' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >
             <User size={18} />
@@ -872,7 +1051,7 @@ export default function App() {
         {/* MOBILE BOTTOM NAVIGATION BAR */}
         <nav className="bottom-nav">
           <button 
-            className={`bottom-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+            className={`bottom-nav-item ${activeTab === 'profile' || activeTab === 'completed' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >
             <User size={20} />
@@ -1084,6 +1263,13 @@ export default function App() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      {toastMessage && (
+        <div className="toast-notification">
+          {toastMessage}
         </div>
       )}
     </div>

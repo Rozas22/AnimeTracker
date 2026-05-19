@@ -1256,3 +1256,58 @@ header {
     right: 1rem;
   }
 }
+
+/* Clickable Stats Item */
+.stat-item.clickable {
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.stat-item.clickable:hover {
+  border-color: var(--color-anilist-blue);
+  background-color: rgba(61, 180, 242, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(61, 180, 242, 0.1);
+}
+
+/* Toast Notifications */
+.toast-notification {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: rgba(11, 22, 34, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #a7f3d0;
+  padding: 0.85rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: var(--shadow-premium);
+  z-index: 2000;
+  font-weight: 500;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1), toastFadeOut 0.3s ease 2.7s forwards;
+}
+
+@keyframes toastSlideIn {
+  from {
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes toastFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+}

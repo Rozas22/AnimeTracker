@@ -44,8 +44,8 @@ export default function App() {
   const [formScore, setFormScore] = useState(10);
   const [savingAnime, setSavingAnime] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
-  const [filterFormat, setFilterFormat] = useState('');
-  const [filterGenre, setFilterGenre] = useState('');
+  const [filterFormat, setFilterFormat] = useState('Todos');
+  const [filterGenre, setFilterGenre] = useState('Todos');
 
   // Fetch AniList user profile when token is set
   useEffect(() => {
@@ -167,12 +167,30 @@ export default function App() {
   };
 
   // Fetch anime list (handles search query, format filter, genre filter, and trending fallback)
-  const fetchAnimeList = async (searchVal = '', selectedFormat = '', selectedGenre = '') => {
+  const fetchAnimeList = async (searchVal = '', selectedFormat = 'Todos', selectedGenre = 'Todos') => {
     setSearching(true);
     setError('');
 
     const variables = {};
     const filterParts = [];
+
+    // Map format
+    let formatVal = undefined;
+    if (selectedFormat && selectedFormat !== 'Todos') {
+      const formatMap = {
+        'Serie': 'TV',
+        'Película': 'MOVIE',
+        'OVA': 'OVA',
+        'Especial': 'SPECIAL'
+      };
+      formatVal = formatMap[selectedFormat] || selectedFormat;
+    }
+
+    // Map genre
+    let genreVal = undefined;
+    if (selectedGenre && selectedGenre !== 'Todos') {
+      genreVal = selectedGenre;
+    }
 
     if (searchVal.trim()) {
       variables.search = searchVal.trim();
@@ -182,13 +200,13 @@ export default function App() {
       filterParts.push('sort: $sort');
     }
 
-    if (selectedFormat) {
-      variables.format = selectedFormat;
+    if (formatVal) {
+      variables.format = formatVal;
       filterParts.push('format: $format');
     }
 
-    if (selectedGenre) {
-      variables.genre = [selectedGenre];
+    if (genreVal) {
+      variables.genre = [genreVal];
       filterParts.push('genre_in: $genre');
     }
 
@@ -196,8 +214,8 @@ export default function App() {
 
     const queryArgs = [
       searchVal.trim() ? '$search: String' : '',
-      selectedFormat ? '$format: MediaFormat' : '',
-      selectedGenre ? '$genre: [String]' : '',
+      formatVal ? '$format: MediaFormat' : '',
+      genreVal ? '$genre: [String]' : '',
       !searchVal.trim() ? '$sort: [MediaSort]' : ''
     ].filter(Boolean).join(', ');
 
@@ -251,9 +269,9 @@ export default function App() {
 
   const handleClearSearch = () => {
     setSearchQuery('');
-    setFilterFormat('');
-    setFilterGenre('');
-    fetchAnimeList('', '', '');
+    setFilterFormat('Todos');
+    setFilterGenre('Todos');
+    fetchAnimeList('', 'Todos', 'Todos');
   };
 
   // Automatically fetch trending or filtered list on entering the search tab
@@ -361,7 +379,13 @@ export default function App() {
                 <div className="stat-item">
                   <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
                   <div className="stat-value">{userData.statistics?.anime?.count || 0}</div>
-                  <div className="stat-label">Anime Visto</div>
+                  <div className="stat-label">Anime en Lista</div>
+                </div>
+
+                <div className="stat-item">
+                  <Tv size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                  <div className="stat-value">{userData.statistics?.anime?.episodesWatched || 0}</div>
+                  <div className="stat-label">Episodios Vistos</div>
                 </div>
 
                 <div className="stat-item">
@@ -373,9 +397,15 @@ export default function App() {
                 </div>
 
                 <div className="stat-item">
-                  <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                  <BookOpen size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
                   <div className="stat-value">{userData.statistics?.manga?.count || 0}</div>
-                  <div className="stat-label">Manga Leído</div>
+                  <div className="stat-label">Manga en Lista</div>
+                </div>
+
+                <div className="stat-item">
+                  <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                  <div className="stat-value">{userData.statistics?.manga?.chaptersRead || 0}</div>
+                  <div className="stat-label">Capítulos Leídos</div>
                 </div>
               </div>
             </div>
@@ -418,11 +448,11 @@ export default function App() {
                     onChange={handleFormatChange}
                     className="filter-select"
                   >
-                    <option value="">Todos los formatos</option>
-                    <option value="TV">Serie (TV)</option>
-                    <option value="MOVIE">Película (Movie)</option>
+                    <option value="Todos">Todos los formatos</option>
+                    <option value="Serie">Serie (TV)</option>
+                    <option value="Película">Película (Movie)</option>
                     <option value="OVA">OVA</option>
-                    <option value="SPECIAL">Especial</option>
+                    <option value="Especial">Especial</option>
                   </select>
                 </div>
 
@@ -434,7 +464,7 @@ export default function App() {
                     onChange={handleGenreChange}
                     className="filter-select"
                   >
-                    <option value="">Todos los géneros</option>
+                    <option value="Todos">Todos los géneros</option>
                     <option value="Action">Acción</option>
                     <option value="Adventure">Aventura</option>
                     <option value="Comedy">Comedia</option>

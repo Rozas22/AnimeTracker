@@ -52,6 +52,9 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
   const [mylistSubTab, setMylistSubTab] = useState('CURRENT');
+  const [searchPage, setSearchPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -437,12 +440,16 @@ export default function App() {
     setSearchQuery('');
   };
 
-  // Fetch anime list (handles search query, format filter, genre filter, and trending fallback)
-  const fetchAnimeList = async (searchVal = '', selectedFormat = 'Todos', selectedGenre = 'Todos') => {
-    setSearching(true);
+  // Fetch anime list (handles search query, format filter, genre filter, trending fallback, and pagination)
+  const fetchAnimeList = async (searchVal = '', selectedFormat = 'Todos', selectedGenre = 'Todos', pageNum = 1) => {
+    if (pageNum === 1) {
+      setSearching(true);
+    } else {
+      setLoadingMore(true);
+    }
     setError('');
 
-    const variables = {};
+    const variables = { page: pageNum };
     const filterParts = [];
 
     // Map format
@@ -484,15 +491,33 @@ export default function App() {
     const filterString = filterParts.length ? `(${filterParts.join(', ')}, type: ANIME)` : '(type: ANIME)';
 
     const queryArgs = [
+      '$page: Int',
       searchVal.trim() ? '$search: String' : '',
       formatVal ? '$format: MediaFormat' : '',
       genreVal ? '$genre: [String]' : '',
       !searchVal.trim() ? '$sort: [MediaSort]' : ''
     ].filter(Boolean).join(', ');
 
-    const query = queryArgs 
-      ? `query (${queryArgs}) { Page(page: 1, perPage: 12) { media ${filterString} { id title { userPreferred } coverImage { large } episodes format status } } }`
-      : `query { Page(page: 1, perPage: 12) { media (type: ANIME) { id title { userPreferred } coverImage { large } episodes format status } } }`;
+    const query = `query (${queryArgs}) {
+      Page(page: $page, perPage: 12) {
+        pageInfo {
+          currentPage
+          hasNextPage
+        }
+        media ${filterString} {
+          id
+          title {
+            userPreferred
+          }
+          coverImage {
+            large
+          }
+          episodes
+          format
+          status
+        }
+      }
+    }`;
 
     try {
       const response = await fetch('https://graphql.anilist.co', {
@@ -512,45 +537,97 @@ export default function App() {
         throw new Error(result.errors[0].message || 'Error al buscar anime.');
       }
 
-      setSearchResults(result.data.Page.media || []);
+      const pageInfo = result.data.Page.pageInfo;
+      const media = result.data.Page.media || [];
+      
+      setHasNextPage(pageInfo?.hasNextPage || false);
+      setSearchPage(pageNum);
+
+      if (pageNum === 1) {
+        setSearchResults(media);
+      } else {
+        setSearchResults(prev => [...prev, ...media]);
+      }
     } catch (err) {
       console.error('Anime search error:', err);
       setError('No se pudo completar la búsqueda. Inténtalo de nuevo.');
     } finally {
       setSearching(false);
+      setLoadingMore(false);
     }
   };
 
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault();
-    fetchAnimeList(searchQuery, filterFormat, filterGenre);
+    setSearchPage(1);
+    fetchAnimeList(searchQuery, filterFormat, filterGenre, 1);
   };
 
   const handleFormatChange = (e) => {
     const val = e.target.value;
     setFilterFormat(val);
-    fetchAnimeList(searchQuery, val, filterGenre);
+    setSearchPage(1);
+    fetchAnimeList(searchQuery, val, filterGenre, 1);
   };
 
   const handleGenreChange = (e) => {
     const val = e.target.value;
     setFilterGenre(val);
-    fetchAnimeList(searchQuery, filterFormat, val);
+    setSearchPage(1);
+    fetchAnimeList(searchQuery, filterFormat, val, 1);
   };
 
   const handleClearSearch = () => {
     setSearchQuery('');
     setFilterFormat('Todos');
     setFilterGenre('Todos');
-    fetchAnimeList('', 'Todos', 'Todos');
+    setSearchPage(1);
+    fetchAnimeList('', 'Todos', 'Todos', 1);
+  };
+
+  const loadNextSearchPage = async () => {
+    if (!hasNextPage || searching || loadingMore) return;
+    const nextPage = searchPage + 1;
+    await fetchAnimeList(searchQuery, filterFormat, filterGenre, nextPage);
   };
 
   // Automatically fetch trending or filtered list on entering the search tab
   useEffect(() => {
     if (activeTab === 'search') {
-      fetchAnimeList(searchQuery, filterFormat, filterGenre);
+      setSearchPage(1);
+      fetchAnimeList(searchQuery, filterFormat, filterGenre, 1);
     }
   }, [activeTab]);
+
+  // Setup Intersection Observer for infinite scrolling in search
+  useEffect(() => {
+    if (activeTab !== 'search') return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        if (target.isIntersecting && hasNextPage && !searching && !loadingMore) {
+          loadNextSearchPage();
+        }
+      },
+      {
+        root: null,
+        rootMargin: '200px', // Fetch next page 200px before reaching bottom
+        threshold: 0.1,
+      }
+    );
+
+    const anchor = document.getElementById('search-infinite-anchor');
+    if (anchor) {
+      observer.observe(anchor);
+    }
+
+    return () => {
+      if (anchor) {
+        observer.unobserve(anchor);
+      }
+    };
+  }, [activeTab, hasNextPage, searching, loadingMore, searchPage, searchQuery, filterFormat, filterGenre]);
 
   const fetchAnimeDetails = async (animeId) => {
     setLoadingDetails(true);
@@ -1047,29 +1124,44 @@ export default function App() {
 
             {/* SEARCH RESULTS */}
             {searchResults.length > 0 ? (
-              <div className="anime-grid">
-                {searchResults.map((anime) => (
-                  <div key={anime.id} className="anime-card" onClick={() => fetchAnimeDetails(anime.id)}>
-                    {anime.status && (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') && (
-                      <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En Emisión' : 'Próximamente'} />
-                    )}
-                    <img 
-                      src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                      alt={anime.title?.userPreferred} 
-                      className="anime-cover"
-                    />
-                    <div className="anime-info">
-                      <span className="anime-title" title={anime.title?.userPreferred}>
-                        {anime.title?.userPreferred}
-                      </span>
-                      <div className="anime-meta">
-                        <span>{anime.format || 'ANIME'}</span>
-                        <span>{anime.episodes ? `${anime.episodes} eps` : '?' }</span>
+              <>
+                <div className="anime-grid">
+                  {searchResults.map((anime) => (
+                    <div key={anime.id} className="anime-card" onClick={() => fetchAnimeDetails(anime.id)}>
+                      {anime.status && (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') && (
+                        <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En Emisión' : 'Próximamente'} />
+                      )}
+                      <img 
+                        src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                        alt={anime.title?.userPreferred} 
+                        className="anime-cover"
+                      />
+                      <div className="anime-info">
+                        <span className="anime-title" title={anime.title?.userPreferred}>
+                          {anime.title?.userPreferred}
+                        </span>
+                        <div className="anime-meta">
+                          <span>{anime.format || 'ANIME'}</span>
+                          <span>{anime.episodes ? `${anime.episodes} eps` : '?' }</span>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+
+                {/* Infinite Scroll Loader Indicator */}
+                {loadingMore && (
+                  <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                    <div className="loader" style={{ width: '30px', height: '30px', margin: '0 auto' }}></div>
+                    <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                      Cargando más animes...
+                    </p>
                   </div>
-                ))}
-              </div>
+                )}
+
+                {/* Intersection Anchor */}
+                <div id="search-infinite-anchor" style={{ height: '20px', margin: '1rem 0' }}></div>
+              </>
             ) : !searching ? (
               <div style={{ textAlign: 'center', padding: '3rem 0', color: 'var(--color-text-secondary)' }}>
                 No se encontraron resultados para los filtros seleccionados.

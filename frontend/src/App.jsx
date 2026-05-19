@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List } from 'lucide-react';
 import Callback from './components/Callback';
 
 export default function App() {
@@ -51,6 +51,7 @@ export default function App() {
   const [completedAnime, setCompletedAnime] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [mylistSubTab, setMylistSubTab] = useState('CURRENT');
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -59,13 +60,14 @@ export default function App() {
     }, 3000);
   };
 
-  const fetchCompletedAnime = async (userId) => {
+  const fetchUserAnimeList = async (userId) => {
     if (!token) return;
     const query = `
       query ($userId: Int) {
         Page(page: 1, perPage: 100) {
-          mediaList(userId: $userId, type: ANIME, status: COMPLETED) {
+          mediaList(userId: $userId, type: ANIME) {
             id
+            status
             progress
             score(format: POINT_10)
             media {
@@ -117,7 +119,7 @@ export default function App() {
         setCompletedAnime(result.data.Page.mediaList);
       }
     } catch (err) {
-      console.error('Error fetching completed anime:', err);
+      console.error('Error fetching user anime list:', err);
     }
   };
 
@@ -168,11 +170,56 @@ export default function App() {
 
       const viewer = result.data.Viewer;
       setUserData(viewer);
-      await fetchCompletedAnime(viewer.id);
+      await fetchUserAnimeList(viewer.id);
     } catch (err) {
       console.error('Error refreshing user data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleQuickIncrement = async (entry, e) => {
+    e.stopPropagation();
+    if (!entry || !entry.media) return;
+    
+    const media = entry.media;
+    const currentProgress = entry.progress || 0;
+    const totalEpisodes = media.episodes || 9999;
+    
+    if (currentProgress >= totalEpisodes) {
+      showToast('¡Ya has completado este anime!');
+      return;
+    }
+    
+    const nextProgress = currentProgress + 1;
+    // If progress reaches total episodes, automatically set status to COMPLETED
+    const nextStatus = nextProgress === totalEpisodes ? 'COMPLETED' : entry.status;
+    
+    try {
+      const response = await fetch('/api/anime/save', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          mediaId: media.id,
+          status: nextStatus,
+          progress: nextProgress,
+          score: entry.score || 10
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al actualizar el progreso.');
+      }
+
+      showToast(`Progreso de ${media.title?.userPreferred} actualizado a: ${nextProgress}/${media.episodes || '?'}`);
+      await refreshUserData();
+    } catch (err) {
+      console.error('Error incrementing progress:', err);
+      showToast('Error al actualizar el progreso');
     }
   };
 
@@ -324,7 +371,7 @@ export default function App() {
 
         const viewer = result.data.Viewer;
         setUserData(viewer);
-        await fetchCompletedAnime(viewer.id);
+        await fetchUserAnimeList(viewer.id);
       } catch (err) {
         console.error('Error fetching AniList profile:', err);
         setError('No se pudo cargar el perfil. Puede que el token haya expirado o sea inválido.');
@@ -659,14 +706,19 @@ export default function App() {
   // Render active tab content
   const renderContent = () => {
     switch (activeTab) {
-      case 'completed':
+      case 'mylist': {
+        const userAnimeList = completedAnime;
+        const filteredList = userAnimeList.filter(entry => entry.status === mylistSubTab);
+        const groupedList = groupCompletedAnimeByFranchise(filteredList);
+        
         return (
-          <div className="card completed-card">
+          <div className="card mylist-card">
+            {/* Header with Title and Back to Profile button */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
               <div>
-                <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', marginBottom: '0.25rem' }}>Animes Vistos</h2>
+                <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', marginBottom: '0.25rem' }}>Mi Lista de Anime</h2>
                 <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-                  Lista de series y películas que has completado.
+                  Administra tus series en emisión, completadas y planeadas.
                 </p>
               </div>
               <button 
@@ -678,21 +730,53 @@ export default function App() {
               </button>
             </div>
 
-            {completedAnime.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-text-secondary)' }}>
+            {/* Sub-Tabs Nav: Viendo, Visto, Planeado */}
+            <div className="mylist-tabs">
+              <button 
+                className={`mylist-tab-item ${mylistSubTab === 'CURRENT' ? 'active' : ''}`}
+                onClick={() => setMylistSubTab('CURRENT')}
+              >
+                <span>Viendo</span>
+                <span className="mylist-tab-count">
+                  {userAnimeList.filter(e => e.status === 'CURRENT').length}
+                </span>
+              </button>
+              <button 
+                className={`mylist-tab-item ${mylistSubTab === 'COMPLETED' ? 'active' : ''}`}
+                onClick={() => setMylistSubTab('COMPLETED')}
+              >
+                <span>Vistos</span>
+                <span className="mylist-tab-count">
+                  {userAnimeList.filter(e => e.status === 'COMPLETED').length}
+                </span>
+              </button>
+              <button 
+                className={`mylist-tab-item ${mylistSubTab === 'PLANNING' ? 'active' : ''}`}
+                onClick={() => setMylistSubTab('PLANNING')}
+              >
+                <span>Planeado</span>
+                <span className="mylist-tab-count">
+                  {userAnimeList.filter(e => e.status === 'PLANNING').length}
+                </span>
+              </button>
+            </div>
+
+            {/* List Content */}
+            {filteredList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--color-text-secondary)' }}>
                 <Tv size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-                <p>No tienes ningún anime marcado como "Visto" aún.</p>
+                <p>No tienes ningún anime en esta sección de tu lista.</p>
                 <button 
                   className="btn-primary" 
                   onClick={() => setActiveTab('search')}
-                  style={{ marginTop: '1rem' }}
+                  style={{ marginTop: '1.25rem' }}
                 >
                   Buscar Animes para Añadir
                 </button>
               </div>
             ) : (
               <div className="anime-grid">
-                {groupCompletedAnimeByFranchise(completedAnime).map((group) => {
+                {groupedList.map((group) => {
                   const anime = group.mostRecent.media;
                   if (!anime) return null;
                   const isExpanded = !!expandedGroups[group.id];
@@ -722,6 +806,17 @@ export default function App() {
                             {group.items.length} {group.items.length === 1 ? 'Temporada' : 'Temporadas'}
                           </div>
                         )}
+
+                        {/* Quick '+' increment button for CURRENT (Viendo) tab on the main card (if collapsed or single entry) */}
+                        {mylistSubTab === 'CURRENT' && (
+                          <button 
+                            className="quick-plus-btn"
+                            onClick={(e) => handleQuickIncrement(group.mostRecent, e)}
+                            title="Incrementar +1 Episodio"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        )}
                       </div>
 
                       {/* Main card details */}
@@ -731,16 +826,18 @@ export default function App() {
                         </span>
                         <div className="anime-meta">
                           <span style={{ color: 'var(--color-accent-green)', fontWeight: '600' }}>
-                            Última: {group.mostRecent.score ? `${group.mostRecent.score}/10` : 'Sin nota'}
+                            {group.mostRecent.score ? `${group.mostRecent.score}/10` : 'Sin nota'}
                           </span>
-                          <span>{anime.episodes ? `${group.mostRecent.progress}/${anime.episodes} eps` : `${group.mostRecent.progress} eps`}</span>
+                          <span>
+                            {anime.episodes ? `${group.mostRecent.progress}/${anime.episodes} eps` : `${group.mostRecent.progress} eps`}
+                          </span>
                         </div>
                       </div>
 
                       {/* Expansion Arrow indicator */}
                       {group.items.length > 1 && (
                         <div className="franchise-expand-header">
-                          <span>{isExpanded ? 'Ocultar temporadas' : 'Ver temporadas vistas'}</span>
+                          <span>{isExpanded ? 'Ocultar temporadas' : 'Ver temporadas'}</span>
                           <span className={`arrow-icon ${isExpanded ? 'rotated' : ''}`}>▼</span>
                         </div>
                       )}
@@ -767,10 +864,24 @@ export default function App() {
                                   <span className="season-item-title">{seasonMedia.title?.userPreferred}</span>
                                   <div className="season-item-meta">
                                     <span className="season-item-format">{seasonMedia.format || 'TV'}</span>
-                                    <span className="season-item-progress">{seasonMedia.episodes ? `${item.progress}/${seasonMedia.episodes} eps` : `${item.progress} eps`}</span>
+                                    <span className="season-item-progress">
+                                      {seasonMedia.episodes ? `${item.progress}/${seasonMedia.episodes} eps` : `${item.progress} eps`}
+                                    </span>
                                     <span className="season-item-score">{item.score ? `${item.score}/10` : 'Sin nota'}</span>
                                   </div>
                                 </div>
+
+                                {/* Quick '+' increment button for CURRENT tab in the season row */}
+                                {mylistSubTab === 'CURRENT' && (
+                                  <button 
+                                    className="row-quick-plus-btn"
+                                    onClick={(e) => handleQuickIncrement(item, e)}
+                                    title="Incrementar +1 Episodio"
+                                  >
+                                    <Plus size={12} />
+                                  </button>
+                                )}
+
                                 <span className="view-details-arrow">→</span>
                               </div>
                             );
@@ -784,6 +895,7 @@ export default function App() {
             )}
           </div>
         );
+      }
       case 'profile':
         return (
           <div className="card profile-card">
@@ -821,9 +933,9 @@ export default function App() {
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
               
               <div className="stats-grid">
-                <div className="stat-item clickable" onClick={() => setActiveTab('completed')} style={{ cursor: 'pointer' }}>
+                <div className="stat-item clickable" onClick={() => { setActiveTab('mylist'); setMylistSubTab('COMPLETED'); }} style={{ cursor: 'pointer' }}>
                   <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">{completedAnime.length}</div>
+                  <div className="stat-value">{completedAnime.filter(e => e.status === 'COMPLETED').length}</div>
                   <div className="stat-label">Animes Vistos</div>
                 </div>
 
@@ -1143,11 +1255,19 @@ export default function App() {
 
         <nav className="sidebar-nav">
           <button 
-            className={`sidebar-nav-item ${activeTab === 'profile' || activeTab === 'completed' ? 'active' : ''}`}
+            className={`sidebar-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >
             <User size={18} />
             <span>Mi Perfil</span>
+          </button>
+          
+          <button 
+            className={`sidebar-nav-item ${activeTab === 'mylist' ? 'active' : ''}`}
+            onClick={() => setActiveTab('mylist')}
+          >
+            <List size={18} />
+            <span>Mi Lista</span>
           </button>
           
           <button 
@@ -1224,11 +1344,19 @@ export default function App() {
         {/* MOBILE BOTTOM NAVIGATION BAR */}
         <nav className="bottom-nav">
           <button 
-            className={`bottom-nav-item ${activeTab === 'profile' || activeTab === 'completed' ? 'active' : ''}`}
+            className={`bottom-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}
           >
             <User size={20} />
             <span>Perfil</span>
+          </button>
+          
+          <button 
+            className={`bottom-nav-item ${activeTab === 'mylist' ? 'active' : ''}`}
+            onClick={() => setActiveTab('mylist')}
+          >
+            <List size={20} />
+            <span>Lista</span>
           </button>
           
           <button 

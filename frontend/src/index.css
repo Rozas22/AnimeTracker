@@ -1499,3 +1499,111 @@ header {
   opacity: 1;
   color: var(--color-anilist-blue);
 }
+
+/* My List Sub-Tabs Style */
+.mylist-tabs {
+  display: flex;
+  gap: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 0.35rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 2rem;
+}
+
+.mylist-tab-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.mylist-tab-item:hover {
+  color: var(--color-text-primary);
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.mylist-tab-item.active {
+  background-color: var(--color-anilist-blue);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(61, 180, 242, 0.25);
+}
+
+.mylist-tab-count {
+  font-size: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: inherit;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  font-weight: 700;
+}
+
+.mylist-tab-item.active .mylist-tab-count {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Quick Plus Button styles */
+.quick-plus-btn {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  background: var(--color-anilist-blue);
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transition: var(--transition-smooth);
+  opacity: 0;
+  transform: translateY(4px);
+  z-index: 10;
+}
+
+.cover-wrapper:hover .quick-plus-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.quick-plus-btn:hover {
+  background: var(--color-anilist-blue-hover);
+  transform: scale(1.1) !important;
+}
+
+.row-quick-plus-btn {
+  background: rgba(61, 180, 242, 0.15);
+  color: var(--color-anilist-blue);
+  border: 1px solid rgba(61, 180, 242, 0.25);
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.row-quick-plus-btn:hover {
+  background: var(--color-anilist-blue);
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(61, 180, 242, 0.4);
+}

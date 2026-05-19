@@ -922,3 +922,337 @@ header {
     filter: drop-shadow(0 2px 8px rgba(61, 180, 242, 0.4));
   }
 }
+
+/* Interactive Detail Modal */
+.detail-modal {
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-banner {
+  height: 180px;
+  width: 100%;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.detail-banner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, var(--color-bg-card) 100%);
+}
+
+.detail-banner-placeholder {
+  height: 60px;
+  width: 100%;
+  background-color: var(--color-bg-body);
+  flex-shrink: 0;
+}
+
+.detail-header {
+  padding: 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  margin-top: -60px; /* Pull cover image up onto the banner */
+  z-index: 1;
+}
+
+.detail-cover {
+  width: 120px;
+  height: 175px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: var(--shadow-premium);
+  border: 2px solid var(--color-bg-card);
+  flex-shrink: 0;
+}
+
+.detail-header-info {
+  flex-grow: 1;
+  padding-top: 65px; /* Push info text down to align with banner overlap */
+}
+
+.detail-header-info h3 {
+  font-size: 1.5rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+}
+
+.detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.detail-badges .badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.format-badge {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+}
+
+.status-badge.finished {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #a7f3d0;
+}
+
+.status-badge.releasing {
+  background-color: rgba(61, 180, 242, 0.1);
+  color: var(--color-anilist-blue);
+}
+
+.status-badge.not_yet_released {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #fde68a;
+}
+
+.status-badge.cancelled {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+}
+
+.score-badge {
+  background-color: rgba(234, 179, 8, 0.1);
+  color: #fef08a;
+  display: flex;
+  align-items: center;
+}
+
+.detail-episodes {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.detail-close-btn {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+}
+
+.detail-close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.detail-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.detail-loading {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.detail-section h4 {
+  font-size: 1.1rem;
+  font-family: var(--font-display);
+  margin-bottom: 0.75rem;
+  color: var(--color-text-primary);
+  border-left: 3px solid var(--color-anilist-blue);
+  padding-left: 0.5rem;
+}
+
+.detail-description {
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-height: 150px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* Custom scrollbar for description */
+.detail-description::-webkit-scrollbar {
+  width: 4px;
+}
+.detail-description::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+/* Relations Grid */
+.relations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.relation-item {
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.relation-item:hover {
+  background-color: rgba(61, 180, 242, 0.05);
+  border-color: rgba(61, 180, 242, 0.2);
+  transform: translateY(-2px);
+}
+
+.relation-item img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.relation-meta {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.relation-type {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-anilist-blue);
+}
+
+.relation-title {
+  font-size: 0.8rem;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-display);
+}
+
+/* Advanced Progress Section */
+.progress-section {
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.progress-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.login-alert-text {
+  font-size: 0.8rem;
+  color: var(--color-accent-purple);
+  font-weight: 500;
+}
+
+.progress-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 600px) {
+  .progress-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .score-group {
+    grid-column: span 2;
+  }
+}
+
+.episode-counter-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.episode-max {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.btn-episode-plus {
+  background-color: var(--color-anilist-blue);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-episode-plus:hover {
+  background-color: #3598cd;
+  transform: scale(1.05);
+}
+
+.progress-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+/* Adjustments for Mobile header inside detail sheet */
+@media (max-width: 600px) {
+  .detail-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: -80px;
+  }
+  .detail-header-info {
+    padding-top: 1rem;
+  }
+  .detail-badges {
+    justify-content: center;
+  }
+  .detail-close-btn {
+    top: 1rem;
+    right: 1rem;
+  }
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus } from 'lucide-react';
 import Callback from './components/Callback';
 
 export default function App() {
@@ -38,6 +38,8 @@ export default function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [selectedAnime, setSelectedAnime] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [formStatus, setFormStatus] = useState('CURRENT');
   const [formProgress, setFormProgress] = useState(0);
@@ -281,17 +283,111 @@ export default function App() {
     }
   }, [activeTab]);
 
-  const openModal = (anime) => {
-    setSelectedAnime(anime);
-    setFormStatus('CURRENT');
-    setFormProgress(0);
-    setFormScore(10);
+  const fetchAnimeDetails = async (animeId) => {
+    setLoadingDetails(true);
+    setError('');
+    
+    // Open modal immediately and reset edit mode
     setModalOpen(true);
+    setShowEditForm(false);
+
+    // Initial placeholder while fetching details (if we find the anime in existing search results)
+    const existing = searchResults.find(a => a.id === animeId);
+    if (existing) {
+      setSelectedAnime(existing);
+      setFormStatus('CURRENT');
+      setFormProgress(0);
+      setFormScore(10);
+    }
+
+    const query = `
+      query ($id: Int) {
+        Media(id: $id, type: ANIME) {
+          id
+          title {
+            userPreferred
+          }
+          coverImage {
+            large
+          }
+          bannerImage
+          description
+          averageScore
+          format
+          status
+          episodes
+          mediaListEntry {
+            id
+            status
+            score(format: POINT_10)
+            progress
+          }
+          relations {
+            edges {
+              relationType
+              node {
+                id
+                title {
+                  userPreferred
+                }
+                coverImage {
+                  large
+                }
+                format
+                episodes
+                status
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          query,
+          variables: { id: animeId }
+        })
+      });
+
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0].message || 'Error al obtener detalles del anime.');
+      }
+
+      const media = result.data.Media;
+      setSelectedAnime(media);
+
+      // Prepopulate form if user has this in their list
+      if (media.mediaListEntry) {
+        setFormStatus(media.mediaListEntry.status || 'CURRENT');
+        setFormProgress(media.mediaListEntry.progress || 0);
+        setFormScore(media.mediaListEntry.score || 10);
+        setShowEditForm(true); // Auto-open edit mode if they already have it
+      } else {
+        setFormStatus('CURRENT');
+        setFormProgress(0);
+        setFormScore(10);
+      }
+    } catch (err) {
+      console.error('Error fetching anime details:', err);
+      setError('No se pudieron cargar los detalles del anime.');
+    } finally {
+      setLoadingDetails(false);
+    }
   };
 
   const closeModal = () => {
     setSelectedAnime(null);
     setModalOpen(false);
+    setShowEditForm(false);
   };
 
   // Save anime status & score to AniList
@@ -492,7 +588,7 @@ export default function App() {
             {searchResults.length > 0 ? (
               <div className="anime-grid">
                 {searchResults.map((anime) => (
-                  <div key={anime.id} className="anime-card" onClick={() => openModal(anime)}>
+                  <div key={anime.id} className="anime-card" onClick={() => fetchAnimeDetails(anime.id)}>
                     <img 
                       src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
                       alt={anime.title?.userPreferred} 
@@ -801,91 +897,192 @@ export default function App() {
         </nav>
       </div>
 
-      {/* ANIME LIST EDITOR MODAL */}
+      {/* ANIME DETAILS & EDITOR MODAL */}
       {modalOpen && selectedAnime && (
         <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+          <div className="modal-content detail-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Banner Image */}
+            {selectedAnime.bannerImage ? (
+              <div className="detail-banner" style={{ backgroundImage: `url(${selectedAnime.bannerImage})` }}>
+                <div className="detail-banner-overlay"></div>
+              </div>
+            ) : (
+              <div className="detail-banner-placeholder"></div>
+            )}
+
+            {/* Modal Header */}
+            <div className="detail-header">
               <img 
                 src={selectedAnime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
                 alt={selectedAnime.title?.userPreferred} 
-                className="modal-header-image"
+                className="detail-cover"
               />
-              <div className="modal-header-text">
+              <div className="detail-header-info">
                 <h3>{selectedAnime.title?.userPreferred}</h3>
-                <p>{selectedAnime.format || 'ANIME'} • {selectedAnime.episodes ? `${selectedAnime.episodes} eps` : 'Episodios totales desconocidos'}</p>
+                <div className="detail-badges">
+                  <span className="badge format-badge">{selectedAnime.format || 'ANIME'}</span>
+                  {selectedAnime.status && (
+                    <span className={`badge status-badge ${selectedAnime.status.toLowerCase()}`}>
+                      {selectedAnime.status === 'FINISHED' ? 'Finalizado' :
+                       selectedAnime.status === 'RELEASING' ? 'En Emisión' :
+                       selectedAnime.status === 'NOT_YET_RELEASED' ? 'Próximamente' :
+                       selectedAnime.status === 'CANCELLED' ? 'Cancelado' : 'En Pausa'}
+                    </span>
+                  )}
+                  {selectedAnime.averageScore && (
+                    <span className="badge score-badge">
+                      <Star size={12} fill="currentColor" style={{ marginRight: '2px' }} />
+                      {selectedAnime.averageScore}%
+                    </span>
+                  )}
+                </div>
+                <p className="detail-episodes">
+                  {selectedAnime.episodes ? `${selectedAnime.episodes} episodios` : 'Episodios totales desconocidos'}
+                </p>
               </div>
-              <button onClick={closeModal} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
+              <button onClick={closeModal} className="detail-close-btn">
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveAnime}>
-              <div className="modal-body">
-                {/* STATUS */}
-                <div className="form-group">
-                  <label className="form-label">Estado</label>
-                  <select 
-                    value={formStatus} 
-                    onChange={(e) => setFormStatus(e.target.value)}
-                    className="form-select"
-                  >
-                    <option value="CURRENT">Viendo</option>
-                    <option value="COMPLETED">Visto</option>
-                    <option value="PLANNING">Planeo Ver</option>
-                    <option value="PAUSED">En Pausa</option>
-                    <option value="DROPPED">Abandonado</option>
-                  </select>
+            {/* Modal Body */}
+            <div className="detail-body">
+              {loadingDetails ? (
+                <div className="detail-loading">
+                  <div className="loader"></div>
+                  <p>Cargando información detallada...</p>
                 </div>
-
-                {/* PROGRESS EPISODES */}
-                <div className="form-group">
-                  <label className="form-label">Episodios Vistos</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    max={selectedAnime.episodes || undefined}
-                    value={formProgress}
-                    onChange={(e) => setFormProgress(Math.min(selectedAnime.episodes || Infinity, Math.max(0, parseInt(e.target.value, 10) || 0)))}
-                    className="form-number"
-                  />
-                  {selectedAnime.episodes && (
-                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-                      Progreso máximo: {selectedAnime.episodes} episodios.
-                    </span>
+              ) : (
+                <>
+                  {/* Synopsis */}
+                  {selectedAnime.description && (
+                    <div className="detail-section">
+                      <h4>Sinopsis</h4>
+                      <div 
+                        className="detail-description"
+                        dangerouslySetInnerHTML={{ __html: selectedAnime.description }}
+                      />
+                    </div>
                   )}
-                </div>
 
-                {/* SCORE SELECTOR */}
-                <div className="form-group">
-                  <label className="form-label">Puntuación</label>
-                  <div className="score-slider-group">
-                    <input 
-                      type="range" 
-                      min="1" 
-                      max="10" 
-                      step="1"
-                      value={formScore}
-                      onChange={(e) => setFormScore(parseInt(e.target.value, 10))}
-                      className="score-slider"
-                    />
-                    <span className="score-display">
-                      <Star size={16} fill="var(--color-anilist-blue)" color="var(--color-anilist-blue)" style={{ marginRight: '0.25rem', display: 'inline', verticalAlign: 'middle' }} />
-                      {formScore}
-                    </span>
+                  {/* Relations */}
+                  {selectedAnime.relations?.edges?.filter(edge => 
+                    ['PREQUEL', 'SEQUEL', 'ALTERNATIVE'].includes(edge.relationType)
+                  ).length > 0 && (
+                    <div className="detail-section">
+                      <h4>Relaciones y Temporadas</h4>
+                      <div className="relations-grid">
+                        {selectedAnime.relations.edges
+                          .filter(edge => ['PREQUEL', 'SEQUEL', 'ALTERNATIVE'].includes(edge.relationType))
+                          .map(edge => (
+                            <div 
+                              key={edge.node.id} 
+                              className="relation-item" 
+                              onClick={() => fetchAnimeDetails(edge.node.id)}
+                            >
+                              <img 
+                                src={edge.node.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                                alt={edge.node.title?.userPreferred} 
+                              />
+                              <div className="relation-meta">
+                                <span className="relation-type">
+                                  {edge.relationType === 'PREQUEL' ? 'Precuela' : 
+                                   edge.relationType === 'SEQUEL' ? 'Secuela' : 'Alternativo'}
+                                </span>
+                                <span className="relation-title" title={edge.node.title?.userPreferred}>
+                                  {edge.node.title?.userPreferred}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* List progress editor */}
+                  <div className="detail-section progress-section">
+                    <div className="progress-section-header" onClick={() => setShowEditForm(!showEditForm)}>
+                      <h4>{selectedAnime.mediaListEntry ? '✓ En tu lista (Editar)' : '+ Añadir a tu lista'}</h4>
+                      {!token && <span className="login-alert-text">Inicia sesión para guardar</span>}
+                    </div>
+
+                    {token && (
+                      <form onSubmit={handleSaveAnime} className="progress-form">
+                        <div className="progress-form-grid">
+                          <div className="form-group">
+                            <label className="form-label">Estado</label>
+                            <select 
+                              value={formStatus} 
+                              onChange={(e) => setFormStatus(e.target.value)}
+                              className="form-select"
+                            >
+                              <option value="CURRENT">Viendo</option>
+                              <option value="COMPLETED">Visto</option>
+                              <option value="PLANNING">Planeo Ver</option>
+                              <option value="PAUSED">En Pausa</option>
+                              <option value="DROPPED">Abandonado</option>
+                            </select>
+                          </div>
+
+                          <div className="form-group">
+                            <label className="form-label">Episodios Vistos</label>
+                            <div className="episode-counter-wrapper">
+                              <input 
+                                type="number" 
+                                min="0"
+                                max={selectedAnime.episodes || undefined}
+                                value={formProgress}
+                                onChange={(e) => setFormProgress(Math.min(selectedAnime.episodes || Infinity, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+                                className="form-number"
+                                style={{ width: '80px', textAlign: 'center' }}
+                              />
+                              {selectedAnime.episodes && (
+                                <span className="episode-max">/ {selectedAnime.episodes}</span>
+                              )}
+                              <button 
+                                type="button" 
+                                onClick={() => setFormProgress(prev => Math.min(selectedAnime.episodes || Infinity, prev + 1))}
+                                className="btn-episode-plus"
+                                title="Añadir un episodio"
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                              >
+                                <Plus size={14} />
+                                1 Ep
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="form-group score-group">
+                            <label className="form-label">Puntuación</label>
+                            <div className="score-slider-group">
+                              <input 
+                                type="range" 
+                                min="1" 
+                                max="10" 
+                                step="1"
+                                value={formScore}
+                                onChange={(e) => setFormScore(parseInt(e.target.value, 10))}
+                                className="score-slider"
+                              />
+                              <span className="score-display">
+                                <Star size={16} fill="var(--color-anilist-blue)" color="var(--color-anilist-blue)" style={{ marginRight: '0.25rem', display: 'inline', verticalAlign: 'middle' }} />
+                                {formScore}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="progress-actions">
+                          <button type="submit" className="btn-primary" disabled={savingAnime}>
+                            {savingAnime ? 'Guardando...' : 'Guardar Progreso'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
                   </div>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" onClick={closeModal} className="btn-secondary" disabled={savingAnime}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-primary" disabled={savingAnime}>
-                  {savingAnime ? 'Guardando...' : 'Guardar en AniList'}
-                </button>
-              </div>
-            </form>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

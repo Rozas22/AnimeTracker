@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star } from 'lucide-react';
 import Callback from './components/Callback';
 
 export default function App() {
@@ -43,6 +43,7 @@ export default function App() {
   const [formProgress, setFormProgress] = useState(0);
   const [formScore, setFormScore] = useState(10);
   const [savingAnime, setSavingAnime] = useState(false);
+  const [activeTab, setActiveTab] = useState('profile');
 
   // Fetch AniList user profile when token is set
   useEffect(() => {
@@ -259,13 +260,196 @@ export default function App() {
       }
 
       closeModal();
-      // Trigger a profile refetch to update Statistics!
-      setRefetchTrigger(prev => prev + 1);
+      // Trigger a profile refetch to update Statistics after a small delay to let AniList update.
+      setTimeout(() => {
+        setRefetchTrigger(prev => prev + 1);
+      }, 1000);
     } catch (err) {
       console.error('Error saving anime list entry:', err);
       setError(err.message || 'Error al guardar los datos del anime.');
     } finally {
       setSavingAnime(false);
+    }
+  };
+
+  // Render active tab content
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'profile':
+        return (
+          <div className="card profile-card">
+            <div className="profile-header">
+              <img 
+                src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                alt={userData.name} 
+                className="avatar" 
+              />
+              <div className="profile-meta">
+                <h2>Bienvenido, {userData.name}</h2>
+                <p>ID de AniList: #{userData.id}</p>
+                <a 
+                  href={userData.siteUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
+                >
+                  Ver perfil en AniList.co →
+                </a>
+              </div>
+            </div>
+
+            {userData.about && (
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre mí</h3>
+                <div 
+                  style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
+                  dangerouslySetInnerHTML={{ __html: userData.about }}
+                />
+              </div>
+            )}
+
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
+              
+              <div className="stats-grid">
+                <div className="stat-item">
+                  <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
+                  <div className="stat-value">{userData.statistics?.anime?.count || 0}</div>
+                  <div className="stat-label">Anime Visto</div>
+                </div>
+
+                <div className="stat-item">
+                  <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
+                  <div className="stat-value">
+                    {Math.round((userData.statistics?.anime?.minutesWatched || 0) / 60)}
+                  </div>
+                  <div className="stat-label">Horas Vistas</div>
+                </div>
+
+                <div className="stat-item">
+                  <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                  <div className="stat-value">{userData.statistics?.manga?.count || 0}</div>
+                  <div className="stat-label">Manga Leído</div>
+                </div>
+              </div>
+            </div>
+
+            <details className="token-inspector">
+              <summary>Inspeccionar token de autenticación (Debug)</summary>
+              <code>{token}</code>
+            </details>
+          </div>
+        );
+      case 'search':
+        return (
+          <div className="search-card">
+            <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>Buscador de Anime</h2>
+            <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+              Busca series o películas de anime para agregarlas a tu lista o actualizar tu progreso.
+            </p>
+            <form onSubmit={handleSearch} className="search-input-group">
+              <input 
+                type="text" 
+                placeholder="Ej: Frieren, Shingeki no Kyojin, One Piece..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+              <button type="submit" className="btn-primary" disabled={searching}>
+                <Search size={18} />
+                {searching ? 'Buscando...' : 'Buscar'}
+              </button>
+            </form>
+
+            {/* SEARCH RESULTS */}
+            {searchResults.length > 0 && (
+              <div className="anime-grid">
+                {searchResults.map((anime) => (
+                  <div key={anime.id} className="anime-card" onClick={() => openModal(anime)}>
+                    <img 
+                      src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                      alt={anime.title?.userPreferred} 
+                      className="anime-cover"
+                    />
+                    <div className="anime-info">
+                      <span className="anime-title" title={anime.title?.userPreferred}>
+                        {anime.title?.userPreferred}
+                      </span>
+                      <div className="anime-meta">
+                        <span>{anime.format || 'ANIME'}</span>
+                        <span>{anime.episodes ? `${anime.episodes} eps` : '?' }</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {searchResults.length > 0 && (
+              <button 
+                onClick={() => { setSearchResults([]); setSearchQuery(''); }} 
+                className="btn-secondary" 
+                style={{ marginTop: '1.5rem', width: '100%' }}
+              >
+                Limpiar Resultados
+              </button>
+            )}
+          </div>
+        );
+      case 'group':
+        return (
+          <div className="friends-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>El Grupo</h2>
+              <span style={{ fontSize: '0.8rem', color: 'var(--color-anilist-blue)', backgroundColor: 'rgba(61, 180, 242, 0.1)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: '600' }}>
+                {friends.length} {friends.length === 1 ? 'miembro' : 'miembros'}
+              </span>
+            </div>
+
+            {loadingFriends ? (
+              <div style={{ textAlign: 'center', padding: '3rem 0' }}>
+                <div className="loader" style={{ width: '30px', height: '30px', margin: '0 auto 1rem auto' }}></div>
+                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Cargando amigos...</p>
+              </div>
+            ) : friends.length === 0 ? (
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', marginTop: '2rem', textAlign: 'center', lineHeight: '1.6' }}>
+                Aún no hay amigos registrados en el grupo.<br />
+                ¡Comparte el enlace de la web con tus amigos para que inicien sesión!
+              </p>
+            ) : (
+              <div className="friends-list">
+                {friends.map((friend) => (
+                  <a 
+                    key={friend.id} 
+                    href={friend.siteUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="friend-item"
+                    title="Ver perfil en AniList"
+                  >
+                    <img 
+                      src={friend.avatar || 'https://anilist.co/img/icons/icon.svg'} 
+                      alt={friend.name} 
+                      className="friend-avatar" 
+                    />
+                    <div className="friend-info">
+                      <span className="friend-name">{friend.name}</span>
+                      <span className="friend-status">
+                        Activo: {new Date(friend.updatedAt).toLocaleDateString('es-ES', { 
+                          day: 'numeric', 
+                          month: 'short', 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return null;
     }
   };
 
@@ -286,336 +470,293 @@ export default function App() {
     );
   }
 
+  // If not logged in, render Landing page
+  if (!token) {
+    return (
+      <div className="app-container">
+        <header>
+          <div className="logo-container">
+            <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="100" height="100" rx="20" fill="#0b1622" />
+              <path d="M50 15L85 75H15L50 15Z" fill="url(#grad)" />
+              <defs>
+                <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#c084fc" />
+                  <stop offset="100%" stopColor="#3db4f2" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="logo-text">AniList Friends Hub</span>
+          </div>
+        </header>
+
+        <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          {error && (
+            <div className="alert alert-error">
+              <ShieldAlert size={20} style={{ flexShrink: 0 }} />
+              <div>
+                <strong>¡Atención! </strong>
+                {error}
+              </div>
+            </div>
+          )}
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '4rem' }}>
+              <div className="loader"></div>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: '1rem' }}>Cargando...</p>
+            </div>
+          ) : (
+            <div className="card" style={{ maxWidth: '650px', margin: '0 auto', textAlign: 'center' }}>
+              <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', fontFamily: 'var(--font-display)', lineHeight: '1.2' }}>
+                Descubre y comparte tu anime con amigos
+              </h1>
+              <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem', marginBottom: '2.5rem', lineHeight: '1.6' }}>
+                Inicia sesión con tu cuenta de AniList para sincronizar tu perfil, ver tus estadísticas de anime/manga y compartir tu progreso en tiempo real.
+              </p>
+              
+              <button 
+                onClick={handleLoginClick} 
+                disabled={loading}
+                className="btn-primary"
+                style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}
+              >
+                <LogIn size={20} />
+                {loading ? 'Redirigiendo...' : 'Iniciar Sesión con AniList'}
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  // If loading userData
+  if (token && !userData) {
+    return (
+      <div className="app-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="loader"></div>
+          <p style={{ color: 'var(--color-text-secondary)', marginTop: '1rem' }}>Cargando tu perfil de AniList...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="app-container">
-      <header>
-        <div className="logo-container">
-          <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div className="app-layout">
+      {/* SIDEBAR FOR DESKTOP */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="100" height="100" rx="20" fill="#0b1622" />
-            <path d="M50 15L85 75H15L50 15Z" fill="url(#grad)" />
+            <path d="M50 15L85 75H15L50 15Z" fill="url(#grad-side)" />
             <defs>
-              <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient id="grad-side" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#c084fc" />
                 <stop offset="100%" stopColor="#3db4f2" />
               </linearGradient>
             </defs>
           </svg>
-          <span className="logo-text">AniList Friends Hub</span>
+          <span className="logo-text">AniList Hub</span>
         </div>
-        
-        {token && userData && (
-          <button onClick={handleLogout} className="btn-secondary">
+
+        <nav className="sidebar-nav">
+          <button 
+            className={`sidebar-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            <User size={18} />
+            <span>Mi Perfil</span>
+          </button>
+          
+          <button 
+            className={`sidebar-nav-item ${activeTab === 'search' ? 'active' : ''}`}
+            onClick={() => setActiveTab('search')}
+          >
+            <Search size={18} />
+            <span>Buscar Anime</span>
+          </button>
+          
+          <button 
+            className={`sidebar-nav-item ${activeTab === 'group' ? 'active' : ''}`}
+            onClick={() => setActiveTab('group')}
+          >
+            <Users size={18} />
+            <span>El Grupo</span>
+          </button>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            <img 
+              src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
+              alt={userData.name} 
+              className="sidebar-avatar"
+            />
+            <div className="sidebar-user-meta">
+              <span className="sidebar-username">{userData.name}</span>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
             <LogOut size={16} />
             Cerrar Sesión
           </button>
-        )}
-      </header>
+        </div>
+      </aside>
 
-      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        {error && (
-          <div className="alert alert-error">
-            <ShieldAlert size={20} style={{ flexShrink: 0 }} />
-            <div>
-              <strong>¡Atención! </strong>
-              {error}
-            </div>
+      <div className="app-main-content">
+        {/* MOBILE TOP BAR */}
+        <header className="mobile-header">
+          <div className="logo-container">
+            <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="100" height="100" rx="20" fill="#0b1622" />
+              <path d="M50 15L85 75H15L50 15Z" fill="url(#grad-mob)" />
+              <defs>
+                <linearGradient id="grad-mob" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#c084fc" />
+                  <stop offset="100%" stopColor="#3db4f2" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span className="logo-text">AniList Hub</span>
           </div>
-        )}
+          <button onClick={handleLogout} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+            <LogOut size={14} />
+            Salir
+          </button>
+        </header>
 
-        {loading && !userData ? (
-          <div style={{ textAlign: 'center', padding: '4rem' }}>
-            <div className="loader"></div>
-            <p style={{ color: 'var(--color-text-secondary)', marginTop: '1rem' }}>Cargando datos...</p>
-          </div>
-        ) : !token ? (
-          /* LANDING PAGE (NOT LOGGED IN) */
-          <div className="card" style={{ maxWidth: '650px', margin: '0 auto', textAlign: 'center' }}>
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '1rem', fontFamily: 'var(--font-display)', lineHeight: '1.2' }}>
-              Descubre y comparte tu anime con amigos
-            </h1>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem', marginBottom: '2.5rem', lineHeight: '1.6' }}>
-              Inicia sesión con tu cuenta de AniList para sincronizar tu perfil, ver tus estadísticas de anime/manga y compartir tu progreso en tiempo real.
-            </p>
-            
-            <button 
-              onClick={handleLoginClick} 
-              disabled={loading}
-              className="btn-primary"
-              style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}
-            >
-              <LogIn size={20} />
-              {loading ? 'Redirigiendo...' : 'Iniciar Sesión con AniList'}
-            </button>
-          </div>
-        ) : (
-          /* DASHBOARD (LOGGED IN) */
-          userData && (
-            <>
-              {/* ANIME SEARCH CARD */}
-              <div className="search-card">
-                <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', marginBottom: '0.5rem' }}>Buscador de Anime</h2>
-                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-                  Busca series o películas de anime para agregarlas a tu lista o actualizar tu progreso.
-                </p>
-                <form onSubmit={handleSearch} className="search-input-group">
-                  <input 
-                    type="text" 
-                    placeholder="Ej: Frieren, Shingeki no Kyojin, One Piece..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="search-input"
-                  />
-                  <button type="submit" className="btn-primary" disabled={searching}>
-                    <Search size={18} />
-                    {searching ? 'Buscando...' : 'Buscar'}
-                  </button>
-                </form>
-
-                {/* SEARCH RESULTS */}
-                {searchResults.length > 0 && (
-                  <div className="anime-grid">
-                    {searchResults.map((anime) => (
-                      <div key={anime.id} className="anime-card" onClick={() => openModal(anime)}>
-                        <img 
-                          src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                          alt={anime.title?.userPreferred} 
-                          className="anime-cover"
-                        />
-                        <div className="anime-info">
-                          <span className="anime-title" title={anime.title?.userPreferred}>
-                            {anime.title?.userPreferred}
-                          </span>
-                          <div className="anime-meta">
-                            <span>{anime.format || 'ANIME'}</span>
-                            <span>{anime.episodes ? `${anime.episodes} eps` : '?' }</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {searchResults.length > 0 && (
-                  <button 
-                    onClick={() => { setSearchResults([]); setSearchQuery(''); }} 
-                    className="btn-secondary" 
-                    style={{ marginTop: '1.5rem', width: '100%' }}
-                  >
-                    Limpiar Resultados
-                  </button>
-                )}
+        <main className="dashboard-content-area">
+          {error && (
+            <div className="alert alert-error">
+              <ShieldAlert size={20} style={{ flexShrink: 0 }} />
+              <div>
+                <strong>¡Atención! </strong>
+                {error}
               </div>
+            </div>
+          )}
 
-              {/* SPLIT DASHBOARD LAYOUT */}
-              <div className="dashboard-layout">
-                {/* LEFT COLUMN: USER PROFILE */}
-                <div className="card profile-card">
-                  <div className="profile-header">
-                    <img 
-                      src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                      alt={userData.name} 
-                      className="avatar" 
-                    />
-                    <div className="profile-meta">
-                      <h2>Bienvenido, {userData.name}</h2>
-                      <p>ID de AniList: #{userData.id}</p>
-                      <a 
-                        href={userData.siteUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
-                      >
-                        Ver perfil en AniList.co →
-                      </a>
-                    </div>
-                  </div>
+          {renderContent()}
+        </main>
 
-                  {userData.about && (
-                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
-                      <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre mí</h3>
-                      <div 
-                        style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
-                        dangerouslySetInnerHTML={{ __html: userData.about }}
-                      />
-                    </div>
-                  )}
+        {/* MOBILE BOTTOM NAVIGATION BAR */}
+        <nav className="bottom-nav">
+          <button 
+            className={`bottom-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
+            onClick={() => setActiveTab('profile')}
+          >
+            <User size={20} />
+            <span>Perfil</span>
+          </button>
+          
+          <button 
+            className={`bottom-nav-item ${activeTab === 'search' ? 'active' : ''}`}
+            onClick={() => setActiveTab('search')}
+          >
+            <Search size={20} />
+            <span>Buscar</span>
+          </button>
+          
+          <button 
+            className={`bottom-nav-item ${activeTab === 'group' ? 'active' : ''}`}
+            onClick={() => setActiveTab('group')}
+          >
+            <Users size={20} />
+            <span>Grupo</span>
+          </button>
+        </nav>
+      </div>
 
-                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
-                    <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
-                    
-                    <div className="stats-grid">
-                      <div className="stat-item">
-                        <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                        <div className="stat-value">{userData.statistics?.anime?.count || 0}</div>
-                        <div className="stat-label">Anime Visto</div>
-                      </div>
+      {/* ANIME LIST EDITOR MODAL */}
+      {modalOpen && selectedAnime && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <img 
+                src={selectedAnime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                alt={selectedAnime.title?.userPreferred} 
+                className="modal-header-image"
+              />
+              <div className="modal-header-text">
+                <h3>{selectedAnime.title?.userPreferred}</h3>
+                <p>{selectedAnime.format || 'ANIME'} • {selectedAnime.episodes ? `${selectedAnime.episodes} eps` : 'Episodios totales desconocidos'}</p>
+              </div>
+              <button onClick={closeModal} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
+            </div>
 
-                      <div className="stat-item">
-                        <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
-                        <div className="stat-value">
-                          {Math.round((userData.statistics?.anime?.minutesWatched || 0) / 60)}
-                        </div>
-                        <div className="stat-label">Horas Vistas</div>
-                      </div>
-
-                      <div className="stat-item">
-                        <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                        <div className="stat-value">{userData.statistics?.manga?.count || 0}</div>
-                        <div className="stat-label">Manga Leído</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <details className="token-inspector">
-                    <summary>Inspeccionar token de autenticación (Debug)</summary>
-                    <code>{token}</code>
-                  </details>
+            <form onSubmit={handleSaveAnime}>
+              <div className="modal-body">
+                {/* STATUS */}
+                <div className="form-group">
+                  <label className="form-label">Estado</label>
+                  <select 
+                    value={formStatus} 
+                    onChange={(e) => setFormStatus(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="CURRENT">Viendo</option>
+                    <option value="COMPLETED">Visto</option>
+                    <option value="PLANNING">Planeo Ver</option>
+                    <option value="PAUSED">En Pausa</option>
+                    <option value="DROPPED">Abandonado</option>
+                  </select>
                 </div>
 
-                {/* RIGHT COLUMN: FRIENDS CARD ("EL GRUPO") */}
-                <div className="friends-card">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '1rem' }}>
-                    <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>El Grupo</h2>
-                    <span style={{ fontSize: '0.8rem', color: 'var(--color-anilist-blue)', backgroundColor: 'rgba(61, 180, 242, 0.1)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: '600' }}>
-                      {friends.length} {friends.length === 1 ? 'miembro' : 'miembros'}
+                {/* PROGRESS EPISODES */}
+                <div className="form-group">
+                  <label className="form-label">Episodios Vistos</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    max={selectedAnime.episodes || undefined}
+                    value={formProgress}
+                    onChange={(e) => setFormProgress(Math.min(selectedAnime.episodes || Infinity, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+                    className="form-number"
+                  />
+                  {selectedAnime.episodes && (
+                    <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
+                      Progreso máximo: {selectedAnime.episodes} episodios.
+                    </span>
+                  )}
+                </div>
+
+                {/* SCORE SELECTOR */}
+                <div className="form-group">
+                  <label className="form-label">Puntuación</label>
+                  <div className="score-slider-group">
+                    <input 
+                      type="range" 
+                      min="1" 
+                      max="10" 
+                      step="1"
+                      value={formScore}
+                      onChange={(e) => setFormScore(parseInt(e.target.value, 10))}
+                      className="score-slider"
+                    />
+                    <span className="score-display">
+                      <Star size={16} fill="var(--color-anilist-blue)" color="var(--color-anilist-blue)" style={{ marginRight: '0.25rem', display: 'inline', verticalAlign: 'middle' }} />
+                      {formScore}
                     </span>
                   </div>
-
-                  {loadingFriends ? (
-                    <div style={{ textAlign: 'center', padding: '3rem 0' }}>
-                      <div className="loader" style={{ width: '30px', height: '30px', margin: '0 auto 1rem auto' }}></div>
-                      <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Cargando amigos...</p>
-                    </div>
-                  ) : friends.length === 0 ? (
-                    <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', marginTop: '2rem', textAlign: 'center', lineHeight: '1.6' }}>
-                      Aún no hay amigos registrados en el grupo.<br />
-                      ¡Comparte el enlace de la web con tus amigos para que inicien sesión!
-                    </p>
-                  ) : (
-                    <div className="friends-list">
-                      {friends.map((friend) => (
-                        <a 
-                          key={friend.id} 
-                          href={friend.siteUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="friend-item"
-                          title="Ver perfil en AniList"
-                        >
-                          <img 
-                            src={friend.avatar || 'https://anilist.co/img/icons/icon.svg'} 
-                            alt={friend.name} 
-                            className="friend-avatar" 
-                          />
-                          <div className="friend-info">
-                            <span className="friend-name">{friend.name}</span>
-                            <span className="friend-status">
-                              Activo: {new Date(friend.updatedAt).toLocaleDateString('es-ES', { 
-                                day: 'numeric', 
-                                month: 'short', 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}
-                            </span>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  )}
                 </div>
               </div>
 
-              {/* ANIME LIST EDITOR MODAL */}
-              {modalOpen && selectedAnime && (
-                <div className="modal-overlay" onClick={closeModal}>
-                  <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                    <div className="modal-header">
-                      <img 
-                        src={selectedAnime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                        alt={selectedAnime.title?.userPreferred} 
-                        className="modal-header-image"
-                      />
-                      <div className="modal-header-text">
-                        <h3>{selectedAnime.title?.userPreferred}</h3>
-                        <p>{selectedAnime.format || 'ANIME'} • {selectedAnime.episodes ? `${selectedAnime.episodes} eps` : 'Episodios totales desconocidos'}</p>
-                      </div>
-                      <button onClick={closeModal} style={{ background: 'none', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer' }}>
-                        <X size={20} />
-                      </button>
-                    </div>
-
-                    <form onSubmit={handleSaveAnime}>
-                      <div className="modal-body">
-                        {/* STATUS */}
-                        <div className="form-group">
-                          <label className="form-label">Estado</label>
-                          <select 
-                            value={formStatus} 
-                            onChange={(e) => setFormStatus(e.target.value)}
-                            className="form-select"
-                          >
-                            <option value="CURRENT">Viendo</option>
-                            <option value="COMPLETED">Visto</option>
-                            <option value="PLANNING">Planeo Ver</option>
-                            <option value="PAUSED">En Pausa</option>
-                            <option value="DROPPED">Abandonado</option>
-                          </select>
-                        </div>
-
-                        {/* PROGRESS EPISODES */}
-                        <div className="form-group">
-                          <label className="form-label">Episodios Vistos</label>
-                          <input 
-                            type="number" 
-                            min="0"
-                            max={selectedAnime.episodes || undefined}
-                            value={formProgress}
-                            onChange={(e) => setFormProgress(Math.min(selectedAnime.episodes || Infinity, Math.max(0, parseInt(e.target.value, 10) || 0)))}
-                            className="form-number"
-                          />
-                          {selectedAnime.episodes && (
-                            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', marginTop: '0.25rem' }}>
-                              Progreso máximo: {selectedAnime.episodes} episodios.
-                            </span>
-                          )}
-                        </div>
-
-                        {/* SCORE SELECTOR */}
-                        <div className="form-group">
-                          <label className="form-label">Puntuación</label>
-                          <div className="score-slider-group">
-                            <input 
-                              type="range" 
-                              min="1" 
-                              max="10" 
-                              step="1"
-                              value={formScore}
-                              onChange={(e) => setFormScore(parseInt(e.target.value, 10))}
-                              className="score-slider"
-                            />
-                            <span className="score-display">
-                              <Star size={16} fill="var(--color-anilist-blue)" color="var(--color-anilist-blue)" style={{ marginRight: '0.25rem', display: 'inline', verticalAlign: 'middle' }} />
-                              {formScore}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="modal-footer">
-                        <button type="button" onClick={closeModal} className="btn-secondary" disabled={savingAnime}>
-                          Cancelar
-                        </button>
-                        <button type="submit" className="btn-primary" disabled={savingAnime}>
-                          {savingAnime ? 'Guardando...' : 'Guardar en AniList'}
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
-            </>
-          )
-        )}
-      </main>
+              <div className="modal-footer">
+                <button type="button" onClick={closeModal} className="btn-secondary" disabled={savingAnime}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary" disabled={savingAnime}>
+                  {savingAnime ? 'Guardando...' : 'Guardar en AniList'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

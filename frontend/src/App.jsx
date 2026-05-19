@@ -178,8 +178,8 @@ export default function App() {
       variables.search = searchVal.trim();
       filterParts.push('search: $search');
     } else {
-      variables.sort = 'POPULARITY_DESC';
-      filterParts.push('sort: [$sort]');
+      variables.sort = ['POPULARITY_DESC'];
+      filterParts.push('sort: $sort');
     }
 
     if (selectedFormat) {
@@ -188,8 +188,8 @@ export default function App() {
     }
 
     if (selectedGenre) {
-      variables.genre = selectedGenre;
-      filterParts.push('genre: $genre');
+      variables.genre = [selectedGenre];
+      filterParts.push('genre_in: $genre');
     }
 
     const filterString = filterParts.length ? `(${filterParts.join(', ')}, type: ANIME)` : '(type: ANIME)';
@@ -197,7 +197,7 @@ export default function App() {
     const queryArgs = [
       searchVal.trim() ? '$search: String' : '',
       selectedFormat ? '$format: MediaFormat' : '',
-      selectedGenre ? '$genre: String' : '',
+      selectedGenre ? '$genre: [String]' : '',
       !searchVal.trim() ? '$sort: [MediaSort]' : ''
     ].filter(Boolean).join(', ');
 

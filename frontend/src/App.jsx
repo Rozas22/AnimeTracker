@@ -338,8 +338,8 @@ export default function App() {
     ].filter(Boolean).join(', ');
 
     const query = queryArgs 
-      ? `query (${queryArgs}) { Page(page: 1, perPage: 12) { media ${filterString} { id title { userPreferred } coverImage { large } episodes format } } }`
-      : `query { Page(page: 1, perPage: 12) { media (type: ANIME) { id title { userPreferred } coverImage { large } episodes format } } }`;
+      ? `query (${queryArgs}) { Page(page: 1, perPage: 12) { media ${filterString} { id title { userPreferred } coverImage { large } episodes format status } } }`
+      : `query { Page(page: 1, perPage: 12) { media (type: ANIME) { id title { userPreferred } coverImage { large } episodes format status } } }`;
 
     try {
       const response = await fetch('https://graphql.anilist.co', {
@@ -591,6 +591,9 @@ export default function App() {
                   if (!anime) return null;
                   return (
                     <div key={item.id} className="anime-card" onClick={() => fetchAnimeDetails(anime.id)}>
+                      {anime.status && (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') && (
+                        <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En Emisión' : 'Próximamente'} />
+                      )}
                       <img 
                         src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
                         alt={anime.title?.userPreferred} 
@@ -768,6 +771,9 @@ export default function App() {
               <div className="anime-grid">
                 {searchResults.map((anime) => (
                   <div key={anime.id} className="anime-card" onClick={() => fetchAnimeDetails(anime.id)}>
+                    {anime.status && (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') && (
+                      <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En Emisión' : 'Próximamente'} />
+                    )}
                     <img 
                       src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
                       alt={anime.title?.userPreferred} 

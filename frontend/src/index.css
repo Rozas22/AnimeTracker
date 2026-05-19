@@ -519,6 +519,7 @@ header {
 }
 
 .anime-card {
+  position: relative;
   background-color: rgba(255, 255, 255, 0.015);
   border: 1px solid rgba(255, 255, 255, 0.03);
   border-radius: 12px;
@@ -1309,5 +1310,40 @@ header {
   to {
     opacity: 0;
     transform: translateY(10px) scale(0.95);
+  }
+}
+
+/* Anime Live Status Indicators */
+.status-indicator {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+}
+
+.status-indicator.releasing {
+  background-color: #10b981;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  animation: pulseGreen 2s infinite;
+}
+
+.status-indicator.not_yet_released {
+  background-color: #ef4444;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+@keyframes pulseGreen {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
   }
 }

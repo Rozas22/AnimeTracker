@@ -301,3 +301,107 @@ header {
   border: 1px solid rgba(59, 130, 246, 0.2);
   color: #bfdbfe;
 }
+
+/* Dashboard & Friends Layout styles */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (min-width: 992px) {
+  .dashboard-layout {
+    grid-template-columns: 1.4fr 1fr;
+  }
+}
+
+.friends-card {
+  background-color: var(--color-bg-card);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: var(--shadow-premium);
+  transition: var(--transition-smooth);
+}
+
+.friends-card:hover {
+  border-color: rgba(61, 180, 242, 0.2);
+}
+
+.friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+/* Custom scrollbar for friends list */
+.friends-list::-webkit-scrollbar {
+  width: 6px;
+}
+.friends-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+.friends-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+.friends-list::-webkit-scrollbar-thumb:hover {
+  background: var(--color-anilist-blue);
+}
+
+.friend-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition-smooth);
+}
+
+.friend-item:hover {
+  background-color: var(--color-bg-card-hover);
+  border-color: rgba(61, 180, 242, 0.2);
+  transform: translateX(4px);
+}
+
+.friend-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: var(--transition-smooth);
+}
+
+.friend-item:hover .friend-avatar {
+  border-color: var(--color-anilist-blue);
+}
+
+.friend-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex-grow: 1;
+}
+
+.friend-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+}
+
+.friend-status {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}

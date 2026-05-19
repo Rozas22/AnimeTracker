@@ -8,6 +8,30 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isCallback, setIsCallback] = useState(window.location.pathname === '/callback');
+  const [friends, setFriends] = useState([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
+
+  // Fetch all friends who have logged in
+  const fetchFriends = async () => {
+    setLoadingFriends(true);
+    try {
+      const response = await fetch('/api/friends');
+      if (!response.ok) {
+        throw new Error('No se pudo obtener la lista de amigos.');
+      }
+      const data = await response.json();
+      setFriends(data);
+    } catch (err) {
+      console.error('Error fetching friends list:', err);
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
+  // Fetch friends list whenever token changes (e.g. login/logout)
+  useEffect(() => {
+    fetchFriends();
+  }, [token]);
 
   // Fetch AniList user profile when token is set
   useEffect(() => {
@@ -207,67 +231,122 @@ export default function App() {
         ) : (
           /* DASHBOARD (LOGGED IN) */
           userData && (
-            <div className="card profile-card">
-              <div className="profile-header">
-                <img 
-                  src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                  alt={userData.name} 
-                  className="avatar" 
-                />
-                <div className="profile-meta">
-                  <h2>Bienvenido, {userData.name}</h2>
-                  <p>ID de AniList: #{userData.id}</p>
-                  <a 
-                    href={userData.siteUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
-                  >
-                    Ver perfil en AniList.co →
-                  </a>
-                </div>
-              </div>
-
-              {userData.about && (
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre mí</h3>
-                  <div 
-                    style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
-                    dangerouslySetInnerHTML={{ __html: userData.about }}
+            <div className="dashboard-layout">
+              {/* LEFT COLUMN: USER PROFILE */}
+              <div className="card profile-card">
+                <div className="profile-header">
+                  <img 
+                    src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                    alt={userData.name} 
+                    className="avatar" 
                   />
-                </div>
-              )}
-
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
-                
-                <div className="stats-grid">
-                  <div className="stat-item">
-                    <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                    <div className="stat-value">{userData.statistics?.anime?.count || 0}</div>
-                    <div className="stat-label">Anime Visto</div>
+                  <div className="profile-meta">
+                    <h2>Bienvenido, {userData.name}</h2>
+                    <p>ID de AniList: #{userData.id}</p>
+                    <a 
+                      href={userData.siteUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
+                    >
+                      Ver perfil en AniList.co →
+                    </a>
                   </div>
+                </div>
 
-                  <div className="stat-item">
-                    <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
-                    <div className="stat-value">
-                      {Math.round((userData.statistics?.anime?.minutesWatched || 0) / 60)}
+                {userData.about && (
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre mí</h3>
+                    <div 
+                      style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
+                      dangerouslySetInnerHTML={{ __html: userData.about }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
+                  
+                  <div className="stats-grid">
+                    <div className="stat-item">
+                      <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
+                      <div className="stat-value">{userData.statistics?.anime?.count || 0}</div>
+                      <div className="stat-label">Anime Visto</div>
                     </div>
-                    <div className="stat-label">Horas Vistas</div>
-                  </div>
 
-                  <div className="stat-item">
-                    <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                    <div className="stat-value">{userData.statistics?.manga?.count || 0}</div>
-                    <div className="stat-label">Manga Leído</div>
+                    <div className="stat-item">
+                      <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
+                      <div className="stat-value">
+                        {Math.round((userData.statistics?.anime?.minutesWatched || 0) / 60)}
+                      </div>
+                      <div className="stat-label">Horas Vistas</div>
+                    </div>
+
+                    <div className="stat-item">
+                      <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                      <div className="stat-value">{userData.statistics?.manga?.count || 0}</div>
+                      <div className="stat-label">Manga Leído</div>
+                    </div>
                   </div>
                 </div>
+
+                <details className="token-inspector">
+                  <summary>Inspeccionar token de autenticación (Debug)</summary>
+                  <code>{token}</code>
+                </details>
               </div>
 
-              <details className="token-inspector">
-                <summary>Inspeccionar token de autenticación (Debug)</summary>
-                <code>{token}</code>
-              </details>
+              {/* RIGHT COLUMN: FRIENDS CARD ("EL GRUPO") */}
+              <div className="friends-card">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '1rem' }}>
+                  <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>El Grupo</h2>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-anilist-blue)', backgroundColor: 'rgba(61, 180, 242, 0.1)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: '600' }}>
+                    {friends.length} {friends.length === 1 ? 'miembro' : 'miembros'}
+                  </span>
+                </div>
+
+                {loadingFriends ? (
+                  <div style={{ textAlign: 'center', padding: '3rem 0' }}>
+                    <div className="loader" style={{ width: '30px', height: '30px', margin: '0 auto 1rem auto' }}></div>
+                    <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Cargando amigos...</p>
+                  </div>
+                ) : friends.length === 0 ? (
+                  <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', marginTop: '2rem', textAlign: 'center', lineHeight: '1.6' }}>
+                    Aún no hay amigos registrados en el grupo.<br />
+                    ¡Comparte el enlace de la web con tus amigos para que inicien sesión!
+                  </p>
+                ) : (
+                  <div className="friends-list">
+                    {friends.map((friend) => (
+                      <a 
+                        key={friend.id} 
+                        href={friend.siteUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="friend-item"
+                        title="Ver perfil en AniList"
+                      >
+                        <img 
+                          src={friend.avatar || 'https://anilist.co/img/icons/icon.svg'} 
+                          alt={friend.name} 
+                          className="friend-avatar" 
+                        />
+                        <div className="friend-info">
+                          <span className="friend-name">{friend.name}</span>
+                          <span className="friend-status">
+                            Activo: {new Date(friend.updatedAt).toLocaleDateString('es-ES', { 
+                              day: 'numeric', 
+                              month: 'short', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )
         )}

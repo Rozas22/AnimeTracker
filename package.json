@@ -9,5 +9,8 @@
     "build-frontend": "npm run build --prefix frontend",
     "build": "npm run install-backend && npm run install-frontend && npm run build-frontend",
     "start": "npm start --prefix backend"
+  },
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
   }
 }

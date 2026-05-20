@@ -1,0 +1,22 @@
+{
+  "short_name": "AniList Hub",
+  "name": "AniList Friends Hub",
+  "description": "Sincroniza tu perfil, estadísticas y comparte tu progreso de anime en tiempo real con amigos.",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0b1622",
+  "theme_color": "#3db4f2",
+  "display": "standalone",
+  "orientation": "portrait"
+}

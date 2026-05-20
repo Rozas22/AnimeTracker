@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download } from 'lucide-react';
 import Callback from './components/Callback';
 
 export default function App() {
@@ -10,6 +10,8 @@ export default function App() {
   const [isCallback, setIsCallback] = useState(window.location.pathname === '/callback');
   const [friends, setFriends] = useState([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
 
   // Fetch all friends who have logged in
   const fetchFriends = async () => {
@@ -32,6 +34,32 @@ export default function App() {
   useEffect(() => {
     fetchFriends();
   }, [token]);
+
+  // Listen for PWA installation prompt
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
+      if (isMobileDevice) {
+        setShowInstallBtn(true);
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    const handleAppInstalled = () => {
+      console.log('PWA instalada correctamente.');
+      setDeferredPrompt(null);
+      setShowInstallBtn(false);
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -186,6 +214,20 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTabClick = (tabName) => {
+    setActiveTab(tabName);
+    refreshUserData();
+  };
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`Elección de instalación: ${outcome}`);
+    setDeferredPrompt(null);
+    setShowInstallBtn(false);
   };
 
   const handleQuickIncrement = async (entry, e) => {
@@ -816,7 +858,7 @@ export default function App() {
                 </button>
                 <button 
                   className="btn-secondary" 
-                  onClick={() => setActiveTab('profile')}
+                  onClick={() => handleTabClick('profile')}
                   style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
                 >
                   Volver al Perfil
@@ -862,7 +904,7 @@ export default function App() {
                 <p>No tienes ningún anime en esta sección de tu lista.</p>
                 <button 
                   className="btn-primary" 
-                  onClick={() => setActiveTab('search')}
+                  onClick={() => handleTabClick('search')}
                   style={{ marginTop: '1.25rem' }}
                 >
                   Buscar Animes para Añadir
@@ -1027,7 +1069,7 @@ export default function App() {
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
               
               <div className="stats-grid">
-                <div className="stat-item clickable" onClick={() => { setActiveTab('mylist'); setMylistSubTab('COMPLETED'); }} style={{ cursor: 'pointer' }}>
+                <div className="stat-item clickable" onClick={() => { handleTabClick('mylist'); setMylistSubTab('COMPLETED'); }} style={{ cursor: 'pointer' }}>
                   <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
                   <div className="stat-value">{completedAnime.filter(e => e.status === 'COMPLETED').length}</div>
                   <div className="stat-label">Animes Vistos</div>
@@ -1328,15 +1370,28 @@ export default function App() {
                 Inicia sesión con tu cuenta de AniList para sincronizar tu perfil, ver tus estadísticas de anime/manga y compartir tu progreso en tiempo real.
               </p>
               
-              <button 
-                onClick={handleLoginClick} 
-                disabled={loading}
-                className="btn-primary"
-                style={{ padding: '1rem 2rem', fontSize: '1.1rem' }}
-              >
-                <LogIn size={20} />
-                {loading ? 'Redirigiendo...' : 'Iniciar Sesión con AniList'}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', marginTop: '1.5rem' }}>
+                <button 
+                  onClick={handleLoginClick} 
+                  disabled={loading}
+                  className="btn-primary"
+                  style={{ padding: '1rem 2rem', fontSize: '1.1rem', width: '100%', maxWidth: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <LogIn size={20} />
+                  {loading ? 'Redirigiendo...' : 'Iniciar Sesión con AniList'}
+                </button>
+                
+                {showInstallBtn && (
+                  <button 
+                    onClick={handleInstallApp} 
+                    className="btn-secondary"
+                    style={{ padding: '0.8rem 1.5rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(255,255,255,0.15)', width: '100%', maxWidth: '320px', justifyContent: 'center' }}
+                  >
+                    <Download size={18} />
+                    Instalar Aplicación
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </main>
@@ -1377,7 +1432,7 @@ export default function App() {
         <nav className="sidebar-nav">
           <button 
             className={`sidebar-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
+            onClick={() => handleTabClick('profile')}
           >
             <User size={18} />
             <span>Mi Perfil</span>
@@ -1385,7 +1440,7 @@ export default function App() {
           
           <button 
             className={`sidebar-nav-item ${activeTab === 'mylist' ? 'active' : ''}`}
-            onClick={() => setActiveTab('mylist')}
+            onClick={() => handleTabClick('mylist')}
           >
             <List size={18} />
             <span>Mi Lista</span>
@@ -1393,7 +1448,7 @@ export default function App() {
           
           <button 
             className={`sidebar-nav-item ${activeTab === 'search' ? 'active' : ''}`}
-            onClick={() => setActiveTab('search')}
+            onClick={() => handleTabClick('search')}
           >
             <Search size={18} />
             <span>Buscar Anime</span>
@@ -1401,7 +1456,7 @@ export default function App() {
           
           <button 
             className={`sidebar-nav-item ${activeTab === 'group' ? 'active' : ''}`}
-            onClick={() => setActiveTab('group')}
+            onClick={() => handleTabClick('group')}
           >
             <Users size={18} />
             <span>El Grupo</span>
@@ -1442,10 +1497,22 @@ export default function App() {
             </svg>
             <span className="logo-text">AniList Hub</span>
           </div>
-          <button onClick={handleLogout} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-            <LogOut size={14} />
-            Salir
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {showInstallBtn && (
+              <button 
+                onClick={handleInstallApp} 
+                className="btn-primary" 
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', background: 'var(--color-accent-purple)', display: 'flex', alignItems: 'center', gap: '0.25rem', border: 'none' }}
+              >
+                <Download size={14} />
+                Instalar
+              </button>
+            )}
+            <button onClick={handleLogout} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+              <LogOut size={14} />
+              Salir
+            </button>
+          </div>
         </header>
 
         <main className="dashboard-content-area">
@@ -1466,7 +1533,7 @@ export default function App() {
         <nav className="bottom-nav">
           <button 
             className={`bottom-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-            onClick={() => setActiveTab('profile')}
+            onClick={() => handleTabClick('profile')}
           >
             <User size={20} />
             <span>Perfil</span>
@@ -1474,7 +1541,7 @@ export default function App() {
           
           <button 
             className={`bottom-nav-item ${activeTab === 'mylist' ? 'active' : ''}`}
-            onClick={() => setActiveTab('mylist')}
+            onClick={() => handleTabClick('mylist')}
           >
             <List size={20} />
             <span>Lista</span>
@@ -1482,7 +1549,7 @@ export default function App() {
           
           <button 
             className={`bottom-nav-item ${activeTab === 'search' ? 'active' : ''}`}
-            onClick={() => setActiveTab('search')}
+            onClick={() => handleTabClick('search')}
           >
             <Search size={20} />
             <span>Buscar</span>
@@ -1490,7 +1557,7 @@ export default function App() {
           
           <button 
             className={`bottom-nav-item ${activeTab === 'group' ? 'active' : ''}`}
-            onClick={() => setActiveTab('group')}
+            onClick={() => handleTabClick('group')}
           >
             <Users size={20} />
             <span>Grupo</span>

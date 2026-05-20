@@ -42,15 +42,61 @@ async function authenticateToken(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Token requerido para autenticación.' });
   
   try {
+    // Verify the token directly against AniList — this is the source of truth.
+    // This makes auth resilient to database resets (e.g. Render ephemeral filesystem).
+    const anilistResponse = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `query { Viewer { id name avatar { large } siteUrl } }`
+      })
+    });
+
+    if (!anilistResponse.ok) {
+      return res.status(401).json({ error: 'Token inválido o sesión caducada.' });
+    }
+
+    const anilistData = await anilistResponse.json();
+    if (!anilistData?.data?.Viewer) {
+      return res.status(401).json({ error: 'Token inválido o sesión caducada.' });
+    }
+
+    const viewer = anilistData.data.Viewer;
+
+    // Upsert user in local DB so relationships work correctly
     await initDatabase();
     const dbContent = await fs.readFile(DB_PATH, 'utf-8');
     const db = JSON.parse(dbContent || '{"users":[],"relationships":[]}');
-    const users = Array.isArray(db) ? db : db.users; // safety fallback
-    
-    const user = users.find(u => u.access_token === token);
-    if (!user) return res.status(401).json({ error: 'Token inválido o sesión caducada.' });
-    
-    req.user = user; 
+    const users = Array.isArray(db) ? db : db.users;
+
+    const existingIndex = users.findIndex(u => u.id === viewer.id);
+    const userRecord = {
+      id: viewer.id,
+      name: viewer.name,
+      avatar: viewer.avatar?.large || '',
+      siteUrl: viewer.siteUrl || '',
+      access_token: token,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (existingIndex > -1) {
+      users[existingIndex] = userRecord;
+    } else {
+      users.push(userRecord);
+    }
+
+    if (Array.isArray(db)) {
+      await fs.writeFile(DB_PATH, JSON.stringify({ users, relationships: [] }, null, 2), 'utf-8');
+    } else {
+      db.users = users;
+      await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
+    }
+
+    req.user = userRecord;
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);

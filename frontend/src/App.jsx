@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download } from 'lucide-react';
 import Callback from './components/Callback';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 export default function App() {
   const getInitialRouteInfo = () => {
     const path = window.location.pathname;
@@ -46,7 +48,7 @@ export default function App() {
   const fetchFriends = async () => {
     setLoadingFriends(true);
     try {
-      const response = await fetch('/api/friends');
+      const response = await fetch(`${API_BASE_URL}/api/friends`);
       if (!response.ok) {
         throw new Error('No se pudo obtener la lista de amigos.');
       }
@@ -67,7 +69,7 @@ export default function App() {
     setFriendAddError('');
 
     try {
-      const response = await fetch('/api/friends/add', {
+      const response = await fetch(`${API_BASE_URL}/api/friends/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -532,7 +534,7 @@ export default function App() {
     const nextStatus = nextProgress === totalEpisodes ? 'COMPLETED' : entry.status;
     
     try {
-      const response = await fetch('/api/anime/save', {
+      const response = await fetch(`${API_BASE_URL}/api/anime/save`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -729,7 +731,7 @@ export default function App() {
     setError('');
     try {
       // Get OAuth config from backend to construct redirect URL
-      const response = await fetch('/api/auth/config');
+      const response = await fetch(`${API_BASE_URL}/api/auth/config`);
       if (!response.ok) {
         throw new Error('No se pudo obtener la configuración de autenticación del backend.');
       }
@@ -1078,7 +1080,7 @@ export default function App() {
     setError('');
 
     try {
-      const response = await fetch('/api/anime/save', {
+      const response = await fetch(`${API_BASE_URL}/api/anime/save`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

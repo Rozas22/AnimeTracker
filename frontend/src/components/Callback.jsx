@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Loader, AlertTriangle, CheckCircle } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 export default function Callback({ onTokenSuccess, onTokenError }) {
   const [status, setStatus] = useState('exchanging'); // 'exchanging' | 'success' | 'error'
   const [errorMessage, setErrorMessage] = useState('');
@@ -26,7 +28,7 @@ export default function Callback({ onTokenSuccess, onTokenError }) {
     // Exchange the code for the token
     const exchangeCode = async () => {
       try {
-        const response = await fetch('/api/auth/token', {
+        const response = await fetch(`${API_BASE_URL}/api/auth/token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

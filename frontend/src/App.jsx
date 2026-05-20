@@ -50,6 +50,9 @@ export default function App() {
   const [translatedDescription, setTranslatedDescription] = useState(null);
   const [translatingDesc, setTranslatingDesc] = useState(false);
 
+  // Mobile Settings Modal state
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
   // Theme
   const { accentColor, setAccentColor, styleMode, setStyleMode } = useTheme();
 
@@ -1717,7 +1720,11 @@ export default function App() {
       }
       case 'profile':
         return (
-          <div className="card profile-card">
+          <div className="card profile-card" style={{ position: 'relative' }}>
+            {/* Mobile Settings FAB */}
+            <button className="mobile-settings-fab" onClick={() => setShowSettingsModal(true)}>
+              <Settings size={20} />
+            </button>
             {/* LEFT COLUMN: identity + aesthetics */}
             <div className="profile-col-left">
               <div className="profile-header">
@@ -1775,6 +1782,45 @@ export default function App() {
                   />
                 </div>
               )}
+
+              {/* ─── VIENDO AHORA (Movido a columna izquierda) ─── */}
+              {(() => {
+                const watching = completedAnime
+                  .filter(e => e.status === 'CURRENT')
+                  .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+                if (!watching) return null;
+                const pct = watching.media?.episodes
+                  ? Math.round((watching.progress / watching.media.episodes) * 100)
+                  : null;
+                return (
+                  <div className="profile-now-card">
+                    <div className="profile-now-badge">
+                      <Play size={12} style={{ marginRight: '4px' }} /> VIENDO AHORA
+                    </div>
+                    <div className="profile-now-body">
+                      <img
+                        src={watching.media?.coverImage?.large}
+                        alt={watching.media?.title?.userPreferred}
+                        className="profile-now-cover"
+                        onClick={() => { handleTabClick('mylist'); setMylistSubTab('CURRENT'); }}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <div className="profile-now-info">
+                        <p className="profile-now-title">{watching.media?.title?.userPreferred}</p>
+                        <p className="profile-now-progress">
+                          Episodio {watching.progress}{watching.media?.episodes ? ` / ${watching.media.episodes}` : ''}
+                        </p>
+                        {pct !== null && (
+                          <div className="profile-now-bar-track">
+                            <div className="profile-now-bar-fill" style={{ width: `${Math.min(pct, 100)}%` }} />
+                          </div>
+                        )}
+                        <p className="profile-now-pct">{pct !== null ? `${pct}% completado` : 'En progreso'}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* RIGHT COLUMN: stats */}
@@ -1822,45 +1868,6 @@ export default function App() {
             </div>
 
             {/* Token inspector removed */}
-
-            {/* ─── VIENDO AHORA ───────────────────────────────── */}
-            {(() => {
-              const watching = completedAnime
-                .filter(e => e.status === 'CURRENT')
-                .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
-              if (!watching) return null;
-              const pct = watching.media?.episodes
-                ? Math.round((watching.progress / watching.media.episodes) * 100)
-                : null;
-              return (
-                <div className="profile-now-card">
-                  <div className="profile-now-badge">
-                    <Play size={12} style={{ marginRight: '4px' }} /> VIENDO AHORA
-                  </div>
-                  <div className="profile-now-body">
-                    <img
-                      src={watching.media?.coverImage?.large}
-                      alt={watching.media?.title?.userPreferred}
-                      className="profile-now-cover"
-                      onClick={() => { handleTabClick('mylist'); setMylistSubTab('CURRENT'); }}
-                      style={{ cursor: 'pointer' }}
-                    />
-                    <div className="profile-now-info">
-                      <p className="profile-now-title">{watching.media?.title?.userPreferred}</p>
-                      <p className="profile-now-progress">
-                        Episodio {watching.progress}{watching.media?.episodes ? ` / ${watching.media.episodes}` : ''}
-                      </p>
-                      {pct !== null && (
-                        <div className="profile-now-bar-track">
-                          <div className="profile-now-bar-fill" style={{ width: `${Math.min(pct, 100)}%` }} />
-                        </div>
-                      )}
-                      <p className="profile-now-pct">{pct !== null ? `${pct}% completado` : 'En progreso'}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
 
             {/* ─── ACTIVIDAD RECIENTE ───────────────────────────── */}
             {(() => {
@@ -1952,6 +1959,54 @@ export default function App() {
                 </div>
               );
             })()}
+
+            {/* Mobile Settings Modal Overlay */}
+            {showSettingsModal && (
+              <div className="settings-modal-overlay" onClick={() => setShowSettingsModal(false)}>
+                <div className="settings-modal-content card" onClick={(e) => e.stopPropagation()}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>
+                    <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Palette size={20} style={{ color: 'var(--accent)' }} /> Ajustes
+                    </h2>
+                    <button onClick={() => setShowSettingsModal(false)} className="settings-modal-close" aria-label="Cerrar ajustes">
+                      <X size={20} />
+                    </button>
+                  </div>
+                  
+                  <div className="aesthetics-panel" style={{ padding: 0 }}>
+                    <div className="aesthetics-section">
+                      <span className="aesthetics-label">Color de Acento</span>
+                      <div className="color-swatches">
+                        {ACCENT_COLORS.map(({ key, color, label }) => (
+                          <button
+                            key={key}
+                            className={`swatch ${accentColor === key ? 'active' : ''}`}
+                            style={{ background: color }}
+                            onClick={() => setAccentColor(key)}
+                            title={label}
+                            aria-label={`Color de acento: ${label}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="aesthetics-section">
+                      <span className="aesthetics-label">Estilo de Interfaz</span>
+                      <div className="style-mode-toggle">
+                        <button className={`style-mode-btn ${styleMode === 'classic' ? 'active' : ''}`} onClick={() => setStyleMode('classic')}>
+                          Clásico
+                        </button>
+                        <button className={`style-mode-btn ${styleMode === 'modern' ? 'active' : ''}`} onClick={() => setStyleMode('modern')}>
+                          Moderno
+                        </button>
+                        <button className={`style-mode-btn ${styleMode === 'modern2' ? 'active' : ''}`} onClick={() => setStyleMode('modern2')}>
+                          Moderno 2
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
       case 'settings':

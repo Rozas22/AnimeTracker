@@ -25,6 +25,7 @@ function applyTheme(accentKey, styleMode) {
   root.style.setProperty('--color-anilist-blue',       accent.color);
   root.style.setProperty('--color-anilist-blue-hover', accent.hover);
 
+  // Valid modes: 'classic' | 'modern' | 'modern2'
   root.setAttribute('data-style', styleMode);
 }
 

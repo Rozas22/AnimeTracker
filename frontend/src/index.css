@@ -2278,3 +2278,219 @@ html, body {
   box-shadow: 0 2px 8px var(--accent-glow);
   font-weight: 600;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   MODERN 2 — Solid backgrounds, 2-column profile, neumorphic shadows
+   [data-style="modern2"]
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Base overrides ── */
+[data-style="modern2"] {
+  --color-bg-dark: #111827;
+  --color-bg-card: #1c2333;
+  --bg-glass:       #1c2333;   /* solid, never transparent */
+  --border-glass:  rgba(255, 255, 255, 0.07);
+  --radius-card:   20px;
+
+  /* Universal neumorphic shadow for all cards */
+  --shadow-card-m2: 6px 6px 18px rgba(0,0,0,0.55),
+                   -3px -3px 10px rgba(255,255,255,0.035);
+}
+
+/* All cards: solid background, no unwanted bleed */
+[data-style="modern2"] .card,
+[data-style="modern2"] .profile-card,
+[data-style="modern2"] .search-card,
+[data-style="modern2"] .friends-card,
+[data-style="modern2"] .stat-item,
+[data-style="modern2"] .anime-card {
+  background: var(--color-bg-card);
+  background-clip: padding-box;   /* stop bg from bleeding into border */
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card-m2);
+  border: 1px solid var(--border-glass);
+  /* no opacity, no rgba backgrounds — fully opaque */
+}
+
+/* Sidebar: solid, not glassy */
+[data-style="modern2"] .sidebar {
+  background: var(--color-bg-card);
+  border-right: 1px solid var(--border-glass);
+  box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+}
+
+/* ── Profile 2-column grid layout ── */
+[data-style="modern2"] .profile-card {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 2.5rem;
+  align-items: start;
+  padding: 2rem;
+}
+
+/* Left column: identity + about + aesthetics */
+[data-style="modern2"] .profile-col-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  grid-column: 1;
+  /* Sticky so it stays visible while scrolling stats on the right */
+  position: sticky;
+  top: 1rem;
+}
+
+/* Right column: stats */
+[data-style="modern2"] .profile-col-right {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Debug inspector spans both columns */
+[data-style="modern2"] .profile-card > .token-inspector {
+  grid-column: 1 / -1;
+}
+
+/* Left-column avatar — larger and prominent */
+[data-style="modern2"] .profile-col-left .avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 0 5px rgba(var(--accent), 0.15),
+              0 8px 24px rgba(0,0,0,0.4);
+  object-fit: cover;
+  filter: drop-shadow(0 0 10px var(--accent-glow));
+}
+
+/* profile-header in modern2: stack vertically for better left-panel feel */
+[data-style="modern2"] .profile-col-left .profile-header {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  background: var(--color-bg-dark);
+  background-clip: padding-box;
+  border-radius: 18px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card-m2);
+  border: 1px solid var(--border-glass);
+}
+
+[data-style="modern2"] .profile-col-left .profile-meta h2 {
+  font-size: 1.3rem;
+  color: var(--accent);
+  text-shadow: 0 0 16px var(--accent-glow);
+}
+
+/* Stats section: full height card on the right */
+[data-style="modern2"] .profile-stats-section {
+  background: var(--color-bg-dark);
+  background-clip: padding-box;
+  border-radius: 18px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card-m2);
+  border: 1px solid var(--border-glass);
+}
+
+[data-style="modern2"] .profile-stats-section h3 {
+  color: var(--accent);
+  margin-bottom: 1.25rem;
+}
+
+/* Stats grid on right: 2×3 grid */
+[data-style="modern2"] .profile-col-right .stats-grid {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 1rem;
+}
+
+/* Stat items: neumorphic inset cards */
+[data-style="modern2"] .stat-item {
+  background: var(--color-bg-card);
+  background-clip: padding-box;
+  border-radius: 14px;
+  padding: 1.1rem 0.75rem;
+  box-shadow: var(--shadow-card-m2);
+  border: 1px solid var(--border-glass);
+  transition: var(--transition-smooth);
+}
+
+[data-style="modern2"] .stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 8px 8px 20px rgba(0,0,0,0.6),
+              -3px -3px 10px rgba(255,255,255,0.04),
+              0 0 0 1px var(--accent-glow);
+}
+
+[data-style="modern2"] .stat-value {
+  color: var(--accent);
+  text-shadow: 0 0 12px var(--accent-glow);
+  font-size: 1.6rem;
+}
+
+/* Active nav */
+[data-style="modern2"] .sidebar-nav-item.active {
+  background: var(--color-bg-dark);
+  box-shadow: inset 3px 3px 8px rgba(0,0,0,0.5),
+              inset -2px -2px 6px rgba(255,255,255,0.04);
+  border-left: 3px solid var(--accent);
+  color: var(--accent);
+}
+
+/* Buttons */
+[data-style="modern2"] .btn-primary {
+  background: var(--accent);
+  background-clip: padding-box;
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 16px var(--accent-glow), var(--shadow-card-m2);
+  font-weight: 700;
+  transition: var(--transition-smooth);
+}
+
+[data-style="modern2"] .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px var(--accent-glow);
+}
+
+[data-style="modern2"] .btn-primary:active {
+  transform: none;
+  box-shadow: inset 2px 2px 8px rgba(0,0,0,0.4);
+}
+
+/* Anime cards */
+[data-style="modern2"] .anime-card {
+  background: var(--color-bg-card);
+  background-clip: padding-box;
+  border-radius: 16px;
+  box-shadow: var(--shadow-card-m2);
+  transition: var(--transition-smooth);
+}
+
+[data-style="modern2"] .anime-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 10px 10px 28px rgba(0,0,0,0.6),
+              -3px -3px 10px rgba(255,255,255,0.04),
+              0 0 0 1px var(--accent-glow);
+}
+
+/* ── Mobile: collapse 2-col to 1-col ── */
+@media (max-width: 900px) {
+  [data-style="modern2"] .profile-card {
+    grid-template-columns: 1fr;
+  }
+
+  [data-style="modern2"] .profile-col-left,
+  [data-style="modern2"] .profile-col-right {
+    grid-column: 1;
+    position: static;
+  }
+
+  [data-style="modern2"] .profile-col-left .profile-header {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+  }
+}

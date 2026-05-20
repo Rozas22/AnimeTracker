@@ -1717,119 +1717,132 @@ export default function App() {
       case 'profile':
         return (
           <div className="card profile-card">
-            <div className="profile-header">
-              <img 
-                src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                alt={userData.name} 
-                className="avatar" 
-              />
-              <div className="profile-meta">
-                <h2>Bienvenido, {userData.name}</h2>
-                <p>ID de AniList: #{userData.id}</p>
-                <a 
-                  href={userData.siteUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
-                >
-                  Ver perfil en AniList.co →
-                </a>
-              </div>
-            </div>
-
-            {userData.about && (
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre mí</h3>
-                <div 
-                  style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
-                  dangerouslySetInnerHTML={{ __html: userData.about }}
+            {/* LEFT COLUMN: identity + aesthetics */}
+            <div className="profile-col-left">
+              <div className="profile-header">
+                <img 
+                  src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                  alt={userData.name} 
+                  className="avatar" 
                 />
+                <div className="profile-meta">
+                  <h2>Bienvenido, {userData.name}</h2>
+                  <p>ID de AniList: #{userData.id}</p>
+                  <a 
+                    href={userData.siteUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
+                  >
+                    Ver perfil en AniList.co →
+                  </a>
+                </div>
               </div>
-            )}
 
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
-              
-              <div className="stats-grid">
-                <div className="stat-item clickable" onClick={() => { handleTabClick('mylist'); setMylistSubTab('COMPLETED'); }} style={{ cursor: 'pointer' }}>
-                  <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">{completedAnime.filter(e => e.status === 'COMPLETED').length}</div>
-                  <div className="stat-label">Animes Vistos</div>
+              {userData.about && (
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre mí</h3>
+                  <div 
+                    style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
+                    dangerouslySetInnerHTML={{ __html: userData.about }}
+                  />
                 </div>
+              )}
 
-                <div className="stat-item">
-                  <Tv size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">
-                    {completedAnime.reduce((sum, e) => sum + (e.progress || 0), 0)}
+              {/* Aesthetics Settings Panel */}
+              <div className="aesthetics-panel">
+                <h3><Palette size={18} style={{ color: 'var(--accent)' }} /> Ajustes de Estética</h3>
+
+                <div className="aesthetics-section">
+                  <span className="aesthetics-label">Color de Acento</span>
+                  <div className="color-swatches">
+                    {ACCENT_COLORS.map(({ key, color, label }) => (
+                      <button
+                        key={key}
+                        className={`swatch ${accentColor === key ? 'active' : ''}`}
+                        style={{ background: color }}
+                        onClick={() => setAccentColor(key)}
+                        title={label}
+                        aria-label={`Color de acento: ${label}`}
+                      />
+                    ))}
                   </div>
-                  <div className="stat-label">Episodios Vistos</div>
                 </div>
 
-                <div className="stat-item">
-                  <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">
-                    {Math.round(
-                      completedAnime.reduce((sum, e) => sum + (e.progress || 0) * (e.media?.duration || 24), 0) / 60
-                    )}
+                <div className="aesthetics-section">
+                  <span className="aesthetics-label">Estilo de Interfaz</span>
+                  <div className="style-mode-toggle">
+                    <button
+                      className={`style-mode-btn ${styleMode === 'classic' ? 'active' : ''}`}
+                      onClick={() => setStyleMode('classic')}
+                    >
+                      Clásico
+                    </button>
+                    <button
+                      className={`style-mode-btn ${styleMode === 'modern' ? 'active' : ''}`}
+                      onClick={() => setStyleMode('modern')}
+                    >
+                      Moderno
+                    </button>
+                    <button
+                      className={`style-mode-btn ${styleMode === 'modern2' ? 'active' : ''}`}
+                      onClick={() => setStyleMode('modern2')}
+                    >
+                      Moderno 2
+                    </button>
                   </div>
-                  <div className="stat-label">Horas Vistas</div>
-                </div>
-
-                <div className="stat-item">
-                  <BookOpen size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">{userData.statistics?.manga?.count || 0}</div>
-                  <div className="stat-label">Manga en Lista</div>
-                </div>
-
-                <div className="stat-item">
-                  <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">{userData.statistics?.manga?.chaptersRead || 0}</div>
-                  <div className="stat-label">Capítulos Leídos</div>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: '0.6rem' }}>
+                    {styleMode === 'modern'
+                      ? '✔️ Modo moderno: glassmorphism + avatar hexagonal.'
+                      : styleMode === 'modern2'
+                      ? '✔️ Moderno 2: layout 2 columnas, fondos sólidos, sombras neumorfóficas.'
+                      : 'Modo clásico: diseño plano y limpio.'}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Aesthetics Settings Panel */}
-            <div className="aesthetics-panel">
-              <h3><Palette size={18} style={{ color: 'var(--accent)' }} /> Ajustes de Estética</h3>
+            {/* RIGHT COLUMN: stats */}
+            <div className="profile-col-right">
+              <div className="profile-stats-section">
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
+                <div className="stats-grid">
+                  <div className="stat-item clickable" onClick={() => { handleTabClick('mylist'); setMylistSubTab('COMPLETED'); }} style={{ cursor: 'pointer' }}>
+                    <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
+                    <div className="stat-value">{completedAnime.filter(e => e.status === 'COMPLETED').length}</div>
+                    <div className="stat-label">Animes Vistos</div>
+                  </div>
 
-              <div className="aesthetics-section">
-                <span className="aesthetics-label">Color de Acento</span>
-                <div className="color-swatches">
-                  {ACCENT_COLORS.map(({ key, color, label }) => (
-                    <button
-                      key={key}
-                      className={`swatch ${accentColor === key ? 'active' : ''}`}
-                      style={{ background: color }}
-                      onClick={() => setAccentColor(key)}
-                      title={label}
-                      aria-label={`Color de acento: ${label}`}
-                    />
-                  ))}
-                </div>
-              </div>
+                  <div className="stat-item">
+                    <Tv size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                    <div className="stat-value">
+                      {completedAnime.reduce((sum, e) => sum + (e.progress || 0), 0)}
+                    </div>
+                    <div className="stat-label">Episodios Vistos</div>
+                  </div>
 
-              <div className="aesthetics-section">
-                <span className="aesthetics-label">Estilo de Interfaz</span>
-                <div className="style-mode-toggle">
-                  <button
-                    className={`style-mode-btn ${styleMode === 'classic' ? 'active' : ''}`}
-                    onClick={() => setStyleMode('classic')}
-                  >
-                    Clásico
-                  </button>
-                  <button
-                    className={`style-mode-btn ${styleMode === 'modern' ? 'active' : ''}`}
-                    onClick={() => setStyleMode('modern')}
-                  >
-                    Moderno
-                  </button>
+                  <div className="stat-item">
+                    <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
+                    <div className="stat-value">
+                      {Math.round(
+                        completedAnime.reduce((sum, e) => sum + (e.progress || 0) * (e.media?.duration || 24), 0) / 60
+                      )}
+                    </div>
+                    <div className="stat-label">Horas Vistas</div>
+                  </div>
+
+                  <div className="stat-item">
+                    <BookOpen size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
+                    <div className="stat-value">{userData.statistics?.manga?.count || 0}</div>
+                    <div className="stat-label">Manga en Lista</div>
+                  </div>
+
+                  <div className="stat-item">
+                    <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                    <div className="stat-value">{userData.statistics?.manga?.chaptersRead || 0}</div>
+                    <div className="stat-label">Capítulos Leídos</div>
+                  </div>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: '0.6rem' }}>
-                  {styleMode === 'modern'
-                    ? '✔️ Modo moderno activo: avatares hexagonales, tarjetas neumorfóficas y glassmorphism.'
-                    : 'Modo clásico: diseño plano y limpio.'}
-                </p>
               </div>
             </div>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Loader, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -6,6 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 export default function Callback({ onTokenSuccess, onTokenError }) {
   const [status, setStatus] = useState('exchanging'); // 'exchanging' | 'success' | 'error'
   const [errorMessage, setErrorMessage] = useState('');
+  const exchangeAttempted = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -58,6 +59,13 @@ export default function Callback({ onTokenSuccess, onTokenError }) {
         }, 1500);
 
       } catch (error) {
+        // Ignorar silenciosamente errores de código usado (doble montaje StrictMode)
+        const errMsg = error.message?.toLowerCase() || '';
+        if (errMsg.includes('invalid_grant') || errMsg.includes('used')) {
+          console.log('Ignorando error de código usado (posible montaje doble de React StrictMode).');
+          return;
+        }
+
         console.error('Error al intercambiar token:', error);
         setStatus('error');
         setErrorMessage(error.message || 'Error de red o del servidor al conectar con AniList.');
@@ -65,7 +73,10 @@ export default function Callback({ onTokenSuccess, onTokenError }) {
       }
     };
 
-    exchangeCode();
+    if (!exchangeAttempted.current) {
+      exchangeAttempted.current = true;
+      exchangeCode();
+    }
   }, [onTokenSuccess, onTokenError]);
 
   return (

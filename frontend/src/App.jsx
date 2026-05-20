@@ -36,8 +36,11 @@ export default function App() {
   const [friendData, setFriendData] = useState(null);
   const [friendAnimeList, setFriendAnimeList] = useState([]);
   const [friendLoading, setFriendLoading] = useState(false);
-  const [friendError, setFriendError] = useState('');
   const [friendMylistSubTab, setFriendMylistSubTab] = useState('CURRENT');
+
+  // PWA Update states
+  const [swRegistration, setSwRegistration] = useState(null);
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
   // Fetch all friends who have logged in
   const fetchFriends = async () => {
@@ -119,6 +122,59 @@ export default function App() {
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
+
+  // Detect if a new Service Worker is waiting to update
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      // 1. Get current registration
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (!reg) return;
+        setSwRegistration(reg);
+
+        // Check if there is already an installed service worker waiting
+        if (reg.waiting) {
+          setShowUpdateBanner(true);
+        }
+
+        // Listen for new service worker installation
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // There is a new worker installed and waiting to control the page
+                setShowUpdateBanner(true);
+              }
+            });
+          }
+        });
+      });
+
+      // 2. Listen for controller changes to trigger reload
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+  }, []);
+
+  const handleUpdateApp = () => {
+    if (swRegistration && swRegistration.waiting) {
+      swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg && reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        } else {
+          window.location.reload();
+        }
+      });
+    }
+    setShowUpdateBanner(false);
+  };
 
   // Sync tab state with browser history (back/forward routing)
   useEffect(() => {
@@ -2273,6 +2329,13 @@ export default function App() {
       {toastMessage && (
         <div className="toast-notification">
           {toastMessage}
+        </div>
+      )}
+
+      {/* PWA UPDATE BANNER */}
+      {showUpdateBanner && (
+        <div className="update-banner" onClick={handleUpdateApp}>
+          ✨ ¡Hay una nueva versión disponible! Haz clic aquí para actualizar.
         </div>
       )}
     </div>

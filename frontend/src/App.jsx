@@ -360,6 +360,7 @@ export default function App() {
               }
               format
               episodes
+              duration
               status
               startDate {
                 year
@@ -476,6 +477,7 @@ export default function App() {
               }
               format
               episodes
+              duration
               status
               startDate {
                 year
@@ -1293,14 +1295,18 @@ export default function App() {
 
                 <div className="stat-item">
                   <Tv size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">{friendData.statistics?.anime?.episodesWatched || 0}</div>
+                  <div className="stat-value">
+                    {friendAnimeList.reduce((sum, e) => sum + (e.progress || 0), 0)}
+                  </div>
                   <div className="stat-label">Episodios Vistos</div>
                 </div>
 
                 <div className="stat-item">
                   <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
                   <div className="stat-value">
-                    {Math.round((friendData.statistics?.anime?.minutesWatched || 0) / 60)}
+                    {Math.round(
+                      friendAnimeList.reduce((sum, e) => sum + (e.progress || 0) * (e.media?.duration || 24), 0) / 60
+                    )}
                   </div>
                   <div className="stat-label">Horas Vistas</div>
                 </div>
@@ -1716,14 +1722,18 @@ export default function App() {
 
                 <div className="stat-item">
                   <Tv size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">{userData.statistics?.anime?.episodesWatched || 0}</div>
+                  <div className="stat-value">
+                    {completedAnime.reduce((sum, e) => sum + (e.progress || 0), 0)}
+                  </div>
                   <div className="stat-label">Episodios Vistos</div>
                 </div>
 
                 <div className="stat-item">
                   <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
                   <div className="stat-value">
-                    {Math.round((userData.statistics?.anime?.minutesWatched || 0) / 60)}
+                    {Math.round(
+                      completedAnime.reduce((sum, e) => sum + (e.progress || 0) * (e.media?.duration || 24), 0) / 60
+                    )}
                   </div>
                   <div className="stat-label">Horas Vistas</div>
                 </div>

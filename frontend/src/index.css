@@ -44,7 +44,8 @@
 body {
   background-color: var(--color-bg-dark);
   color: var(--color-text-primary);
-  font-family: var(--font-sans);
+  /* Outfit as the global typeface — premium & modern */
+  font-family: var(--font-display);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -123,15 +124,17 @@ header {
 /* Premium Card Design */
 .card {
   background-color: var(--color-bg-card);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 2.5rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: var(--shadow-premium);
   transition: var(--transition-smooth);
+  background-clip: padding-box;
 }
 
 .card:hover {
-  border-color: rgba(61, 180, 242, 0.2);
+  border-color: rgba(var(--accent), 0.2);
+  box-shadow: var(--shadow-premium), 0 0 0 1px var(--accent-glow);
 }
 
 /* Premium Button Styling */
@@ -380,19 +383,22 @@ header {
   display: flex;
   align-items: center;
   gap: 1rem;
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  /* Solid background — no transparency */
+  background-color: var(--color-bg-card);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   padding: 0.75rem 1rem;
-  border-radius: 12px;
+  border-radius: 14px;
   text-decoration: none;
   color: inherit;
   transition: var(--transition-smooth);
+  background-clip: padding-box;
 }
 
 .friend-item:hover {
   background-color: var(--color-bg-card-hover);
-  border-color: rgba(61, 180, 242, 0.2);
+  border-color: var(--accent-glow);
   transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .friend-avatar {
@@ -402,10 +408,12 @@ header {
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.1);
   transition: var(--transition-smooth);
+  flex-shrink: 0;
 }
 
 .friend-item:hover .friend-avatar {
-  border-color: var(--color-anilist-blue);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 .friend-info {
@@ -430,11 +438,13 @@ header {
 /* Search Anime Styles */
 .search-card {
   margin-bottom: 2rem;
+  /* Solid, premium card */
   background-color: var(--color-bg-card);
-  border-radius: 16px;
-  padding: 1.5rem 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: var(--shadow-premium);
+  background-clip: padding-box;
+  border-radius: 20px;
+  padding: 1.75rem 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 6px 6px 20px rgba(0,0,0,0.35), -2px -2px 8px rgba(255,255,255,0.03);
 }
 
 /* Search Form & Advanced Filters */
@@ -453,20 +463,31 @@ header {
 
 .search-input {
   flex-grow: 1;
-  background-color: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 0.75rem 1.25rem;
+  /* Solid neumorphic input */
+  background-color: var(--color-bg-dark);
+  background-clip: padding-box;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.85rem 1.25rem;
   color: var(--color-text-primary);
-  font-family: inherit;
+  font-family: var(--font-display);
   font-size: 1rem;
   outline: none;
   transition: var(--transition-smooth);
+  box-shadow: inset 2px 2px 6px rgba(0,0,0,0.4),
+              inset -1px -1px 4px rgba(255,255,255,0.03);
+}
+
+.search-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.7;
 }
 
 .search-input:focus {
-  border-color: var(--color-anilist-blue);
-  box-shadow: 0 0 0 2px rgba(61, 180, 242, 0.2);
+  border-color: var(--accent);
+  box-shadow: inset 2px 2px 6px rgba(0,0,0,0.4),
+              inset -1px -1px 4px rgba(255,255,255,0.03),
+              0 0 0 3px var(--accent-glow);
 }
 
 .search-filters-row {
@@ -541,9 +562,11 @@ header {
 
 .anime-card {
   position: relative;
-  background-color: rgba(255, 255, 255, 0.015);
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
+  /* Solid background — no transparency */
+  background-color: var(--color-bg-card);
+  background-clip: padding-box;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
   transition: var(--transition-smooth);
@@ -2519,5 +2542,187 @@ body {
     flex-direction: row;
     align-items: center;
     text-align: left;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PREMIUM GLOBAL DESIGN SYSTEM
+   Applied everywhere \u2014 safe for all three style modes.
+   All rules are additive; nothing breaks mobile.
+═══════════════════════════════════════════════════════════════ */
+
+/* \u2500\u2500 Global Scrollbar \u2014 dark & minimal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* \u2500\u2500 Accent Glow Ring on active swatch \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+.swatch.active {
+  box-shadow:
+    0 0 0 2px var(--color-bg-dark),
+    0 0 0 4px currentColor,
+    0 0 12px 2px var(--accent-glow);  /* <-- the glow ring */
+  transform: scale(1.15);
+}
+
+/* \u2500\u2500 Stat item: accent accent bar at bottom \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+.stat-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-item::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-item:hover::after {
+  opacity: 1;
+}
+
+/* \u2500\u2500 Anime card hover: solid premium lift \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+.anime-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-glow);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px var(--accent-glow);
+}
+
+/* \u2500\u2500 Filter dropdowns: Outfit font + solid bg \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+.filter-group select,
+.filter-group input,
+select,
+textarea {
+  font-family: var(--font-display);
+  background-color: var(--color-bg-dark);
+  background-clip: padding-box;
+}
+
+/* \u2500\u2500 Search input icon wrapper (Mi Lista search bar) \u2500\u2500\u2500 */
+.search-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-bg-dark);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 0 0.25rem 0 1rem;
+  box-shadow: inset 2px 2px 6px rgba(0,0,0,0.4),
+              inset -1px -1px 4px rgba(255,255,255,0.03);
+  transition: var(--transition-smooth);
+}
+
+.search-input-group:focus-within {
+  border-color: var(--accent);
+  box-shadow:
+    inset 2px 2px 6px rgba(0,0,0,0.4),
+    inset -1px -1px 4px rgba(255,255,255,0.03),
+    0 0 0 3px var(--accent-glow);
+}
+
+.search-input-group .search-input {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0.85rem 0.5rem 0.85rem 0;
+  flex-grow: 1;
+}
+
+.search-input-group .search-input:focus {
+  box-shadow: none;
+  border: none;
+}
+
+/* \u2500\u2500 Friend avatar: accent ring on hover \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+.friend-avatar {
+  clip-path: none;  /* normal circle \u2014 hex only in modern mode */
+  border-radius: 50%;
+}
+
+/* \u2500\u2500 Buttons: use Outfit everywhere \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-display);
+}
+
+/* \u2500\u2500 Stat value: use accent color \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+.stat-value {
+  color: var(--accent);
+}
+
+/* \u2500\u2500 Mobile-safe overrides: preserve single-column layout \u2500\u2500 */
+@media (max-width: 600px) {
+  /* Cards: keep full width, no overflow */
+  .search-card,
+  .card {
+    border-radius: 14px;
+    padding: 1.1rem;
+  }
+
+  /* Search input: full width on mobile */
+  .search-input,
+  .search-input-group {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Anime grid: ensure 2 columns minimum on small screens */
+  .anime-grid:not(.view-list) {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Friend items: keep horizontal layout */
+  .friend-item {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .friend-info {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .friend-name,
+  .friend-username {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Stat items: 2 cols on mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
   }
 }

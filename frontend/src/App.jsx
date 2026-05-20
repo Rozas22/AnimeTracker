@@ -2147,26 +2147,42 @@ export default function App() {
               <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>Análisis de tu Lista</h2>
             </div>
 
-            <div className="stats-grid">
-              <div className="stat-item">
-                <Tv size={22} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.4rem' }} />
-                <div className="stat-value">{totalEntries}</div>
-                <div className="stat-label">Animes en Lista</div>
+            <div className="stats-grid analytics-stats-grid">
+              <div className="stat-item analytics-stat-item">
+                <div className="analytics-stat-icon" style={{ color: 'var(--accent)' }}>
+                  <Tv size={26} />
+                </div>
+                <div className="analytics-stat-body">
+                  <div className="stat-value">{totalEntries}</div>
+                  <div className="stat-label">Animes en Lista</div>
+                </div>
               </div>
-              <div className="stat-item">
-                <TrendingUp size={22} style={{ color: 'var(--color-accent-green)', marginBottom: '0.4rem' }} />
-                <div className="stat-value">{totalEpisodesA}</div>
-                <div className="stat-label">Episodios Vistos</div>
+              <div className="stat-item analytics-stat-item">
+                <div className="analytics-stat-icon" style={{ color: 'var(--color-accent-green)' }}>
+                  <TrendingUp size={26} />
+                </div>
+                <div className="analytics-stat-body">
+                  <div className="stat-value">{totalEpisodesA}</div>
+                  <div className="stat-label">Episodios Vistos</div>
+                </div>
               </div>
-              <div className="stat-item">
-                <Clock size={22} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.4rem' }} />
-                <div className="stat-value">{totalHoursA}</div>
-                <div className="stat-label">Horas Invertidas</div>
+              <div className="stat-item analytics-stat-item">
+                <div className="analytics-stat-icon" style={{ color: 'var(--color-accent-purple)' }}>
+                  <Clock size={26} />
+                </div>
+                <div className="analytics-stat-body">
+                  <div className="stat-value">{totalHoursA}h</div>
+                  <div className="stat-label">Horas Invertidas</div>
+                </div>
               </div>
-              <div className="stat-item">
-                <Star size={22} style={{ color: '#f59e0b', marginBottom: '0.4rem' }} />
-                <div className="stat-value">{avgScore}</div>
-                <div className="stat-label">Puntuación Media</div>
+              <div className="stat-item analytics-stat-item">
+                <div className="analytics-stat-icon" style={{ color: '#f59e0b' }}>
+                  <Star size={26} />
+                </div>
+                <div className="analytics-stat-body">
+                  <div className="stat-value">{avgScore}</div>
+                  <div className="stat-label">Puntuación Media</div>
+                </div>
               </div>
             </div>
 

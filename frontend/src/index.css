@@ -226,31 +226,37 @@ header {
 }
 
 .stat-item {
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  border-radius: 12px;
+  background-color: var(--color-bg-card);
+  background-clip: padding-box;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
   padding: 1.25rem;
   text-align: center;
   transition: var(--transition-smooth);
 }
 
 .stat-item:hover {
-  background-color: rgba(255, 255, 255, 0.04);
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.35), 0 0 0 1px var(--accent-glow);
+  border-color: var(--accent-glow);
 }
 
 .stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-anilist-blue);
-  margin-bottom: 0.25rem;
+  font-size: 2rem;
+  font-weight: 800;
+  font-family: var(--font-display);
+  color: var(--accent);
+  margin-bottom: 0.2rem;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   color: var(--color-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.08em;
+  font-weight: 500;
 }
 
 /* Animations */
@@ -437,7 +443,11 @@ header {
 
 /* Search Anime Styles */
 .search-card {
-  margin-bottom: 2rem;
+  /* Centered, compact search experience */
+  max-width: 740px;
+  width: 100%;
+  margin: 0 auto 2rem auto;
+
   /* Solid, premium card */
   background-color: var(--color-bg-card);
   background-clip: padding-box;
@@ -576,9 +586,9 @@ header {
 
 .anime-card:hover {
   transform: translateY(-4px);
-  background-color: rgba(255, 255, 255, 0.04);
-  border-color: rgba(61, 180, 242, 0.3);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  background-color: var(--color-bg-card-hover);
+  border-color: var(--accent-glow);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.4), 0 0 0 1px var(--accent-glow);
 }
 
 .anime-cover {
@@ -2677,8 +2687,11 @@ textarea {
 }
 
 /* \u2500\u2500 Stat value: use accent color \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
+/* stat-value global accent override + sizing guard */
 .stat-value {
   color: var(--accent);
+  font-size: 2rem;
+  font-weight: 800;
 }
 
 /* \u2500\u2500 Mobile-safe overrides: preserve single-column layout \u2500\u2500 */
@@ -2724,5 +2737,79 @@ textarea {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANALYTICS STAT ITEMS — horizontal icon + text layout
+═══════════════════════════════════════════════════════════════ */
+
+/* Analytics stats: wider minmax to accommodate horizontal layout */
+.analytics-stats-grid {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+/* Each analytics stat: icon left, value+label right */
+.analytics-stat-item {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  text-align: left;
+  padding: 1.1rem 1.25rem;
+}
+
+.analytics-stat-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Icon inherits color from inline style */
+}
+
+.analytics-stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+/* The number inside analytics items */
+.analytics-stat-item .stat-value {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+/* The label inside analytics items: slightly larger than global */
+.analytics-stat-item .stat-label {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* On mobile: analytics grid also 2 cols, items stay horizontal */
+@media (max-width: 600px) {
+  .analytics-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .analytics-stat-item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.5rem;
+    padding: 1rem 0.75rem;
+  }
+
+  .analytics-stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .analytics-stat-item .stat-value {
+    font-size: 1.4rem;
   }
 }

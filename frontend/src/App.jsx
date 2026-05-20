@@ -3,6 +3,17 @@ import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert,
 import Callback from './components/Callback';
 
 export default function App() {
+  const getInitialRouteInfo = () => {
+    const path = window.location.pathname;
+    if (path.startsWith('/profile/')) {
+      const username = path.substring('/profile/'.length);
+      return { tab: 'friend-profile', username };
+    }
+    return { tab: 'profile', username: null };
+  };
+
+  const initialRoute = getInitialRouteInfo();
+
   const [token, setToken] = useState(localStorage.getItem('anilist_token') || '');
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -12,6 +23,21 @@ export default function App() {
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  // Router and Dynamic friend profile state
+  const [activeTab, setActiveTab] = useState(initialRoute.tab);
+  const [viewedFriendUsername, setViewedFriendUsername] = useState(initialRoute.username);
+  
+  // Friend search and profile loading states
+  const [friendSearchQuery, setFriendSearchQuery] = useState('');
+  const [addingFriend, setAddingFriend] = useState(false);
+  const [friendAddError, setFriendAddError] = useState('');
+  
+  const [friendData, setFriendData] = useState(null);
+  const [friendAnimeList, setFriendAnimeList] = useState([]);
+  const [friendLoading, setFriendLoading] = useState(false);
+  const [friendError, setFriendError] = useState('');
+  const [friendMylistSubTab, setFriendMylistSubTab] = useState('CURRENT');
 
   // Fetch all friends who have logged in
   const fetchFriends = async () => {
@@ -27,6 +53,39 @@ export default function App() {
       console.error('Error fetching friends list:', err);
     } finally {
       setLoadingFriends(false);
+    }
+  };
+
+  const handleAddFriend = async (e) => {
+    e.preventDefault();
+    if (!friendSearchQuery.trim()) return;
+
+    setAddingFriend(true);
+    setFriendAddError('');
+
+    try {
+      const response = await fetch('/api/friends/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username: friendSearchQuery.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudo agregar al amigo.');
+      }
+
+      showToast(`¡${data.name} ha sido agregado con éxito a El Grupo!`);
+      setFriendSearchQuery('');
+      await fetchFriends();
+    } catch (err) {
+      console.error('Error adding friend:', err);
+      setFriendAddError(err.message || 'Ocurrió un error al intentar agregar al amigo.');
+    } finally {
+      setAddingFriend(false);
     }
   };
 
@@ -61,6 +120,175 @@ export default function App() {
     };
   }, []);
 
+  // Sync tab state with browser history (back/forward routing)
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname;
+      if (path.startsWith('/profile/')) {
+        const username = path.substring('/profile/'.length);
+        setActiveTab('friend-profile');
+        setViewedFriendUsername(username);
+      } else if (path === '/callback') {
+        setIsCallback(true);
+      } else {
+        setIsCallback(false);
+        setActiveTab('profile');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Fetch friend's profile when routing is triggered
+  useEffect(() => {
+    if (activeTab === 'friend-profile' && viewedFriendUsername) {
+      fetchFriendProfile(viewedFriendUsername);
+    }
+  }, [activeTab, viewedFriendUsername]);
+
+  const fetchFriendProfile = async (username) => {
+    if (!username) return;
+    setFriendLoading(true);
+    setFriendError('');
+    setFriendData(null);
+    setFriendAnimeList([]);
+
+    const query = `
+      query ($name: String) {
+        User (name: $name) {
+          id
+          name
+          avatar {
+            large
+          }
+          siteUrl
+          about
+          statistics {
+            anime {
+              count
+              minutesWatched
+              episodesWatched
+            }
+            manga {
+              count
+              chaptersRead
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          query,
+          variables: { name: username }
+        })
+      });
+
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0].message || 'No se pudo encontrar el usuario.');
+      }
+
+      const user = result.data.User;
+      setFriendData(user);
+
+      // Now fetch their anime list
+      await fetchFriendAnimeList(user.id);
+    } catch (err) {
+      console.error('Error fetching friend profile:', err);
+      setFriendError(err.message || 'Error al cargar el perfil del amigo.');
+    } finally {
+      setFriendLoading(false);
+    }
+  };
+
+  const fetchFriendAnimeList = async (userId) => {
+    const query = `
+      query ($userId: Int) {
+        Page(page: 1, perPage: 100) {
+          mediaList(userId: $userId, type: ANIME) {
+            id
+            status
+            progress
+            score(format: POINT_10)
+            media {
+              id
+              title {
+                userPreferred
+              }
+              coverImage {
+                large
+              }
+              format
+              episodes
+              status
+              startDate {
+                year
+                month
+                day
+              }
+              relations {
+                edges {
+                  relationType
+                  node {
+                    id
+                    title {
+                      userPreferred
+                    }
+                    coverImage {
+                      large
+                    }
+                    format
+                    episodes
+                    status
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          query,
+          variables: { userId }
+        })
+      });
+
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0].message || 'Error al obtener lista del amigo.');
+      }
+
+      setFriendAnimeList(result.data.Page.mediaList || []);
+    } catch (err) {
+      console.error('Error fetching friend list:', err);
+    }
+  };
+
+  const handleNavigateToFriend = (friendName) => {
+    window.history.pushState(null, '', `/profile/${friendName}`);
+    setViewedFriendUsername(friendName);
+    setActiveTab('friend-profile');
+  };
+
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -73,7 +301,6 @@ export default function App() {
   const [formProgress, setFormProgress] = useState(0);
   const [formScore, setFormScore] = useState(10);
   const [savingAnime, setSavingAnime] = useState(false);
-  const [activeTab, setActiveTab] = useState('profile');
   const [filterFormat, setFilterFormat] = useState('Todos');
   const [filterGenre, setFilterGenre] = useState('Todos');
   const [completedAnime, setCompletedAnime] = useState([]);
@@ -218,6 +445,7 @@ export default function App() {
 
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
+    window.history.pushState(null, '', '/');
     refreshUserData();
   };
 
@@ -832,6 +1060,261 @@ export default function App() {
   // Render active tab content
   const renderContent = () => {
     switch (activeTab) {
+      case 'friend-profile': {
+        if (friendLoading) {
+          return (
+            <div style={{ textAlign: 'center', padding: '4rem' }}>
+              <div className="loader"></div>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: '1rem' }}>Cargando perfil de {viewedFriendUsername}...</p>
+            </div>
+          );
+        }
+
+        if (friendError || !friendData) {
+          return (
+            <div className="card" style={{ textAlign: 'center', padding: '3rem 1rem' }}>
+              <ShieldAlert size={48} style={{ color: 'var(--color-accent-red)', marginBottom: '1rem', opacity: 0.8 }} />
+              <h3>Error al cargar el perfil</h3>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem', marginBottom: '1.5rem' }}>{friendError || 'Usuario no encontrado.'}</p>
+              <button className="btn-primary" onClick={() => handleTabClick('group')}>
+                Volver al Grupo
+              </button>
+            </div>
+          );
+        }
+
+        const filteredList = friendAnimeList.filter(entry => entry.status === friendMylistSubTab);
+        const groupedList = groupCompletedAnimeByFranchise(filteredList);
+
+        return (
+          <div className="card profile-card friend-profile-card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
+              <span style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>Perfil de Miembro del Grupo</span>
+              <button className="btn-secondary" onClick={() => handleTabClick('group')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                Volver al Grupo
+              </button>
+            </div>
+
+            <div className="profile-header">
+              <img 
+                src={friendData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                alt={friendData.name} 
+                className="avatar" 
+              />
+              <div className="profile-meta">
+                <h2>{friendData.name}</h2>
+                <p>ID de AniList: #{friendData.id}</p>
+                <a 
+                  href={friendData.siteUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
+                >
+                  Ver perfil original en AniList.co →
+                </a>
+              </div>
+            </div>
+
+            {friendData.about && (
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre {friendData.name}</h3>
+                <div 
+                  style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
+                  dangerouslySetInnerHTML={{ __html: friendData.about }}
+                />
+              </div>
+            )}
+
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem', marginBottom: '2.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Estadísticas en AniList</h3>
+              
+              <div className="stats-grid">
+                <div className="stat-item">
+                  <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
+                  <div className="stat-value">{friendAnimeList.filter(e => e.status === 'COMPLETED').length}</div>
+                  <div className="stat-label">Animes Vistos</div>
+                </div>
+
+                <div className="stat-item">
+                  <Tv size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                  <div className="stat-value">{friendData.statistics?.anime?.episodesWatched || 0}</div>
+                  <div className="stat-label">Episodios Vistos</div>
+                </div>
+
+                <div className="stat-item">
+                  <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
+                  <div className="stat-value">
+                    {Math.round((friendData.statistics?.anime?.minutesWatched || 0) / 60)}
+                  </div>
+                  <div className="stat-label">Horas Vistas</div>
+                </div>
+
+                <div className="stat-item">
+                  <BookOpen size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
+                  <div className="stat-value">{friendData.statistics?.manga?.count || 0}</div>
+                  <div className="stat-label">Manga en Lista</div>
+                </div>
+
+                <div className="stat-item">
+                  <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                  <div className="stat-value">{friendData.statistics?.manga?.chaptersRead || 0}</div>
+                  <div className="stat-label">Capítulos Leídos</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de anime del amigo */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', margin: 0 }}>Lista de Anime de {friendData.name}</h3>
+                <button 
+                  className="view-mode-toggle"
+                  onClick={toggleViewMode}
+                  title={viewMode === 'grid' ? 'Cambiar a Vista Lista' : 'Cambiar a Vista Mosaico'}
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--color-text-primary)', width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'var(--transition-smooth)' }}
+                >
+                  {viewMode === 'grid' ? <List size={18} /> : <Grid size={18} />}
+                </button>
+              </div>
+
+              <div className="mylist-tabs">
+                <button 
+                  className={`mylist-tab-item ${friendMylistSubTab === 'CURRENT' ? 'active' : ''}`}
+                  onClick={() => setFriendMylistSubTab('CURRENT')}
+                >
+                  <span>Viendo</span>
+                  <span className="mylist-tab-count">
+                    {friendAnimeList.filter(e => e.status === 'CURRENT').length}
+                  </span>
+                </button>
+                <button 
+                  className={`mylist-tab-item ${friendMylistSubTab === 'COMPLETED' ? 'active' : ''}`}
+                  onClick={() => setFriendMylistSubTab('COMPLETED')}
+                >
+                  <span>Vistos</span>
+                  <span className="mylist-tab-count">
+                    {friendAnimeList.filter(e => e.status === 'COMPLETED').length}
+                  </span>
+                </button>
+                <button 
+                  className={`mylist-tab-item ${friendMylistSubTab === 'PLANNING' ? 'active' : ''}`}
+                  onClick={() => setFriendMylistSubTab('PLANNING')}
+                >
+                  <span>Planeado</span>
+                  <span className="mylist-tab-count">
+                    {friendAnimeList.filter(e => e.status === 'PLANNING').length}
+                  </span>
+                </button>
+              </div>
+
+              {filteredList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-text-secondary)' }}>
+                  <Tv size={36} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
+                  <p>Este usuario no tiene ningún anime en esta sección de su lista.</p>
+                </div>
+              ) : (
+                <div className={`anime-grid ${viewMode === 'list' ? 'view-list' : ''}`}>
+                  {groupedList.map((group) => {
+                    const anime = group.mostRecent.media;
+                    if (!anime) return null;
+                    const isExpanded = expandedGroups[group.id];
+
+                    return (
+                      <div 
+                        key={group.id} 
+                        className={`anime-card ${group.items.length > 1 ? 'franchise-group-card' : ''} ${isExpanded ? 'expanded' : ''}`}
+                        onClick={() => {
+                          if (group.items.length > 1) {
+                            setExpandedGroups(prev => ({
+                              ...prev,
+                              [group.id]: !prev[group.id]
+                            }));
+                          } else {
+                            fetchAnimeDetails(anime.id);
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {anime.status && (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') && (
+                          <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En Emisión' : 'Próximamente'} />
+                        )}
+
+                        <div className="cover-wrapper" style={{ position: 'relative' }}>
+                          <img 
+                            src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                            alt={anime.title?.userPreferred} 
+                            className="anime-cover"
+                          />
+                          {group.items.length > 1 && (
+                            <div className="franchise-count-badge">
+                              {group.items.length} {group.items.length === 1 ? 'Temporada' : 'Temporadas'}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="anime-info">
+                          <span className="anime-title" title={anime.title?.userPreferred}>
+                            {anime.title?.userPreferred}
+                          </span>
+                          <div className="anime-meta">
+                            <span style={{ color: 'var(--color-accent-green)', fontWeight: '600' }}>
+                              {group.mostRecent.score ? `${group.mostRecent.score}/10` : 'Sin nota'}
+                            </span>
+                            <span>
+                              {anime.episodes ? `${group.mostRecent.progress}/${anime.episodes} eps` : `${group.mostRecent.progress} eps`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {group.items.length > 1 && (
+                          <div className="franchise-expand-header">
+                            <span>{isExpanded ? 'Ocultar temporadas' : 'Ver temporadas'}</span>
+                            <span className={`arrow-icon ${isExpanded ? 'rotated' : ''}`}>▼</span>
+                          </div>
+                        )}
+
+                        {isExpanded && (
+                          <div className="franchise-seasons-list" onClick={(e) => e.stopPropagation()}>
+                            {group.items.map((item) => {
+                              const seasonMedia = item.media;
+                              if (!seasonMedia) return null;
+                              return (
+                                <div 
+                                  key={item.id} 
+                                  className="franchise-season-item"
+                                  onClick={() => fetchAnimeDetails(seasonMedia.id)}
+                                  title="Ver detalles"
+                                >
+                                  <img 
+                                    src={seasonMedia.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
+                                    alt={seasonMedia.title?.userPreferred} 
+                                    className="season-mini-cover"
+                                  />
+                                  <div className="season-item-info">
+                                    <span className="season-item-title">{seasonMedia.title?.userPreferred}</span>
+                                    <div className="season-item-meta">
+                                      <span className="season-item-format">{seasonMedia.format || 'TV'}</span>
+                                      <span className="season-item-progress">
+                                        {seasonMedia.episodes ? `${item.progress}/${seasonMedia.episodes} eps` : `${item.progress} eps`}
+                                      </span>
+                                      <span className="season-item-score">{item.score ? `${item.score}/10` : 'Sin nota'}</span>
+                                    </div>
+                                  </div>
+                                  <span className="view-details-arrow">→</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
       case 'mylist': {
         const userAnimeList = completedAnime;
         const filteredList = userAnimeList.filter(entry => entry.status === mylistSubTab);
@@ -1260,6 +1743,35 @@ export default function App() {
               </span>
             </div>
 
+            {/* Buscador de amigos */}
+            <form onSubmit={handleAddFriend} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.25rem', marginBottom: '1.75rem', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: '500', color: 'var(--color-text-secondary)' }}>
+                Buscar y Agregar Amigos (Usuario de AniList)
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input 
+                  type="text" 
+                  value={friendSearchQuery}
+                  onChange={(e) => setFriendSearchQuery(e.target.value)}
+                  placeholder="Ej: Rozas22, iker_..."
+                  style={{ flexGrow: 1, padding: '0.65rem 1rem', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'var(--color-text-primary)', fontSize: '0.95rem', outline: 'none' }}
+                />
+                <button 
+                  type="submit" 
+                  disabled={addingFriend || !friendSearchQuery.trim()}
+                  className="btn-primary"
+                  style={{ padding: '0.65rem 1.25rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                >
+                  {addingFriend ? 'Agregando...' : 'Agregar'}
+                </button>
+              </div>
+              {friendAddError && (
+                <span style={{ fontSize: '0.85rem', color: 'var(--color-accent-red)', marginTop: '0.25rem' }}>
+                  ⚠️ {friendAddError}
+                </span>
+              )}
+            </form>
+
             {loadingFriends ? (
               <div style={{ textAlign: 'center', padding: '3rem 0' }}>
                 <div className="loader" style={{ width: '30px', height: '30px', margin: '0 auto 1rem auto' }}></div>
@@ -1268,36 +1780,38 @@ export default function App() {
             ) : friends.length === 0 ? (
               <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', marginTop: '2rem', textAlign: 'center', lineHeight: '1.6' }}>
                 Aún no hay amigos registrados en el grupo.<br />
-                ¡Comparte el enlace de la web con tus amigos para que inicien sesión!
+                ¡Usa el buscador superior para agregar a tus amigos por su usuario de AniList!
               </p>
             ) : (
               <div className="friends-list">
                 {friends.map((friend) => (
-                  <a 
+                  <div 
                     key={friend.id} 
-                    href={friend.siteUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
+                    onClick={() => handleNavigateToFriend(friend.name)}
                     className="friend-item"
-                    title="Ver perfil en AniList"
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', transition: 'var(--transition-smooth)' }}
+                    title={`Ver perfil interno de ${friend.name}`}
                   >
-                    <img 
-                      src={friend.avatar || 'https://anilist.co/img/icons/icon.svg'} 
-                      alt={friend.name} 
-                      className="friend-avatar" 
-                    />
-                    <div className="friend-info">
-                      <span className="friend-name">{friend.name}</span>
-                      <span className="friend-status">
-                        Activo: {new Date(friend.updatedAt).toLocaleDateString('es-ES', { 
-                          day: 'numeric', 
-                          month: 'short', 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <img 
+                        src={friend.avatar || 'https://anilist.co/img/icons/icon.svg'} 
+                        alt={friend.name} 
+                        className="friend-avatar" 
+                      />
+                      <div className="friend-info" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span className="friend-name" style={{ fontWeight: '600', color: 'var(--color-text-primary)' }}>{friend.name}</span>
+                        <span className="friend-status" style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                          Activo: {new Date(friend.updatedAt).toLocaleDateString('es-ES', { 
+                            day: 'numeric', 
+                            month: 'short', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                      </div>
                     </div>
-                  </a>
+                    <span className="view-details-arrow" style={{ color: 'var(--color-text-secondary)', transition: 'var(--transition-smooth)' }}>→</span>
+                  </div>
                 ))}
               </div>
             )}
@@ -1455,7 +1969,7 @@ export default function App() {
           </button>
           
           <button 
-            className={`sidebar-nav-item ${activeTab === 'group' ? 'active' : ''}`}
+            className={`sidebar-nav-item ${activeTab === 'group' || activeTab === 'friend-profile' ? 'active' : ''}`}
             onClick={() => handleTabClick('group')}
           >
             <Users size={18} />
@@ -1556,7 +2070,7 @@ export default function App() {
           </button>
           
           <button 
-            className={`bottom-nav-item ${activeTab === 'group' ? 'active' : ''}`}
+            className={`bottom-nav-item ${activeTab === 'group' || activeTab === 'friend-profile' ? 'active' : ''}`}
             onClick={() => handleTabClick('group')}
           >
             <Users size={20} />

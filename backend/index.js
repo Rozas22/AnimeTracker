@@ -218,6 +218,92 @@ app.get('/api/friends', async (req, res) => {
 });
 
 /**
+ * Add a friend manually by AniList username
+ * POST /api/friends/add
+ */
+app.post('/api/friends/add', async (req, res) => {
+  const { username } = req.body;
+
+  if (!username) {
+    return res.status(400).json({ error: 'El nombre de usuario es obligatorio.' });
+  }
+
+  try {
+    console.log(`Buscando perfil de AniList para el usuario: ${username}`);
+    const query = `
+      query ($name: String) {
+        User (name: $name) {
+          id
+          name
+          avatar {
+            large
+          }
+          siteUrl
+        }
+      }
+    `;
+
+    const response = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        variables: { name: username }
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || data.errors) {
+      const errMsg = data.errors ? data.errors[0].message : 'Usuario no encontrado en AniList';
+      return res.status(404).json({ error: errMsg });
+    }
+
+    const userInfo = data.data.User;
+
+    await initDatabase();
+    const dbContent = await fs.readFile(DB_PATH, 'utf-8');
+    let friendsList = JSON.parse(dbContent || '[]');
+
+    const existingIndex = friendsList.findIndex(f => f.id === userInfo.id);
+    const friendRecord = {
+      id: userInfo.id,
+      name: userInfo.name,
+      avatar: userInfo.avatar?.large || '',
+      siteUrl: userInfo.siteUrl || '',
+      access_token: null,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (existingIndex > -1) {
+      friendRecord.access_token = friendsList[existingIndex].access_token;
+      friendsList[existingIndex] = friendRecord;
+      console.log(`Database: Updated manually added friend: ${userInfo.name}`);
+    } else {
+      friendsList.push(friendRecord);
+      console.log(`Database: Added friend manually: ${userInfo.name}`);
+    }
+
+    await fs.writeFile(DB_PATH, JSON.stringify(friendsList, null, 2), 'utf-8');
+
+    res.json({
+      id: userInfo.id,
+      name: userInfo.name,
+      avatar: userInfo.avatar?.large || '',
+      siteUrl: userInfo.siteUrl || '',
+      updatedAt: friendRecord.updatedAt
+    });
+
+  } catch (error) {
+    console.error('Error adding friend manually:', error);
+    res.status(500).json({ error: 'Error interno al agregar al amigo.' });
+  }
+});
+
+/**
  * Save or update an anime list entry on the user's AniList profile
  * POST /api/anime/save
  */

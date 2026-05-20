@@ -13,16 +13,50 @@ const __dirname = path.dirname(__filename);
 
 const DB_PATH = path.join(__dirname, 'database.json');
 
-// Ensure database file exists
+// Ensure database file exists and migrate to object schema if needed
 async function initDatabase() {
   try {
-    await fs.access(DB_PATH);
+    const data = await fs.readFile(DB_PATH, 'utf-8');
+    const parsed = JSON.parse(data || '{"users":[],"relationships":[]}');
+    
+    // Migration: if it's an array, convert to { users: [...], relationships: [] }
+    if (Array.isArray(parsed)) {
+      console.log('Migrating database.json to users/relationships schema...');
+      const newDb = { users: parsed, relationships: [] };
+      await fs.writeFile(DB_PATH, JSON.stringify(newDb, null, 2), 'utf-8');
+    }
   } catch (error) {
-    await fs.writeFile(DB_PATH, JSON.stringify([], null, 2), 'utf-8');
+    // If file doesn't exist or is invalid
+    const defaultDb = { users: [], relationships: [] };
+    await fs.writeFile(DB_PATH, JSON.stringify(defaultDb, null, 2), 'utf-8');
     console.log('Database initialized automatically: database.json');
   }
 }
 initDatabase();
+
+// Auth Middleware to get current user from token
+async function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) return res.status(401).json({ error: 'Token requerido para autenticación.' });
+  
+  try {
+    await initDatabase();
+    const dbContent = await fs.readFile(DB_PATH, 'utf-8');
+    const db = JSON.parse(dbContent || '{"users":[],"relationships":[]}');
+    const users = Array.isArray(db) ? db : db.users; // safety fallback
+    
+    const user = users.find(u => u.access_token === token);
+    if (!user) return res.status(401).json({ error: 'Token inválido o sesión caducada.' });
+    
+    req.user = user; 
+    next();
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    res.status(500).json({ error: 'Error interno del servidor en autenticación.' });
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -149,10 +183,11 @@ app.post('/api/auth/token', async (req, res) => {
       try {
         await initDatabase(); // Make sure the DB file exists
         const dbContent = await fs.readFile(DB_PATH, 'utf-8');
-        let friendsList = JSON.parse(dbContent || '[]');
+        let db = JSON.parse(dbContent || '{"users":[],"relationships":[]}');
+        let usersList = Array.isArray(db) ? db : db.users;
 
-        const existingIndex = friendsList.findIndex(f => f.id === userInfo.id);
-        const friendRecord = {
+        const existingIndex = usersList.findIndex(u => u.id === userInfo.id);
+        const userRecord = {
           id: userInfo.id,
           name: userInfo.name,
           avatar: userInfo.avatar?.large || '',
@@ -162,14 +197,20 @@ app.post('/api/auth/token', async (req, res) => {
         };
 
         if (existingIndex > -1) {
-          friendsList[existingIndex] = friendRecord;
-          console.log(`Database: Updated existing friend: ${userInfo.name}`);
+          usersList[existingIndex] = userRecord;
+          console.log(`Database: Updated existing user: ${userInfo.name}`);
         } else {
-          friendsList.push(friendRecord);
-          console.log(`Database: Added new friend: ${userInfo.name}`);
+          usersList.push(userRecord);
+          console.log(`Database: Added new user: ${userInfo.name}`);
         }
 
-        await fs.writeFile(DB_PATH, JSON.stringify(friendsList, null, 2), 'utf-8');
+        if (Array.isArray(db)) {
+            db = { users: usersList, relationships: [] };
+        } else {
+            db.users = usersList;
+        }
+
+        await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
       } catch (dbError) {
         console.error('Database write error:', dbError);
       }
@@ -195,20 +236,28 @@ app.post('/api/auth/token', async (req, res) => {
  * Get all logged-in friends from database.json (excluding secure access tokens)
  * GET /api/friends
  */
-app.get('/api/friends', async (req, res) => {
+app.get('/api/friends', authenticateToken, async (req, res) => {
   try {
-    await initDatabase();
     const dbContent = await fs.readFile(DB_PATH, 'utf-8');
-    const friends = JSON.parse(dbContent || '[]');
-
-    // Strip access tokens for security
-    const publicFriends = friends.map(f => ({
-      id: f.id,
-      name: f.name,
-      avatar: f.avatar,
-      siteUrl: f.siteUrl,
-      updatedAt: f.updatedAt
-    }));
+    const db = JSON.parse(dbContent || '{"users":[],"relationships":[]}');
+    
+    // Find all accepted relationships for current user
+    const acceptedRels = db.relationships.filter(r => 
+      r.status === 'accepted' && (r.requesterId === req.user.id || r.targetId === req.user.id)
+    );
+    
+    const friendIds = acceptedRels.map(r => r.requesterId === req.user.id ? r.targetId : r.requesterId);
+    
+    // Map to public profiles
+    const publicFriends = db.users
+      .filter(u => friendIds.includes(u.id))
+      .map(u => ({
+        id: u.id,
+        name: u.name,
+        avatar: u.avatar,
+        siteUrl: u.siteUrl,
+        updatedAt: u.updatedAt
+      }));
 
     res.json(publicFriends);
   } catch (error) {
@@ -218,14 +267,103 @@ app.get('/api/friends', async (req, res) => {
 });
 
 /**
- * Add a friend manually by AniList username
+ * Get pending friend requests for current user
+ * GET /api/notifications
+ */
+app.get('/api/notifications', authenticateToken, async (req, res) => {
+  try {
+    const dbContent = await fs.readFile(DB_PATH, 'utf-8');
+    const db = JSON.parse(dbContent || '{"users":[],"relationships":[]}');
+    
+    // Find requests targeting this user that are pending
+    const pendingRels = db.relationships.filter(r => 
+      r.status === 'pending' && r.targetId === req.user.id
+    );
+    
+    const requesterIds = pendingRels.map(r => r.requesterId);
+    
+    const requests = db.users
+      .filter(u => requesterIds.includes(u.id))
+      .map(u => ({
+        id: u.id,
+        name: u.name,
+        avatar: u.avatar,
+        siteUrl: u.siteUrl,
+        updatedAt: u.updatedAt
+      }));
+
+    res.json(requests);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Failed to load notifications' });
+  }
+});
+
+/**
+ * Accept a friend request
+ * POST /api/friends/accept
+ */
+app.post('/api/friends/accept', authenticateToken, async (req, res) => {
+  const { requesterId } = req.body;
+  if (!requesterId) return res.status(400).json({ error: 'Falta requesterId.' });
+
+  try {
+    const dbContent = await fs.readFile(DB_PATH, 'utf-8');
+    const db = JSON.parse(dbContent || '{"users":[],"relationships":[]}');
+    
+    const relIndex = db.relationships.findIndex(r => 
+      r.status === 'pending' && r.targetId === req.user.id && r.requesterId === requesterId
+    );
+
+    if (relIndex > -1) {
+      db.relationships[relIndex].status = 'accepted';
+      await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'Solicitud no encontrada.' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Error interno al aceptar solicitud.' });
+  }
+});
+
+/**
+ * Reject a friend request
+ * POST /api/friends/reject
+ */
+app.post('/api/friends/reject', authenticateToken, async (req, res) => {
+  const { requesterId } = req.body;
+  if (!requesterId) return res.status(400).json({ error: 'Falta requesterId.' });
+
+  try {
+    const dbContent = await fs.readFile(DB_PATH, 'utf-8');
+    const db = JSON.parse(dbContent || '{"users":[],"relationships":[]}');
+    
+    // Remove relationship
+    db.relationships = db.relationships.filter(r => 
+      !(r.targetId === req.user.id && r.requesterId === requesterId && r.status === 'pending')
+    );
+    
+    await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Error interno al rechazar solicitud.' });
+  }
+});
+
+/**
+ * Send a friend request manually by AniList username
  * POST /api/friends/add
  */
-app.post('/api/friends/add', async (req, res) => {
+app.post('/api/friends/add', authenticateToken, async (req, res) => {
   const { username } = req.body;
 
   if (!username) {
     return res.status(400).json({ error: 'El nombre de usuario es obligatorio.' });
+  }
+  
+  if (username.toLowerCase() === req.user.name.toLowerCase()) {
+    return res.status(400).json({ error: 'No puedes agregarte a ti mismo.' });
   }
 
   try {
@@ -264,37 +402,52 @@ app.post('/api/friends/add', async (req, res) => {
 
     const userInfo = data.data.User;
 
-    await initDatabase();
     const dbContent = await fs.readFile(DB_PATH, 'utf-8');
-    let friendsList = JSON.parse(dbContent || '[]');
-
-    const existingIndex = friendsList.findIndex(f => f.id === userInfo.id);
-    const friendRecord = {
-      id: userInfo.id,
-      name: userInfo.name,
-      avatar: userInfo.avatar?.large || '',
-      siteUrl: userInfo.siteUrl || '',
-      access_token: null,
-      updatedAt: new Date().toISOString()
-    };
-
-    if (existingIndex > -1) {
-      friendRecord.access_token = friendsList[existingIndex].access_token;
-      friendsList[existingIndex] = friendRecord;
-      console.log(`Database: Updated manually added friend: ${userInfo.name}`);
+    let db = JSON.parse(dbContent || '{"users":[],"relationships":[]}');
+    
+    // Add user to db if they don't exist
+    const existingIndex = db.users.findIndex(u => u.id === userInfo.id);
+    if (existingIndex === -1) {
+      db.users.push({
+        id: userInfo.id,
+        name: userInfo.name,
+        avatar: userInfo.avatar?.large || '',
+        siteUrl: userInfo.siteUrl || '',
+        access_token: null,
+        updatedAt: new Date().toISOString()
+      });
     } else {
-      friendsList.push(friendRecord);
-      console.log(`Database: Added friend manually: ${userInfo.name}`);
+      // Update basic public info
+      db.users[existingIndex].name = userInfo.name;
+      db.users[existingIndex].avatar = userInfo.avatar?.large || '';
+      db.users[existingIndex].siteUrl = userInfo.siteUrl || '';
     }
 
-    await fs.writeFile(DB_PATH, JSON.stringify(friendsList, null, 2), 'utf-8');
+    // Check relationship
+    const existingRel = db.relationships.find(r => 
+      (r.requesterId === req.user.id && r.targetId === userInfo.id) ||
+      (r.requesterId === userInfo.id && r.targetId === req.user.id)
+    );
+
+    if (existingRel) {
+      if (existingRel.status === 'accepted') {
+        return res.status(400).json({ error: 'Ya son amigos.' });
+      }
+      return res.status(400).json({ error: 'Ya existe una solicitud pendiente.' });
+    }
+
+    // Create pending request
+    db.relationships.push({
+      requesterId: req.user.id,
+      targetId: userInfo.id,
+      status: 'pending'
+    });
+
+    await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
 
     res.json({
-      id: userInfo.id,
-      name: userInfo.name,
-      avatar: userInfo.avatar?.large || '',
-      siteUrl: userInfo.siteUrl || '',
-      updatedAt: friendRecord.updatedAt
+      success: true,
+      name: userInfo.name
     });
 
   } catch (error) {

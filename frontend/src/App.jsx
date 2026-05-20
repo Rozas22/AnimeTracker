@@ -1841,24 +1841,44 @@ export default function App() {
               </span>
             </div>
 
+            {pendingRequests.length > 0 && (
+              <div style={{ marginBottom: '2rem', padding: '1.25rem', background: 'rgba(255,100,100,0.1)', border: '1px solid rgba(255,100,100,0.2)', borderRadius: '12px' }}>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#ff8888' }}>Solicitudes Pendientes ({pendingRequests.length})</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {pendingRequests.map(req => (
+                    <div key={req.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
+                        <span style={{ fontWeight: '500' }}>{req.name}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => handleAcceptRequest(req.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', backgroundColor: 'var(--color-anilist-blue)' }}>Aceptar</button>
+                        <button onClick={() => handleRejectRequest(req.id)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', background: 'rgba(255,0,0,0.2)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer' }}>Rechazar</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Buscador de amigos */}
             <form onSubmit={handleAddFriend} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.25rem', marginBottom: '1.75rem', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
               <label style={{ fontSize: '0.9rem', fontWeight: '500', color: 'var(--color-text-secondary)' }}>
                 Buscar y Agregar Amigos (Usuario de AniList)
               </label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div className="search-input-group">
                 <input 
                   type="text" 
                   value={friendSearchQuery}
                   onChange={(e) => setFriendSearchQuery(e.target.value)}
                   placeholder="Ej: Rozas22, iker_..."
-                  style={{ flexGrow: 1, padding: '0.65rem 1rem', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'var(--color-text-primary)', fontSize: '0.95rem', outline: 'none' }}
+                  style={{ flex: '1 1 200px', padding: '0.65rem 1rem', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'var(--color-text-primary)', fontSize: '0.95rem', outline: 'none' }}
                 />
                 <button 
                   type="submit" 
                   disabled={addingFriend || !friendSearchQuery.trim()}
                   className="btn-primary"
-                  style={{ padding: '0.65rem 1.25rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                  style={{ flex: '1 1 auto', padding: '0.65rem 1.25rem', fontSize: '0.9rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.25rem' }}
                 >
                   {addingFriend ? 'Agregando...' : 'Agregar'}
                 </button>
@@ -2069,9 +2089,13 @@ export default function App() {
           <button 
             className={`sidebar-nav-item ${activeTab === 'group' || activeTab === 'friend-profile' ? 'active' : ''}`}
             onClick={() => handleTabClick('group')}
+            style={{ position: 'relative' }}
           >
             <Users size={18} />
             <span>El Grupo</span>
+            {pendingRequests.length > 0 && (
+              <div style={{ position: 'absolute', top: 10, right: 15, width: 8, height: 8, backgroundColor: 'red', borderRadius: '50%' }}></div>
+            )}
           </button>
         </nav>
 
@@ -2170,9 +2194,13 @@ export default function App() {
           <button 
             className={`bottom-nav-item ${activeTab === 'group' || activeTab === 'friend-profile' ? 'active' : ''}`}
             onClick={() => handleTabClick('group')}
+            style={{ position: 'relative' }}
           >
             <Users size={20} />
             <span>Grupo</span>
+            {pendingRequests.length > 0 && (
+              <div style={{ position: 'absolute', top: 5, right: '25%', width: 8, height: 8, backgroundColor: 'red', borderRadius: '50%' }}></div>
+            )}
           </button>
         </nav>
       </div>

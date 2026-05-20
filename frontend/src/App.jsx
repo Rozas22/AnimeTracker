@@ -208,40 +208,38 @@ export default function App() {
 
   // Detect if a new Service Worker is waiting to update
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      // 1. Get current registration
-      navigator.serviceWorker.getRegistration().then((reg) => {
-        if (!reg) return;
-        setSwRegistration(reg);
+    if (!('serviceWorker' in navigator)) return;
 
-        // Check if there is already an installed service worker waiting
-        if (reg.waiting) {
-          setShowUpdateBanner(true);
-        }
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      if (!reg) return;
+      setSwRegistration(reg);
 
-        // Listen for new service worker installation
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // There is a new worker installed and waiting to control the page
-                setShowUpdateBanner(true);
-              }
-            });
+      // A. Already waiting (e.g. user refreshed while update was pending)
+      if (reg.waiting) {
+        setShowUpdateBanner(true);
+      }
+
+      // B. A new SW just installed and is waiting
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            setShowUpdateBanner(true);
           }
         });
       });
+    });
 
-      // 2. Listen for controller changes to trigger reload
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      });
-    }
+    // C. After skipWaiting fires and the new SW takes control —
+    //    reload only if the user clicked the banner (refreshing flag).
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
   }, []);
 
   const handleUpdateApp = () => {
@@ -2722,8 +2720,23 @@ export default function App() {
 
       {/* PWA UPDATE BANNER */}
       {showUpdateBanner && (
-        <div className="update-banner" onClick={handleUpdateApp}>
-          ✨ ¡Hay una nueva versión disponible! Haz clic aquí para actualizar.
+        <div className="update-banner">
+          <span className="update-banner-text">
+            🚀 Nueva versión disponible
+          </span>
+          <button
+            className="update-banner-btn"
+            onClick={handleUpdateApp}
+          >
+            Actualizar ahora
+          </button>
+          <button
+            className="update-banner-dismiss"
+            onClick={() => setShowUpdateBanner(false)}
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
         </div>
       )}
     </div>

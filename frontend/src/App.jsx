@@ -2155,31 +2155,28 @@ export default function App() {
             )}
 
             {/* Buscador de amigos */}
-            <form onSubmit={handleAddFriend} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1.25rem', marginBottom: '1.75rem', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px' }}>
-              <label style={{ fontSize: '0.9rem', fontWeight: '500', color: 'var(--color-text-secondary)' }}>
+            <form onSubmit={handleAddFriend} className="friend-add-form">
+              <label className="friend-add-label">
                 Buscar y Agregar Amigos (Usuario de AniList)
               </label>
-              <div className="search-input-group">
-                <input 
-                  type="text" 
+              <div className="friend-add-row">
+                <input
+                  type="text"
                   value={friendSearchQuery}
                   onChange={(e) => setFriendSearchQuery(e.target.value)}
                   placeholder="Ej: Rozas22, iker_..."
-                  style={{ flex: '1 1 200px', padding: '0.65rem 1rem', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'var(--color-text-primary)', fontSize: '0.95rem', outline: 'none' }}
+                  className="friend-add-input"
                 />
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={addingFriend || !friendSearchQuery.trim()}
-                  className="btn-primary"
-                  style={{ flex: '1 1 auto', padding: '0.65rem 1.25rem', fontSize: '0.9rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.25rem' }}
+                  className="btn-primary friend-add-btn"
                 >
-                  {addingFriend ? 'Agregando...' : 'Agregar'}
+                  {addingFriend ? 'Agregando…' : 'Agregar'}
                 </button>
               </div>
               {friendAddError && (
-                <span style={{ fontSize: '0.85rem', color: 'var(--color-accent-red)', marginTop: '0.25rem' }}>
-                  ⚠️ {friendAddError}
-                </span>
+                <span className="friend-add-error">⚠️ {friendAddError}</span>
               )}
             </form>
 

@@ -444,7 +444,7 @@ header {
 /* Search Anime Styles */
 .search-card {
   /* Centered, compact search experience */
-  max-width: 740px;
+  max-width: 900px;
   width: 100%;
   margin: 0 auto 2rem auto;
 
@@ -3124,5 +3124,106 @@ textarea {
   .profile-now-cover {
     width: 56px;
     height: 80px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FRIEND SEARCH FORM — clean, no competing borders
+═══════════════════════════════════════════════════════════════ */
+
+.friend-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1.25rem 0 1.75rem;
+  padding: 1.5rem;
+  /* Solid neumorphic card — no transparency */
+  background: var(--color-bg-dark);
+  background-clip: padding-box;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 16px;
+  box-shadow: 4px 4px 14px rgba(0,0,0,0.35), -2px -2px 6px rgba(255,255,255,0.03);
+}
+
+.friend-add-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+/* Row: input + button side by side, same height */
+.friend-add-row {
+  display: flex;
+  gap: 0.625rem;
+  align-items: stretch;
+}
+
+.friend-add-input {
+  flex: 1 1 0;
+  min-width: 0;
+  /* Solid bg, single border — no residual glow from container */
+  background: var(--color-bg-card);
+  background-clip: padding-box;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.7rem 1rem;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  outline: none;
+  box-shadow: inset 1px 1px 4px rgba(0,0,0,0.3);
+  transition: var(--transition-smooth);
+}
+
+.friend-add-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+.friend-add-input:focus {
+  border-color: var(--accent);
+  /* Single clean glow — no double border */
+  box-shadow: inset 1px 1px 4px rgba(0,0,0,0.3),
+              0 0 0 3px var(--accent-glow);
+}
+
+/* Button: same height as input, accent fill, matching radius */
+.friend-add-btn {
+  flex-shrink: 0;
+  padding: 0.7rem 1.5rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.friend-add-error {
+  font-size: 0.82rem;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  line-height: 1.4;
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 600px) {
+  .friend-add-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .friend-add-btn {
+    width: 100%;
+    align-self: auto;
+  }
+  .search-card {
+    padding: 1.25rem 1rem;
   }
 }

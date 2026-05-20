@@ -47,8 +47,15 @@ export default function App() {
   // Fetch all friends who have logged in
   const fetchFriends = async () => {
     setLoadingFriends(true);
+    const targetUrl = `${API_BASE_URL}/api/friends`;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/friends`);
+      const response = await fetch(targetUrl).catch(error => {
+        console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
+        throw error;
+      });
+      if (response.headers.get('content-type')?.includes('text/html')) {
+        throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
+      }
       if (!response.ok) {
         throw new Error('No se pudo obtener la lista de amigos.');
       }
@@ -67,15 +74,23 @@ export default function App() {
 
     setAddingFriend(true);
     setFriendAddError('');
+    const targetUrl = `${API_BASE_URL}/api/friends/add`;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/friends/add`, {
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ username: friendSearchQuery.trim() }),
+      }).catch(error => {
+        console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
+        throw error;
       });
+
+      if (response.headers.get('content-type')?.includes('text/html')) {
+        throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
+      }
 
       const data = await response.json();
 
@@ -533,8 +548,9 @@ export default function App() {
     // If progress reaches total episodes, automatically set status to COMPLETED
     const nextStatus = nextProgress === totalEpisodes ? 'COMPLETED' : entry.status;
     
+    const targetUrl = `${API_BASE_URL}/api/anime/save`;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/anime/save`, {
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -546,7 +562,14 @@ export default function App() {
           progress: nextProgress,
           score: entry.score || 10
         })
+      }).catch(error => {
+        console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
+        throw error;
       });
+
+      if (response.headers.get('content-type')?.includes('text/html')) {
+        throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
+      }
 
       const result = await response.json();
       if (!response.ok) {
@@ -729,9 +752,18 @@ export default function App() {
   const handleLoginClick = async () => {
     setLoading(true);
     setError('');
+    const targetUrl = `${API_BASE_URL}/api/auth/config`;
     try {
       // Get OAuth config from backend to construct redirect URL
-      const response = await fetch(`${API_BASE_URL}/api/auth/config`);
+      const response = await fetch(targetUrl).catch(error => {
+        console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
+        throw error;
+      });
+
+      if (response.headers.get('content-type')?.includes('text/html')) {
+        throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
+      }
+
       if (!response.ok) {
         throw new Error('No se pudo obtener la configuración de autenticación del backend.');
       }
@@ -1078,9 +1110,10 @@ export default function App() {
 
     setSavingAnime(true);
     setError('');
+    const targetUrl = `${API_BASE_URL}/api/anime/save`;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/anime/save`, {
+      const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1092,7 +1125,14 @@ export default function App() {
           progress: formProgress,
           score: formScore
         })
+      }).catch(error => {
+        console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
+        throw error;
       });
+
+      if (response.headers.get('content-type')?.includes('text/html')) {
+        throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
+      }
 
       const result = await response.json();
 

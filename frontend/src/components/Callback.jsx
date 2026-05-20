@@ -27,14 +27,22 @@ export default function Callback({ onTokenSuccess, onTokenError }) {
 
     // Exchange the code for the token
     const exchangeCode = async () => {
+      const targetUrl = `${API_BASE_URL}/api/auth/token`;
       try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/token`, {
+        const response = await fetch(targetUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ code }),
+        }).catch(error => {
+          console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
+          throw error;
         });
+
+        if (response.headers.get('content-type')?.includes('text/html')) {
+          throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
+        }
 
         const data = await response.json();
 

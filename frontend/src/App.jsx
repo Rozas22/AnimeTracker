@@ -1740,8 +1740,34 @@ export default function App() {
                 </div>
               </div>
 
+              {/* LEVEL SYSTEM */}
+              {(() => {
+                const totalEpsForLevel = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
+                const level = Math.floor(totalEpsForLevel / 50) + 1;
+                let title = 'Novato';
+                if (level >= 50) title = 'Leyenda';
+                else if (level >= 20) title = 'Viciado';
+                else if (level >= 10) title = 'Aficionado';
+                const progressPct = ((totalEpsForLevel % 50) / 50) * 100;
+
+                return (
+                  <div className="profile-level-container">
+                    <div className="level-header">
+                      <span className="level-number">Nivel {level}</span>
+                      <span className="level-title" style={{ color: 'var(--accent)' }}>{title}</span>
+                    </div>
+                    <div className="level-bar-track">
+                      <div className="level-bar-fill" style={{ width: `${progressPct}%`, background: 'var(--accent)', boxShadow: '0 0 10px var(--accent-glow)' }} />
+                    </div>
+                    <div className="level-progress-text">
+                      {totalEpsForLevel % 50} / 50 eps para el siguiente nivel
+                    </div>
+                  </div>
+                );
+              })()}
+
               {userData.about && (
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem', width: '100%' }}>
                   <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre mí</h3>
                   <div 
                     style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
@@ -1749,58 +1775,6 @@ export default function App() {
                   />
                 </div>
               )}
-
-              {/* Aesthetics Settings Panel */}
-              <div className="aesthetics-panel">
-                <h3><Palette size={18} style={{ color: 'var(--accent)' }} /> Ajustes de Estética</h3>
-
-                <div className="aesthetics-section">
-                  <span className="aesthetics-label">Color de Acento</span>
-                  <div className="color-swatches">
-                    {ACCENT_COLORS.map(({ key, color, label }) => (
-                      <button
-                        key={key}
-                        className={`swatch ${accentColor === key ? 'active' : ''}`}
-                        style={{ background: color }}
-                        onClick={() => setAccentColor(key)}
-                        title={label}
-                        aria-label={`Color de acento: ${label}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="aesthetics-section">
-                  <span className="aesthetics-label">Estilo de Interfaz</span>
-                  <div className="style-mode-toggle">
-                    <button
-                      className={`style-mode-btn ${styleMode === 'classic' ? 'active' : ''}`}
-                      onClick={() => setStyleMode('classic')}
-                    >
-                      Clásico
-                    </button>
-                    <button
-                      className={`style-mode-btn ${styleMode === 'modern' ? 'active' : ''}`}
-                      onClick={() => setStyleMode('modern')}
-                    >
-                      Moderno
-                    </button>
-                    <button
-                      className={`style-mode-btn ${styleMode === 'modern2' ? 'active' : ''}`}
-                      onClick={() => setStyleMode('modern2')}
-                    >
-                      Moderno 2
-                    </button>
-                  </div>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: '0.6rem' }}>
-                    {styleMode === 'modern'
-                      ? '✔️ Modo moderno: glassmorphism + avatar hexagonal.'
-                      : styleMode === 'modern2'
-                      ? '✔️ Moderno 2: layout 2 columnas, fondos sólidos, sombras neumorfóficas.'
-                      : 'Modo clásico: diseño plano y limpio.'}
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* RIGHT COLUMN: stats */}
@@ -1847,10 +1821,7 @@ export default function App() {
               </div>
             </div>
 
-            <details className="token-inspector">
-              <summary>Inspeccionar token de autenticación (Debug)</summary>
-              <code>{token}</code>
-            </details>
+            {/* Token inspector removed */}
 
             {/* ─── VIENDO AHORA ───────────────────────────────── */}
             {(() => {
@@ -1964,14 +1935,14 @@ export default function App() {
                     <Award size={16} style={{ color: 'var(--accent)' }} /> Logros
                     <span className="achievements-count">{earned.length}<span style={{ opacity: 0.4 }}>/{allBadges.length}</span></span>
                   </h3>
-                  <div className="achievements-grid">
+                  <div className="achievements-grid modern-4x2">
                     {allBadges.map(badge => (
                       <div
                         key={badge.id}
                         className={`achievement-badge ${badge.earned ? 'earned' : 'locked'}`}
                         title={badge.earned ? `✔ ${badge.desc}` : `🔒 Bloqueado: ${badge.desc}`}
                       >
-                        <div className="achievement-icon" style={badge.earned ? { color: badge.color } : {}}>
+                        <div className={`achievement-icon ${badge.earned ? 'icon-3d' : ''}`} style={badge.earned ? { color: badge.color } : {}}>
                           {badge.icon}
                         </div>
                         <span className="achievement-label">{badge.label}</span>
@@ -1981,6 +1952,65 @@ export default function App() {
                 </div>
               );
             })()}
+          </div>
+        );
+      case 'settings':
+        return (
+          <div className="settings-card card" style={{ maxWidth: '700px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Settings size={22} style={{ color: 'var(--accent)' }} /> Ajustes de Estética
+              </h2>
+            </div>
+            
+            <div className="aesthetics-panel" style={{ padding: 0 }}>
+              <div className="aesthetics-section">
+                <span className="aesthetics-label">Color de Acento</span>
+                <div className="color-swatches">
+                  {ACCENT_COLORS.map(({ key, color, label }) => (
+                    <button
+                      key={key}
+                      className={`swatch ${accentColor === key ? 'active' : ''}`}
+                      style={{ background: color }}
+                      onClick={() => setAccentColor(key)}
+                      title={label}
+                      aria-label={`Color de acento: ${label}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="aesthetics-section">
+                <span className="aesthetics-label">Estilo de Interfaz</span>
+                <div className="style-mode-toggle">
+                  <button
+                    className={`style-mode-btn ${styleMode === 'classic' ? 'active' : ''}`}
+                    onClick={() => setStyleMode('classic')}
+                  >
+                    Clásico
+                  </button>
+                  <button
+                    className={`style-mode-btn ${styleMode === 'modern' ? 'active' : ''}`}
+                    onClick={() => setStyleMode('modern')}
+                  >
+                    Moderno
+                  </button>
+                  <button
+                    className={`style-mode-btn ${styleMode === 'modern2' ? 'active' : ''}`}
+                    onClick={() => setStyleMode('modern2')}
+                  >
+                    Moderno 2
+                  </button>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '0.8rem' }}>
+                  {styleMode === 'modern'
+                    ? '✔️ Modo moderno: glassmorphism + avatar hexagonal.'
+                    : styleMode === 'modern2'
+                    ? '✔️ Moderno 2: layout 2 columnas, fondos sólidos, sombras neumorfóficas.'
+                    : 'Modo clásico: diseño plano y limpio.'}
+                </p>
+              </div>
+            </div>
           </div>
         );
       case 'search':
@@ -2575,6 +2605,13 @@ export default function App() {
             <div className="sidebar-user-meta">
               <span className="sidebar-username">{userData.name}</span>
             </div>
+            <button
+              onClick={() => handleTabClick('settings')}
+              className="settings-gear-btn"
+              title="Ajustes de Estética"
+            >
+              <Settings size={18} />
+            </button>
           </div>
           <button onClick={handleLogout} className="btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
             <LogOut size={16} />

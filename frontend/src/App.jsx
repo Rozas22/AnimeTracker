@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette } from 'lucide-react';
 import Callback from './components/Callback';
+import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -48,6 +49,9 @@ export default function App() {
   // Translated synopsis state
   const [translatedDescription, setTranslatedDescription] = useState(null);
   const [translatingDesc, setTranslatingDesc] = useState(false);
+
+  // Theme
+  const { accentColor, setAccentColor, styleMode, setStyleMode } = useTheme();
 
   // Fetch accepted friends list
   const fetchFriends = async () => {
@@ -1787,6 +1791,50 @@ export default function App() {
               </div>
             </div>
 
+            {/* Aesthetics Settings Panel */}
+            <div className="aesthetics-panel">
+              <h3><Palette size={18} style={{ color: 'var(--accent)' }} /> Ajustes de Estética</h3>
+
+              <div className="aesthetics-section">
+                <span className="aesthetics-label">Color de Acento</span>
+                <div className="color-swatches">
+                  {ACCENT_COLORS.map(({ key, color, label }) => (
+                    <button
+                      key={key}
+                      className={`swatch ${accentColor === key ? 'active' : ''}`}
+                      style={{ background: color }}
+                      onClick={() => setAccentColor(key)}
+                      title={label}
+                      aria-label={`Color de acento: ${label}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="aesthetics-section">
+                <span className="aesthetics-label">Estilo de Interfaz</span>
+                <div className="style-mode-toggle">
+                  <button
+                    className={`style-mode-btn ${styleMode === 'classic' ? 'active' : ''}`}
+                    onClick={() => setStyleMode('classic')}
+                  >
+                    Clásico
+                  </button>
+                  <button
+                    className={`style-mode-btn ${styleMode === 'modern' ? 'active' : ''}`}
+                    onClick={() => setStyleMode('modern')}
+                  >
+                    Moderno
+                  </button>
+                </div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', marginTop: '0.6rem' }}>
+                  {styleMode === 'modern'
+                    ? '✔️ Modo moderno activo: avatares hexagonales, tarjetas neumorfóficas y glassmorphism.'
+                    : 'Modo clásico: diseño plano y limpio.'}
+                </p>
+              </div>
+            </div>
+
             <details className="token-inspector">
               <summary>Inspeccionar token de autenticación (Debug)</summary>
               <code>{token}</code>
@@ -2217,7 +2265,7 @@ export default function App() {
       <div className="app-container">
         <header>
           <div className="logo-container">
-            <span className="logo-text">AniList Friends Hub</span>
+            <img src="/logo.png" alt="AnimeTracker" style={{ height: '36px', objectFit: 'contain' }} />
           </div>
         </header>
         <Callback 
@@ -2234,17 +2282,7 @@ export default function App() {
       <div className="app-container">
         <header>
           <div className="logo-container">
-            <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="100" height="100" rx="20" fill="#0b1622" />
-              <path d="M50 15L85 75H15L50 15Z" fill="url(#grad)" />
-              <defs>
-                <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#c084fc" />
-                  <stop offset="100%" stopColor="#3db4f2" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <span className="logo-text">AniList Friends Hub</span>
+            <img src="/logo.png" alt="AnimeTracker" style={{ height: '36px', objectFit: 'contain' }} />
           </div>
         </header>
 
@@ -2319,17 +2357,7 @@ export default function App() {
       {/* SIDEBAR FOR DESKTOP */}
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100" height="100" rx="20" fill="#0b1622" />
-            <path d="M50 15L85 75H15L50 15Z" fill="url(#grad-side)" />
-            <defs>
-              <linearGradient id="grad-side" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#c084fc" />
-                <stop offset="100%" stopColor="#3db4f2" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <span className="logo-text">AniList Hub</span>
+          <img src="/logo.png" alt="AnimeTracker" style={{ height: '42px', objectFit: 'contain', maxWidth: '100%' }} />
         </div>
 
         <nav className="sidebar-nav">
@@ -2400,17 +2428,7 @@ export default function App() {
         {/* MOBILE TOP BAR */}
         <header className="mobile-header">
           <div className="logo-container">
-            <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="100" height="100" rx="20" fill="#0b1622" />
-              <path d="M50 15L85 75H15L50 15Z" fill="url(#grad-mob)" />
-              <defs>
-                <linearGradient id="grad-mob" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#c084fc" />
-                  <stop offset="100%" stopColor="#3db4f2" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <span className="logo-text">AniList Hub</span>
+            <img src="/logo.png" alt="AnimeTracker" style={{ height: '30px', objectFit: 'contain' }} />
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {showInstallBtn && (

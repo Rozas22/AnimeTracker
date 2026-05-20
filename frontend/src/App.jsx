@@ -2264,8 +2264,8 @@ export default function App() {
     return (
       <div className="app-container">
         <header>
-          <div className="logo-container">
-            <img src="/logo.png" alt="AnimeTracker" style={{ height: '36px', objectFit: 'contain' }} />
+          <div className="logo-container" style={{ padding: '0.25rem 0' }}>
+            <img src="/logo.png" alt="AnimeTracker" style={{ width: '130px', objectFit: 'contain' }} />
           </div>
         </header>
         <Callback 
@@ -2356,8 +2356,12 @@ export default function App() {
     <div className="app-layout">
       {/* SIDEBAR FOR DESKTOP */}
       <aside className="sidebar">
-        <div className="sidebar-logo">
-          <img src="/logo.png" alt="AnimeTracker" style={{ height: '42px', objectFit: 'contain', maxWidth: '100%' }} />
+        <div className="sidebar-logo" style={{ padding: '1rem 1.25rem 0.5rem' }}>
+          <img
+            src="/logo.png"
+            alt="AnimeTracker"
+            style={{ width: '150px', objectFit: 'contain', display: 'block' }}
+          />
         </div>
 
         <nav className="sidebar-nav">
@@ -2427,8 +2431,8 @@ export default function App() {
       <div className="app-main-content">
         {/* MOBILE TOP BAR */}
         <header className="mobile-header">
-          <div className="logo-container">
-            <img src="/logo.png" alt="AnimeTracker" style={{ height: '30px', objectFit: 'contain' }} />
+          <div className="logo-container" style={{ padding: '0.1rem 0' }}>
+            <img src="/logo.png" alt="AnimeTracker" style={{ width: '120px', objectFit: 'contain' }} />
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             {showInstallBtn && (

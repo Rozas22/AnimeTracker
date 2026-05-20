@@ -1,22 +1,30 @@
 {
-  "short_name": "AniList Hub",
-  "name": "AniList Friends Hub",
-  "description": "Sincroniza tu perfil, estadísticas y comparte tu progreso de anime en tiempo real con amigos.",
+  "short_name": "AnimeTracker",
+  "name": "AnimeTracker – Sigue tu anime",
+  "description": "Sincroniza tu lista de AniList, consulta estadísticas reales y comparte tu progreso con amigos.",
   "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any"
+    },
     {
       "src": "/icon-192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": "/",
   "background_color": "#0b1622",
-  "theme_color": "#3db4f2",
+  "theme_color": "#f59e0b",
   "display": "standalone",
   "orientation": "portrait"
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award } from 'lucide-react';
 import Callback from './components/Callback';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -44,6 +44,10 @@ export default function App() {
   // PWA Update states
   const [swRegistration, setSwRegistration] = useState(null);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+
+  // Translated synopsis state
+  const [translatedDescription, setTranslatedDescription] = useState(null);
+  const [translatingDesc, setTranslatingDesc] = useState(false);
 
   // Fetch accepted friends list
   const fetchFriends = async () => {
@@ -478,6 +482,12 @@ export default function App() {
               format
               episodes
               duration
+              genres
+              studios(isMain: true) {
+                nodes {
+                  name
+                }
+              }
               status
               startDate {
                 year
@@ -1137,6 +1147,8 @@ export default function App() {
 
       const media = result.data.Media;
       setSelectedAnime(media);
+      // Kick off translation immediately (non-blocking)
+      translateDescription(media.description);
 
       // Prepopulate form if user has this in their list
       if (media.mediaListEntry) {
@@ -1157,10 +1169,33 @@ export default function App() {
     }
   };
 
+  // Translate description to Spanish lazily (called after modal opens)
+  const translateDescription = async (rawHtml) => {
+    if (!rawHtml) return;
+    setTranslatedDescription(null);
+    setTranslatingDesc(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: rawHtml })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTranslatedDescription(data.translated || null);
+      }
+    } catch (err) {
+      console.error('Translation failed, showing original:', err);
+    } finally {
+      setTranslatingDesc(false);
+    }
+  };
+
   const closeModal = () => {
     setSelectedAnime(null);
     setModalOpen(false);
     setShowEditForm(false);
+    setTranslatedDescription(null);
   };
 
   // Save anime status & score to AniList
@@ -2003,9 +2038,177 @@ export default function App() {
             )}
           </div>
         );
+      case 'analytics': {
+        const totalEntries = completedAnime.length;
+        if (totalEntries === 0) {
+          return (
+            <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+              <BarChart2 size={48} style={{ color: 'var(--color-anilist-blue)', opacity: 0.5, marginBottom: '1rem' }} />
+              <h3>Sin datos todavía</h3>
+              <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
+                Añade animes a tu lista para ver tu análisis.
+              </p>
+            </div>
+          );
+        }
+
+        const allGenres = completedAnime.flatMap(e => e.media?.genres || []);
+        const allStudios = completedAnime.flatMap(e =>
+          (e.media?.studios?.nodes || []).map(s => s.name)
+        );
+        const allFormats = completedAnime.map(e => e.media?.format).filter(Boolean);
+        const allScores = completedAnime.map(e => e.score).filter(s => s > 0);
+
+        const topGenres = topN(allGenres, 8);
+        const topStudios = topN(allStudios, 6);
+        const formatDist = topN(allFormats, 8);
+
+        const statusCounts = {
+          COMPLETED: completedAnime.filter(e => e.status === 'COMPLETED').length,
+          CURRENT: completedAnime.filter(e => e.status === 'CURRENT').length,
+          PLANNING: completedAnime.filter(e => e.status === 'PLANNING').length,
+          DROPPED: completedAnime.filter(e => e.status === 'DROPPED').length,
+          PAUSED: completedAnime.filter(e => e.status === 'PAUSED').length,
+        };
+
+        const avgScore = allScores.length > 0
+          ? (allScores.reduce((a, b) => a + b, 0) / allScores.length).toFixed(1)
+          : 'N/A';
+        const totalEpisodesA = completedAnime.reduce((sum, e) => sum + (e.progress || 0), 0);
+        const totalHoursA = Math.round(
+          completedAnime.reduce((sum, e) => sum + (e.progress || 0) * (e.media?.duration || 24), 0) / 60
+        );
+        const maxGenreCount = topGenres[0]?.[1] || 1;
+        const maxStudioCount = topStudios[0]?.[1] || 1;
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+              <BarChart2 size={24} style={{ color: 'var(--color-anilist-blue)' }} />
+              <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>Análisis de tu Lista</h2>
+            </div>
+
+            <div className="stats-grid">
+              <div className="stat-item">
+                <Tv size={22} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.4rem' }} />
+                <div className="stat-value">{totalEntries}</div>
+                <div className="stat-label">Animes en Lista</div>
+              </div>
+              <div className="stat-item">
+                <TrendingUp size={22} style={{ color: 'var(--color-accent-green)', marginBottom: '0.4rem' }} />
+                <div className="stat-value">{totalEpisodesA}</div>
+                <div className="stat-label">Episodios Vistos</div>
+              </div>
+              <div className="stat-item">
+                <Clock size={22} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.4rem' }} />
+                <div className="stat-value">{totalHoursA}</div>
+                <div className="stat-label">Horas Invertidas</div>
+              </div>
+              <div className="stat-item">
+                <Star size={22} style={{ color: '#f59e0b', marginBottom: '0.4rem' }} />
+                <div className="stat-value">{avgScore}</div>
+                <div className="stat-label">Puntuación Media</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+
+              {topGenres.length > 0 && (
+                <div className="card" style={{ padding: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Award size={16} style={{ color: 'var(--color-accent-purple)' }} /> Géneros Favoritos
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {topGenres.map(([genre, count], i) => (
+                      <div key={genre}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.875rem' }}>
+                          <span style={{ color: i === 0 ? 'var(--color-anilist-blue)' : 'var(--color-text-primary)', fontWeight: i < 3 ? '600' : '400' }}>{genre}</span>
+                          <span style={{ color: 'var(--color-text-secondary)' }}>{count}</span>
+                        </div>
+                        <div className="analytics-bar-track">
+                          <div className="analytics-bar-fill" style={{ width: `${(count / maxGenreCount) * 100}%`, background: i === 0 ? 'var(--color-anilist-blue)' : i < 3 ? 'var(--color-accent-purple)' : 'rgba(255,255,255,0.15)' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {topStudios.length > 0 && (
+                <div className="card" style={{ padding: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Award size={16} style={{ color: 'var(--color-accent-green)' }} /> Estudios Más Vistos
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {topStudios.map(([studio, count], i) => (
+                      <div key={studio}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem', fontSize: '0.875rem' }}>
+                          <span style={{ color: i === 0 ? 'var(--color-accent-green)' : 'var(--color-text-primary)', fontWeight: i < 3 ? '600' : '400' }}>{studio}</span>
+                          <span style={{ color: 'var(--color-text-secondary)' }}>{count}</span>
+                        </div>
+                        <div className="analytics-bar-track">
+                          <div className="analytics-bar-fill" style={{ width: `${(count / maxStudioCount) * 100}%`, background: i === 0 ? 'var(--color-accent-green)' : i < 3 ? '#34d399' : 'rgba(255,255,255,0.15)' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="card" style={{ padding: '1.5rem' }}>
+                <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <List size={16} style={{ color: '#f59e0b' }} /> Estado de la Lista
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {[
+                    ['COMPLETED', 'Completados', 'var(--color-accent-green)'],
+                    ['CURRENT', 'Viendo', 'var(--color-anilist-blue)'],
+                    ['PLANNING', 'Planeo Ver', 'var(--color-accent-purple)'],
+                    ['PAUSED', 'En Pausa', '#f59e0b'],
+                    ['DROPPED', 'Abandonados', 'var(--color-accent-red)']
+                  ].filter(([key]) => statusCounts[key] > 0)
+                    .map(([key, label, color]) => (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      <span style={{ flex: 1, fontSize: '0.875rem' }}>{label}</span>
+                      <span style={{ fontSize: '0.875rem', fontWeight: '600', color }}>{statusCounts[key]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {formatDist.length > 0 && (
+                <div className="card" style={{ padding: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Tv size={16} style={{ color: 'var(--color-anilist-blue)' }} /> Formato
+                  </h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {formatDist.map(([fmt, count]) => (
+                      <div key={fmt} style={{ padding: '0.4rem 0.75rem', background: 'rgba(61,180,242,0.1)', border: '1px solid rgba(61,180,242,0.2)', borderRadius: '20px', fontSize: '0.8rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <span style={{ color: 'var(--color-anilist-blue)', fontWeight: '600' }}>{fmt}</span>
+                        <span style={{ color: 'var(--color-text-secondary)' }}>{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
       default:
         return null;
     }
+  };
+
+  // ── Analytics helper: compute top-N from a flat list of values ──
+  const topN = (items, n = 5) => {
+    const freq = {};
+    items.forEach(v => { if (v) freq[v] = (freq[v] || 0) + 1; });
+    return Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n);
   };
 
   // If callback route, render Callback component
@@ -2165,6 +2368,14 @@ export default function App() {
               <div style={{ position: 'absolute', top: 10, right: 15, width: 8, height: 8, backgroundColor: 'red', borderRadius: '50%' }}></div>
             )}
           </button>
+
+          <button 
+            className={`sidebar-nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => handleTabClick('analytics')}
+          >
+            <BarChart2 size={18} />
+            <span>Análisis</span>
+          </button>
         </nav>
 
         <div className="sidebar-footer">
@@ -2270,6 +2481,14 @@ export default function App() {
               <div style={{ position: 'absolute', top: 5, right: '25%', width: 8, height: 8, backgroundColor: 'red', borderRadius: '50%' }}></div>
             )}
           </button>
+
+          <button
+            className={`bottom-nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => handleTabClick('analytics')}
+          >
+            <BarChart2 size={20} />
+            <span>Análisis</span>
+          </button>
         </nav>
       </div>
 
@@ -2334,10 +2553,19 @@ export default function App() {
                   {selectedAnime.description && (
                     <div className="detail-section">
                       <h4>Sinopsis</h4>
-                      <div 
-                        className="detail-description"
-                        dangerouslySetInnerHTML={{ __html: selectedAnime.description }}
-                      />
+                      {translatingDesc ? (
+                        <p className="synopsis-loading">
+                          <span className="loader" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                          Traduciendo...
+                        </p>
+                      ) : translatedDescription ? (
+                        <p className="detail-description">{translatedDescription}</p>
+                      ) : (
+                        <div
+                          className="detail-description"
+                          dangerouslySetInnerHTML={{ __html: selectedAnime.description }}
+                        />
+                      )}
                     </div>
                   )}
 

@@ -13,6 +13,9 @@ const __dirname = path.dirname(__filename);
 
 const DB_PATH = path.join(__dirname, 'database.json');
 
+// In-memory cache for translations (clears on server restart, saves repeated API calls within a session)
+const translateCache = new Map();
+
 // Ensure database file exists and migrate to object schema if needed
 async function initDatabase() {
   try {
@@ -574,6 +577,45 @@ app.post('/api/anime/save', async (req, res) => {
 app.get('/api/status', (req, res) => {
   res.json({ status: 'ok', message: 'Backend is running' });
 });
+
+/**
+ * Translate text to Spanish using MyMemory free API (no key required)
+ * POST /api/translate
+ */
+app.post('/api/translate', async (req, res) => {
+  const { text } = req.body;
+  if (!text || typeof text !== 'string') {
+    return res.status(400).json({ error: 'text is required' });
+  }
+
+  // Strip HTML tags for cleaner translation
+  const stripped = text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // Check cache first
+  const cacheKey = stripped.substring(0, 80); // use start of text as key
+  if (translateCache.has(cacheKey)) {
+    return res.json({ translated: translateCache.get(cacheKey) });
+  }
+
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(stripped.substring(0, 500))}&langpair=en|es`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.responseStatus === 200 && data.responseData?.translatedText) {
+      const translated = data.responseData.translatedText;
+      translateCache.set(cacheKey, translated);
+      return res.json({ translated });
+    }
+
+    // MyMemory quota exceeded or error — return original
+    res.json({ translated: stripped });
+  } catch (error) {
+    console.error('Translation error:', error);
+    res.json({ translated: stripped }); // graceful fallback
+  }
+});
+
 
 // Serve static assets from frontend build folder in production
 app.use(express.static(path.join(__dirname, '../frontend/dist')));

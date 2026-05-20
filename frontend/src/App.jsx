@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap } from 'lucide-react';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
 
@@ -473,6 +473,7 @@ export default function App() {
             status
             progress
             score(format: POINT_10)
+            updatedAt
             media {
               id
               title {
@@ -1850,6 +1851,136 @@ export default function App() {
               <summary>Inspeccionar token de autenticación (Debug)</summary>
               <code>{token}</code>
             </details>
+
+            {/* ─── VIENDO AHORA ───────────────────────────────── */}
+            {(() => {
+              const watching = completedAnime
+                .filter(e => e.status === 'CURRENT')
+                .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+              if (!watching) return null;
+              const pct = watching.media?.episodes
+                ? Math.round((watching.progress / watching.media.episodes) * 100)
+                : null;
+              return (
+                <div className="profile-now-card">
+                  <div className="profile-now-badge">
+                    <Play size={12} style={{ marginRight: '4px' }} /> VIENDO AHORA
+                  </div>
+                  <div className="profile-now-body">
+                    <img
+                      src={watching.media?.coverImage?.large}
+                      alt={watching.media?.title?.userPreferred}
+                      className="profile-now-cover"
+                      onClick={() => { handleTabClick('mylist'); setMylistSubTab('CURRENT'); }}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <div className="profile-now-info">
+                      <p className="profile-now-title">{watching.media?.title?.userPreferred}</p>
+                      <p className="profile-now-progress">
+                        Episodio {watching.progress}{watching.media?.episodes ? ` / ${watching.media.episodes}` : ''}
+                      </p>
+                      {pct !== null && (
+                        <div className="profile-now-bar-track">
+                          <div className="profile-now-bar-fill" style={{ width: `${Math.min(pct, 100)}%` }} />
+                        </div>
+                      )}
+                      <p className="profile-now-pct">{pct !== null ? `${pct}% completado` : 'En progreso'}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ─── ACTIVIDAD RECIENTE ───────────────────────────── */}
+            {(() => {
+              const recent = [...completedAnime]
+                .filter(e => e.updatedAt)
+                .sort((a, b) => b.updatedAt - a.updatedAt)
+                .slice(0, 4);
+              if (recent.length === 0) return null;
+              const statusLabel = { COMPLETED: 'Completado', CURRENT: 'Viendo', PLANNING: 'Planeado', DROPPED: 'Abandonado', PAUSED: 'Pausado' };
+              const statusColor = { COMPLETED: 'var(--color-accent-green)', CURRENT: 'var(--accent)', PLANNING: 'var(--color-text-secondary)', DROPPED: '#ef4444', PAUSED: '#f59e0b' };
+              return (
+                <div className="profile-activity-card">
+                  <h3 className="profile-section-title">
+                    <Clock size={16} style={{ color: 'var(--accent)' }} /> Actividad Reciente
+                  </h3>
+                  <div className="profile-activity-list">
+                    {recent.map(entry => (
+                      <div key={entry.id} className="profile-activity-item">
+                        <img src={entry.media?.coverImage?.large} alt={entry.media?.title?.userPreferred} className="profile-activity-cover" />
+                        <div className="profile-activity-info">
+                          <p className="profile-activity-title">{entry.media?.title?.userPreferred}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span className="profile-activity-status" style={{ color: statusColor[entry.status] }}>
+                              {statusLabel[entry.status] || entry.status}
+                            </span>
+                            {entry.progress > 0 && (
+                              <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
+                                · Ep. {entry.progress}
+                              </span>
+                            )}
+                          </div>
+                          {entry.updatedAt && (
+                            <p className="profile-activity-date">
+                              {new Date(entry.updatedAt * 1000).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                            </p>
+                          )}
+                        </div>
+                        {entry.score > 0 && (
+                          <div className="profile-activity-score">
+                            <Star size={10} /> {entry.score}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ─── LOGROS ───────────────────────────────────────── */}
+            {(() => {
+              const totalEps   = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
+              const totalHrs   = Math.round(completedAnime.reduce((s, e) => s + (e.progress || 0) * (e.media?.duration || 24), 0) / 60);
+              const doneCount  = completedAnime.filter(e => e.status === 'COMPLETED').length;
+              const scored     = completedAnime.filter(e => e.score > 0);
+              const avgSc      = scored.length ? scored.reduce((s, e) => s + e.score, 0) / scored.length : 0;
+              const allBadges  = [
+                { id: 'eps100',    icon: <Zap   size={22} />, label: 'Maratonista',     desc: '100+ episodios vistos',    color: '#f59e0b', earned: totalEps >= 100 },
+                { id: 'eps1000',   icon: <Zap   size={22} />, label: 'Ultra Maratón',   desc: '1000+ episodios',          color: '#ef4444', earned: totalEps >= 1000 },
+                { id: 'comp50',    icon: <Award size={22} />, label: 'Coleccionista',   desc: '50+ animes completados',   color: '#3db4f2', earned: doneCount >= 50 },
+                { id: 'comp100',   icon: <Award size={22} />, label: 'Veterano',        desc: '100+ animes completados',  color: '#c084fc', earned: doneCount >= 100 },
+                { id: 'hrs100',    icon: <Clock size={22} />, label: 'Sin Vida Social', desc: '100+ horas de anime',      color: '#10b981', earned: totalHrs >= 100 },
+                { id: 'score8',    icon: <Star  size={22} />, label: 'Crítico Exigente', desc: 'Puntuación media ≥ 8',  color: '#f59e0b', earned: scored.length > 0 && avgSc >= 8 },
+                { id: 'firstscore',icon: <Star  size={22} />, label: 'Primer Voto',    desc: 'Puntuaste un anime',       color: '#a3e635', earned: scored.length > 0 },
+                { id: 'watching',  icon: <Play  size={22} />, label: 'En Marcha',      desc: 'Tienes animes en progreso',color: '#3db4f2', earned: completedAnime.some(e => e.status === 'CURRENT') },
+              ];
+              const earned = allBadges.filter(b => b.earned);
+              if (earned.length === 0) return null;
+              return (
+                <div className="profile-achievements-card">
+                  <h3 className="profile-section-title">
+                    <Award size={16} style={{ color: 'var(--accent)' }} /> Logros
+                    <span className="achievements-count">{earned.length}<span style={{ opacity: 0.4 }}>/{allBadges.length}</span></span>
+                  </h3>
+                  <div className="achievements-grid">
+                    {allBadges.map(badge => (
+                      <div
+                        key={badge.id}
+                        className={`achievement-badge ${badge.earned ? 'earned' : 'locked'}`}
+                        title={badge.earned ? `✔ ${badge.desc}` : `🔒 Bloqueado: ${badge.desc}`}
+                      >
+                        <div className="achievement-icon" style={badge.earned ? { color: badge.color } : {}}>
+                          {badge.icon}
+                        </div>
+                        <span className="achievement-label">{badge.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         );
       case 'search':

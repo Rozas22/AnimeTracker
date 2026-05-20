@@ -726,26 +726,42 @@ header {
 }
 
 /* Responsive Nav & App Layout Redesign */
+/* ═══════════════════════════════════════════════════════
+   CORE LAYOUT — Sidebar sticky + Content flex-grow
+   No position:fixed on sidebar. No margin-left hacks.
+   The sidebar stays in the normal flex flow; sticky makes
+   it scroll-proof without removing it from the document.
+═══════════════════════════════════════════════════════ */
+
 .app-layout {
   display: flex;
+  align-items: stretch;        /* children fill full height */
   min-height: 100vh;
   width: 100%;
+  min-width: 320px;            /* prevents layout collapse on tiny viewports */
+  overflow-x: hidden;          /* horizontal scroll on very small screens */
 }
 
-/* Sidebar Styling (Desktop) */
+/* ─── Sidebar (Desktop) ─────────────────────────────── */
 .sidebar {
   width: 280px;
+  flex-shrink: 0;              /* NEVER shrink — sidebar width is sacred */
   background-color: var(--color-bg-card);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   padding: 2rem 1.5rem;
-  position: fixed;
+
+  /* Sticky: stays on screen while content scrolls              */
+  /* No more position:fixed — sidebar is IN the flex flow       */
+  position: sticky;
   top: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 100;
+  height: 100vh;
+  align-self: flex-start;
+
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+  /* z-index removed — not needed when sidebar is in-flow */
+  overflow-y: auto;            /* scrollable if nav items overflow */
 }
 
 .sidebar-logo {
@@ -827,14 +843,17 @@ header {
   font-size: 0.95rem;
 }
 
-/* App Main Content Pane */
+/* ─── Main Content Pane ─────────────────────────────── */
 .app-main-content {
-  margin-left: 280px; /* matches sidebar width — never changes */
-  flex-grow: 1;
-  min-width: 0;       /* prevent flex overflow */
+  flex-grow: 1;                /* take all remaining space */
+  flex-shrink: 1;
+  min-width: 0;                /* prevent flex overflow (critical!) */
+  min-height: 100vh;
+  overflow-y: auto;            /* scroll here, not on body */
   padding: 2.5rem 3rem;
   display: flex;
   flex-direction: column;
+  /* margin-left REMOVED — sidebar is in flex flow now */
 }
 
 .dashboard-content-area {
@@ -857,21 +876,27 @@ header {
   .app-main-content {
     padding: 2rem 2rem;
   }
+  .sidebar {
+    width: 240px;
+  }
 }
 
-/* ── Mobile: hide sidebar, show bottom nav ── */
+/* ── Mobile (≤900px): hide sidebar, show bottom nav ── */
 @media (max-width: 900px) {
   .app-layout {
     flex-direction: column;
+    min-height: 100vh;
   }
 
   .sidebar {
-    display: none;
+    display: none;             /* replaced by bottom nav on mobile */
   }
 
   .app-main-content {
-    margin-left: 0;
-    padding: 1rem 1rem 7rem 1rem; /* 16px lateral so nothing touches edges */
+    /* No margin-left needed — sidebar is hidden */
+    min-height: 100vh;
+    overflow-y: visible;       /* let the page scroll naturally on mobile */
+    padding: 1rem 1rem 7rem 1rem;
   }
 
   .mobile-header {
@@ -1795,8 +1820,8 @@ html, body {
   position: relative;
 }
 
-.app-layout {
-  max-width: 100%;
+/* overflow-x safety — applied globally, not duplicating .app-layout */
+body {
   overflow-x: hidden;
 }
 
@@ -1980,7 +2005,9 @@ html, body {
 
 [data-style="modern"] .sidebar {
   border-radius: 24px;
+  /* In modern mode sidebar still uses sticky — just add visual tweaks */
   margin: 0.75rem 0 0.75rem 0.75rem;
+  height: calc(100vh - 1.5rem);
   background: var(--bg-glass);
   backdrop-filter: blur(var(--blur-glass));
   border: 1px solid var(--border-glass);

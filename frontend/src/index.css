@@ -217,8 +217,8 @@ header {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.25rem;
   margin-top: 1rem;
 }
 
@@ -752,7 +752,7 @@ header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 3rem;
+  margin-bottom: 1.75rem;
   padding-left: 0.5rem;
 }
 
@@ -829,15 +829,16 @@ header {
 
 /* App Main Content Pane */
 .app-main-content {
-  margin-left: 280px;
+  margin-left: 280px; /* matches sidebar width — never changes */
   flex-grow: 1;
-  padding: 3rem 4rem;
+  min-width: 0;       /* prevent flex overflow */
+  padding: 2.5rem 3rem;
   display: flex;
   flex-direction: column;
 }
 
 .dashboard-content-area {
-  max-width: 1000px;
+  max-width: 1400px;
   width: 100%;
   margin: 0 auto;
 }
@@ -851,6 +852,14 @@ header {
   display: none;
 }
 
+/* ── Tablet (900px–1200px) ── */
+@media (max-width: 1200px) and (min-width: 901px) {
+  .app-main-content {
+    padding: 2rem 2rem;
+  }
+}
+
+/* ── Mobile: hide sidebar, show bottom nav ── */
 @media (max-width: 900px) {
   .app-layout {
     flex-direction: column;
@@ -862,7 +871,7 @@ header {
 
   .app-main-content {
     margin-left: 0;
-    padding: 1.5rem 1.25rem 7rem 1.25rem;
+    padding: 1rem 1rem 7rem 1rem; /* 16px lateral so nothing touches edges */
   }
 
   .mobile-header {
@@ -1738,19 +1747,36 @@ html, body {
 }
 
 /* Ensure no cards or containers overflow horizontally on mobile */
+/* ── Small mobile (≤600px) ── */
 @media (max-width: 600px) {
   .app-main-content {
     max-width: 100%;
     overflow-x: hidden;
+    padding: 0.875rem 0.875rem 7rem 0.875rem; /* ~14px sides */
   }
+
   .card {
-    padding: 1.25rem;
+    padding: 1.1rem;
     border-radius: 12px;
     width: 100%;
     box-sizing: border-box;
   }
+
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr); /* 2 columns even on small screens */
+    gap: 0.75rem;
+  }
+
+  .stat-item {
+    padding: 1rem 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .profile-header {
+    flex-wrap: wrap;
     gap: 1rem;
   }
 }

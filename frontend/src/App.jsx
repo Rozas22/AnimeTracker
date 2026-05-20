@@ -22,6 +22,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [isCallback, setIsCallback] = useState(window.location.pathname === '/callback');
   const [friends, setFriends] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
@@ -44,17 +45,20 @@ export default function App() {
   const [swRegistration, setSwRegistration] = useState(null);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
-  // Fetch all friends who have logged in
+  // Fetch accepted friends list
   const fetchFriends = async () => {
+    if (!token) return;
     setLoadingFriends(true);
     const targetUrl = `${API_BASE_URL}/api/friends`;
     try {
-      const response = await fetch(targetUrl).catch(error => {
-        console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
-        throw error;
+      const response = await fetch(targetUrl, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).catch(err => {
+        console.log('Error de conexión:', err, 'al intentar conectar con:', targetUrl);
+        throw err;
       });
       if (response.headers.get('content-type')?.includes('text/html')) {
-        throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
+        throw new Error(`El servidor devolvio HTML en lugar de JSON. Revisa VITE_API_URL.`);
       }
       if (!response.ok) {
         throw new Error('No se pudo obtener la lista de amigos.');
@@ -65,6 +69,58 @@ export default function App() {
       console.error('Error fetching friends list:', err);
     } finally {
       setLoadingFriends(false);
+    }
+  };
+
+  // Fetch pending friend requests (notifications)
+  const fetchNotifications = async () => {
+    if (!token) return;
+    const targetUrl = `${API_BASE_URL}/api/notifications`;
+    try {
+      const response = await fetch(targetUrl, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPendingRequests(data);
+      }
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
+  };
+
+  // Accept a friend request
+  const handleAcceptRequest = async (requesterId) => {
+    const targetUrl = `${API_BASE_URL}/api/friends/accept`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requesterId })
+      });
+      if (response.ok) {
+        await fetchFriends();
+        await fetchNotifications();
+      }
+    } catch (err) {
+      console.error('Error accepting request:', err);
+    }
+  };
+
+  // Reject a friend request
+  const handleRejectRequest = async (requesterId) => {
+    const targetUrl = `${API_BASE_URL}/api/friends/reject`;
+    try {
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requesterId })
+      });
+      if (response.ok) {
+        await fetchNotifications();
+      }
+    } catch (err) {
+      console.error('Error rejecting request:', err);
     }
   };
 
@@ -81,11 +137,12 @@ export default function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ username: friendSearchQuery.trim() }),
-      }).catch(error => {
-        console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
-        throw error;
+      }).catch(err => {
+        console.log('Error de conexión:', err, 'al intentar conectar con:', targetUrl);
+        throw err;
       });
 
       if (response.headers.get('content-type')?.includes('text/html')) {
@@ -109,9 +166,10 @@ export default function App() {
     }
   };
 
-  // Fetch friends list whenever token changes (e.g. login/logout)
+  // Fetch friends list and notifications whenever token changes (e.g. login/logout)
   useEffect(() => {
     fetchFriends();
+    fetchNotifications();
   }, [token]);
 
   // Listen for PWA installation prompt

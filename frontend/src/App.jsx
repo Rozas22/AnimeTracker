@@ -40,6 +40,7 @@ export default function App() {
   const [friendAnimeList, setFriendAnimeList] = useState([]);
   const [friendLoading, setFriendLoading] = useState(false);
   const [friendError, setFriendError] = useState(null);
+  const [togglingFollow, setTogglingFollow] = useState(false);
   const [friendMylistSubTab, setFriendMylistSubTab] = useState('CURRENT');
 
   // PWA Update states
@@ -548,6 +549,52 @@ export default function App() {
       }
     };
     await makeRequest();
+  };
+
+  const handleFollowUser = async (userId) => {
+    if (!token) {
+      showToast('Debes iniciar sesión para seguir a usuarios.');
+      return;
+    }
+    
+    setTogglingFollow(true);
+    const query = `
+      mutation ($userId: Int) {
+        ToggleFollow(userId: $userId) {
+          id
+          isFollowing
+        }
+      }
+    `;
+
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ query, variables: { userId } }),
+      });
+      
+      const result = await response.json();
+      if (result.errors) {
+        throw new Error(result.errors[0].message || 'Error al modificar seguimiento.');
+      }
+      
+      const isNowFollowing = result.data.ToggleFollow.isFollowing;
+      showToast(isNowFollowing ? 'Siguiendo al usuario' : 'Has dejado de seguir al usuario');
+      
+      if (userData?.id) {
+        await fetchAnilistFollowing(userData.id);
+      }
+    } catch (err) {
+      console.error('Error toggling follow:', err);
+      showToast('Error al modificar seguimiento');
+    } finally {
+      setTogglingFollow(false);
+    }
   };
 
   const handleInstallApp = async () => {
@@ -1265,6 +1312,33 @@ export default function App() {
                 >
                   Ver perfil original en AniList.co →
                 </a>
+                
+                {userData && userData.id !== friendData.id && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <button 
+                      className={`btn-primary ${anilistFriends.some(f => f.id === friendData.id) ? 'following' : ''}`}
+                      onClick={() => handleFollowUser(friendData.id)}
+                      disabled={togglingFollow}
+                      style={{ 
+                        padding: '0.5rem 1.25rem', 
+                        fontSize: '0.9rem',
+                        background: anilistFriends.some(f => f.id === friendData.id) ? 'rgba(255,255,255,0.1)' : 'var(--color-anilist-blue)',
+                        border: anilistFriends.some(f => f.id === friendData.id) ? '1px solid rgba(255,255,255,0.2)' : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}
+                    >
+                      {togglingFollow ? (
+                        <div className="loader" style={{ width: '14px', height: '14px', borderWidth: '2px' }}></div>
+                      ) : anilistFriends.some(f => f.id === friendData.id) ? (
+                        <><Check size={16} /> Siguiendo</>
+                      ) : (
+                        <><Users size={16} /> Agregar</>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 

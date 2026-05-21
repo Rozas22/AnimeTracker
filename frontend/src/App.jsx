@@ -185,25 +185,7 @@ export default function App() {
     fetchNotifications();
   }, [token]);
 
-  // Compute Episode Notifications
-  useEffect(() => {
-    if (!completedAnime || completedAnime.length === 0) return;
-    const watching = completedAnime.filter(e => e.status === 'CURRENT' && e.media?.nextAiringEpisode);
-    const newNotifs = [];
-    watching.forEach(entry => {
-      const nextEp = entry.media.nextAiringEpisode.episode;
-      if (nextEp > entry.progress + 1) {
-        newNotifs.push({
-          id: `ep_${entry.media.id}`,
-          type: 'episode',
-          anime: entry.media,
-          unseenCount: nextEp - 1 - entry.progress,
-          latestAvailable: nextEp - 1
-        });
-      }
-    });
-    setEpisodeNotifications(newNotifs);
-  }, [completedAnime]);
+  // Computed notifications are now below completedAnime declaration
 
   // Listen for PWA installation prompt
   useEffect(() => {
@@ -469,6 +451,26 @@ export default function App() {
   const [completedAnime, setCompletedAnime] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
+
+  // Compute Episode Notifications
+  useEffect(() => {
+    if (!completedAnime || completedAnime.length === 0) return;
+    const watching = completedAnime.filter(e => e.status === 'CURRENT' && e.media?.nextAiringEpisode);
+    const newNotifs = [];
+    watching.forEach(entry => {
+      const nextEp = entry.media.nextAiringEpisode.episode;
+      if (nextEp > entry.progress + 1) {
+        newNotifs.push({
+          id: `ep_${entry.media.id}`,
+          type: 'episode',
+          anime: entry.media,
+          unseenCount: nextEp - 1 - entry.progress,
+          latestAvailable: nextEp - 1
+        });
+      }
+    });
+    setEpisodeNotifications(newNotifs);
+  }, [completedAnime]);
   const [mylistSubTab, setMylistSubTab] = useState('CURRENT');
   const [searchPage, setSearchPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);

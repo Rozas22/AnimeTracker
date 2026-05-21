@@ -24,6 +24,8 @@ export default function App() {
   const [isCallback, setIsCallback] = useState(window.location.pathname === '/callback');
   const [friends, setFriends] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [outgoingRequests, setOutgoingRequests] = useState([]);
+  const [notificationTab, setNotificationTab] = useState('noticias');
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
@@ -95,7 +97,13 @@ export default function App() {
       });
       if (response.ok) {
         const data = await response.json();
-        setPendingRequests(data);
+        if (Array.isArray(data)) {
+          setPendingRequests(data);
+          setOutgoingRequests([]);
+        } else {
+          setPendingRequests(data.incoming || []);
+          setOutgoingRequests(data.outgoing || []);
+        }
       }
     } catch (err) {
       console.error('Error fetching notifications:', err);
@@ -2705,54 +2713,101 @@ export default function App() {
     <div className="app-layout">
       {/* Notification Center Dropdown */}
       {showNotificationCenter && (
-        <div className="notification-dropdown card" style={{ position: 'fixed', top: '70px', right: '20px', width: '320px', maxHeight: '80vh', overflowY: 'auto', zIndex: 1000, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', borderRadius: '16px', padding: '1.25rem', background: 'var(--bg-secondary)', border: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
-            <h2 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="notification-dropdown card" style={{ position: 'fixed', top: '70px', right: '20px', width: '320px', maxHeight: '80vh', overflowY: 'auto', zIndex: 1000, boxShadow: '0 10px 40px rgba(0,0,0,0.8)', borderRadius: '16px', padding: '1.25rem', background: 'var(--color-bg-dark)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Bell size={18} style={{ color: 'var(--accent)' }} /> Notificaciones
             </h2>
             <button onClick={() => setShowNotificationCenter(false)} className="settings-modal-close" aria-label="Cerrar notificaciones">
               <X size={18} />
             </button>
           </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+            <button 
+              onClick={() => setNotificationTab('noticias')}
+              style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: 'none', color: notificationTab === 'noticias' ? 'var(--accent)' : 'var(--color-text-secondary)', fontWeight: notificationTab === 'noticias' ? '600' : '400', cursor: 'pointer', borderBottom: notificationTab === 'noticias' ? '2px solid var(--accent)' : '2px solid transparent', transition: 'all 0.2s' }}
+            >
+              Noticias
+            </button>
+            <button 
+              onClick={() => setNotificationTab('solicitudes')}
+              style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: 'none', color: notificationTab === 'solicitudes' ? 'var(--accent)' : 'var(--color-text-secondary)', fontWeight: notificationTab === 'solicitudes' ? '600' : '400', cursor: 'pointer', borderBottom: notificationTab === 'solicitudes' ? '2px solid var(--accent)' : '2px solid transparent', transition: 'all 0.2s' }}
+            >
+              Solicitudes
+              {(pendingRequests.length > 0 || outgoingRequests.length > 0) && (
+                <span style={{ marginLeft: '6px', background: 'var(--accent)', color: '#fff', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '10px' }}>
+                  {pendingRequests.length + outgoingRequests.length}
+                </span>
+              )}
+            </button>
+          </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {pendingRequests.length === 0 && episodeNotifications.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
-                <Bell size={32} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
-                <p style={{ margin: 0, fontSize: '0.9rem' }}>Todo al día</p>
-              </div>
+            {notificationTab === 'noticias' && (
+              <>
+                {episodeNotifications.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
+                    <Bell size={32} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
+                    <p style={{ margin: 0, fontSize: '0.9rem' }}>Todo al día en tus animes</p>
+                  </div>
+                ) : (
+                  episodeNotifications.map(notif => (
+                    <div key={notif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'flex-start' }}>
+                      <img src={notif.anime.coverImage?.large} alt="cover" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', fontWeight: '500', lineHeight: 1.2 }}>{notif.anime.title.userPreferred}</p>
+                        <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: 'var(--accent)' }}>
+                          {notif.unseenCount} ep. nuevo(s) (hasta el {notif.latestAvailable})
+                        </p>
+                        <button onClick={() => { setShowNotificationCenter(false); handleTabClick('mylist'); setMylistSubTab('CURRENT'); }} className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', width: '100%' }}>
+                          Ver ahora
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </>
             )}
 
-            {/* Episode Notifications */}
-            {episodeNotifications.map(notif => (
-              <div key={notif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'flex-start' }}>
-                <img src={notif.anime.coverImage?.large} alt="cover" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', fontWeight: '500', lineHeight: 1.2 }}>{notif.anime.title.userPreferred}</p>
-                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: 'var(--accent)' }}>
-                    {notif.unseenCount} ep. nuevo(s) (hasta el {notif.latestAvailable})
-                  </p>
-                  <button onClick={() => { setShowNotificationCenter(false); handleTabClick('mylist'); setMylistSubTab('CURRENT'); }} className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', width: '100%' }}>
-                    Ver ahora
-                  </button>
-                </div>
-              </div>
-            ))}
+            {notificationTab === 'solicitudes' && (
+              <>
+                {pendingRequests.length === 0 && outgoingRequests.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
+                    <Users size={32} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
+                    <p style={{ margin: 0, fontSize: '0.9rem' }}>No hay solicitudes de amistad</p>
+                  </div>
+                ) : (
+                  <>
+                    {pendingRequests.length > 0 && <p style={{ margin: '0', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Recibidas</p>}
+                    {pendingRequests.map(req => (
+                      <div key={req.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                        <div style={{ flex: '1 1 100px' }}>
+                          <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '500' }}>{req.name}</p>
+                          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Te ha enviado solicitud</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                          <button onClick={() => { handleAcceptRequest(req.id); }} className="btn-primary" style={{ padding: '0.3rem', fontSize: '0.75rem', backgroundColor: 'var(--color-anilist-blue)', flex: 1 }}>Aceptar</button>
+                          <button onClick={() => { handleRejectRequest(req.id); }} style={{ padding: '0.3rem', fontSize: '0.75rem', background: 'rgba(255,0,0,0.2)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', flex: 1 }}>Rechazar</button>
+                        </div>
+                      </div>
+                    ))}
 
-            {/* Friend Requests Notifications */}
-            {pendingRequests.map(req => (
-              <div key={req.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
-                <div style={{ flex: '1 1 100px' }}>
-                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '500' }}>{req.name}</p>
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Solicitud de amistad</p>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                  <button onClick={() => { handleAcceptRequest(req.id); }} className="btn-primary" style={{ padding: '0.3rem', fontSize: '0.75rem', backgroundColor: 'var(--color-anilist-blue)', flex: 1 }}>Aceptar</button>
-                  <button onClick={() => { handleRejectRequest(req.id); }} style={{ padding: '0.3rem', fontSize: '0.75rem', background: 'rgba(255,0,0,0.2)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', flex: 1 }}>Rechazar</button>
-                </div>
-              </div>
-            ))}
+                    {outgoingRequests.length > 0 && <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Enviadas</p>}
+                    {outgoingRequests.map(req => (
+                      <div key={req.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center' }}>
+                        <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '500' }}>{req.name}</p>
+                          <p style={{ margin: 0, fontSize: '0.75rem', color: '#f59e0b' }}>Pendiente de respuesta</p>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}

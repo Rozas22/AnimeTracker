@@ -316,7 +316,7 @@ app.get('/api/friends', authenticateToken, async (req, res) => {
 });
 
 /**
- * Get pending friend requests for current user
+ * Get pending friend requests for current user (incoming and outgoing)
  * GET /api/notifications
  */
 app.get('/api/notifications', authenticateToken, async (req, res) => {
@@ -324,15 +324,14 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
     const dbContent = await fs.readFile(DB_PATH, 'utf-8');
     const db = JSON.parse(dbContent || '{"users":[],"relationships":[]}');
     
-    // Find requests targeting this user that are pending
-    const pendingRels = db.relationships.filter(r => 
+    // Find incoming requests targeting this user
+    const incomingRels = db.relationships.filter(r => 
       r.status === 'pending' && String(r.targetId) === String(req.user.id)
     );
-    const pendingIds = pendingRels.map(r => String(r.requesterId));
+    const incomingIds = incomingRels.map(r => String(r.requesterId));
     
-    // Map to public profiles
-    const requests = db.users
-      .filter(u => pendingIds.includes(String(u.id)))
+    const incoming = db.users
+      .filter(u => incomingIds.includes(String(u.id)))
       .map(u => ({
         id: u.id,
         name: u.name,
@@ -341,7 +340,23 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
         updatedAt: u.updatedAt
       }));
 
-    res.json(requests);
+    // Find outgoing requests made by this user
+    const outgoingRels = db.relationships.filter(r => 
+      r.status === 'pending' && String(r.requesterId) === String(req.user.id)
+    );
+    const outgoingIds = outgoingRels.map(r => String(r.targetId));
+    
+    const outgoing = db.users
+      .filter(u => outgoingIds.includes(String(u.id)))
+      .map(u => ({
+        id: u.id,
+        name: u.name,
+        avatar: u.avatar,
+        siteUrl: u.siteUrl,
+        updatedAt: u.updatedAt
+      }));
+
+    res.json({ incoming, outgoing });
   } catch (error) {
     console.error('Error fetching notifications:', error);
     res.status(500).json({ error: 'Failed to load notifications' });

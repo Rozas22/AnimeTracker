@@ -305,6 +305,12 @@ export default function App() {
     setFriendData(null);
     setFriendAnimeList([]);
 
+    // Failsafe timeout to prevent infinite loading state
+    const timeoutId = setTimeout(() => {
+      setFriendLoading(false);
+      setFriendError('Tiempo de espera agotado al cargar el perfil.');
+    }, 15000);
+
     const query = `
       query ($name: String) {
         User (name: $name) {
@@ -358,6 +364,7 @@ export default function App() {
       console.error('Error fetching friend profile:', err);
       setFriendError(err.message || 'Error al cargar el perfil del amigo.');
     } finally {
+      clearTimeout(timeoutId);
       setFriendLoading(false);
     }
   };
@@ -387,23 +394,6 @@ export default function App() {
                 year
                 month
                 day
-              }
-              relations {
-                edges {
-                  relationType
-                  node {
-                    id
-                    title {
-                      userPreferred
-                    }
-                    coverImage {
-                      large
-                    }
-                    format
-                    episodes
-                    status
-                  }
-                }
               }
             }
           }

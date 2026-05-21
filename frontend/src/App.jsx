@@ -39,6 +39,7 @@ export default function App() {
   const [friendData, setFriendData] = useState(null);
   const [friendAnimeList, setFriendAnimeList] = useState([]);
   const [friendLoading, setFriendLoading] = useState(false);
+  const [friendError, setFriendError] = useState(null);
   const [friendMylistSubTab, setFriendMylistSubTab] = useState('CURRENT');
 
   // PWA Update states
@@ -197,37 +198,51 @@ export default function App() {
       }
     `;
 
-    try {
-      const response = await fetch('https://graphql.anilist.co', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          query,
-          variables: { name: username }
-        })
-      });
+    const makeRequest = async (retries = 1) => {
+      try {
+        const response = await fetch('https://graphql.anilist.co', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            query,
+            variables: { name: username }
+          })
+        });
 
-      const result = await response.json();
-      if (result.errors) {
-        throw new Error(result.errors[0].message || 'No se pudo encontrar el usuario.');
+        if (response.status === 429) {
+          if (retries > 0) {
+            setFriendError('Servidor saturado, intentando de nuevo en unos segundos...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            setFriendError(null);
+            return makeRequest(retries - 1);
+          } else {
+            throw new Error('Demasiadas peticiones. Inténtalo más tarde.');
+          }
+        }
+
+        const result = await response.json();
+        if (result.errors) {
+          throw new Error(result.errors[0].message || 'No se pudo encontrar el usuario.');
+        }
+
+        const user = result.data.User;
+        setFriendData(user);
+
+        // Now fetch their anime list
+        await fetchFriendAnimeList(user.id);
+      } catch (err) {
+        console.error('Error fetching friend profile:', err);
+        setFriendError(err.message || 'Error al cargar el perfil del amigo.');
+      } finally {
+        clearTimeout(timeoutId);
+        setFriendLoading(false);
       }
-
-      const user = result.data.User;
-      setFriendData(user);
-
-      // Now fetch their anime list
-      await fetchFriendAnimeList(user.id);
-    } catch (err) {
-      console.error('Error fetching friend profile:', err);
-      setFriendError(err.message || 'Error al cargar el perfil del amigo.');
-    } finally {
-      clearTimeout(timeoutId);
-      setFriendLoading(false);
-    }
+    };
+    await makeRequest();
   };
 
   const fetchFriendAnimeList = async (userId) => {
@@ -261,30 +276,41 @@ export default function App() {
         }
       }
     `;
+    const makeRequest = async (retries = 1) => {
+      try {
+        const response = await fetch('https://graphql.anilist.co', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            query,
+            variables: { userId }
+          })
+        });
 
-    try {
-      const response = await fetch('https://graphql.anilist.co', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          query,
-          variables: { userId }
-        })
-      });
+        if (response.status === 429) {
+          if (retries > 0) {
+            setFriendError('Servidor saturado, cargando lista en unos segundos...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            setFriendError(null);
+            return makeRequest(retries - 1);
+          } else {
+            throw new Error('Demasiadas peticiones. Inténtalo más tarde.');
+          }
+        }
 
-      const result = await response.json();
-      if (result.errors) {
-        throw new Error(result.errors[0].message || 'Error al obtener lista del amigo.');
+        const result = await response.json();
+        if (!result.errors && result.data?.Page?.mediaList) {
+          setFriendAnimeList(result.data.Page.mediaList);
+        }
+      } catch (err) {
+        console.error('Error fetching friend anime list:', err);
       }
-
-      setFriendAnimeList(result.data.Page.mediaList || []);
-    } catch (err) {
-      console.error('Error fetching friend list:', err);
-    }
+    };
+    await makeRequest();
   };
 
   const handleNavigateToFriend = (friendName) => {
@@ -487,7 +513,6 @@ export default function App() {
   const handleTabClick = (tabName) => {
     setActiveTab(tabName);
     window.history.pushState(null, '', '/');
-    refreshUserData();
   };
 
   const fetchAnilistFollowing = async (userId) => {
@@ -502,22 +527,37 @@ export default function App() {
         }
       }
     `;
-    try {
-      const response = await fetch('https://graphql.anilist.co', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ query, variables: { userId } })
-      });
-      const data = await response.json();
-      if (!data.errors && data.data?.Page?.following) {
-        setAnilistFriends(data.data.Page.following || []);
+    const makeRequest = async (retries = 1) => {
+      try {
+        const response = await fetch('https://graphql.anilist.co', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ query, variables: { userId } })
+        });
+        
+        if (response.status === 429) {
+          if (retries > 0) {
+            setFriendError('Servidor saturado, intentando de nuevo en unos segundos...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            setFriendError(null);
+            return makeRequest(retries - 1);
+          } else {
+            throw new Error('Too Many Requests');
+          }
+        }
+        
+        const data = await response.json();
+        if (!data.errors && data.data?.Page?.following) {
+          setAnilistFriends(data.data.Page.following || []);
+        }
+      } catch (err) {
+        console.error('Error fetching anilist following:', err);
       }
-    } catch (err) {
-      console.error('Error fetching anilist following:', err);
-    }
+    };
+    await makeRequest();
   };
 
   const handleInstallApp = async () => {

@@ -174,10 +174,10 @@ export default function App() {
 
   // Force fetch Anilist following when entering Group tab
   useEffect(() => {
-    if (activeTab === 'group' && userData?.id) {
-      fetchAnilistFollowing(userData.id);
+    if (activeTab === 'group') {
+      fetchAnilistFollowing();
     }
-  }, [activeTab, userData?.id]);
+  }, [activeTab]);
 
   const fetchFriendProfile = async (username) => {
     if (!username) return;
@@ -513,27 +513,27 @@ export default function App() {
     window.history.pushState(null, '', '/');
   };
 
-  const fetchAnilistFollowing = async (userId) => {
-    const query = `
-      query ($userId: Int) {
-        Page(page: 1, perPage: 100) {
-          following(userId: $userId) {
-            id
-            name
-            avatar { large }
-          }
-        }
-      }
-    `;
+  const fetchAnilistFollowing = async () => {
+    if (!token) {
+      console.log('Token presente:', false);
+      return;
+    }
+    console.log('Token presente:', true);
+
+    const query = `query { Viewer { following(sort: [USERNAME]) { nodes { id name avatar { large } } } } }`;
+    
+    console.log('Query que se está enviando:', JSON.stringify({ query }));
+
     const makeRequest = async (retries = 1) => {
       try {
         const response = await fetch('https://graphql.anilist.co', {
           method: 'POST',
           headers: {
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            'Accept': 'application/json'
           },
-          body: JSON.stringify({ query, variables: { userId } })
+          body: JSON.stringify({ query })
         });
         
         if (response.status === 429) {
@@ -548,8 +548,10 @@ export default function App() {
         }
         
         const data = await response.json();
-        if (!data.errors && data.data?.Page?.following) {
-          setAnilistFriends(data.data.Page.following || []);
+        if (!data.errors && data.data?.Viewer?.following?.nodes) {
+          setAnilistFriends(data.data.Viewer.following.nodes);
+        } else {
+          console.error('AniList errors:', data.errors);
         }
       } catch (err) {
         console.error('Error fetching anilist following:', err);
@@ -596,9 +598,7 @@ export default function App() {
       const isNowFollowing = result.data.ToggleFollow.isFollowing;
       showToast(isNowFollowing ? 'Siguiendo al usuario' : 'Has dejado de seguir al usuario');
       
-      if (userData?.id) {
-        await fetchAnilistFollowing(userData.id);
-      }
+      await fetchAnilistFollowing();
     } catch (err) {
       console.error('Error toggling follow:', err);
       showToast('Error al modificar seguimiento');
@@ -2306,7 +2306,7 @@ export default function App() {
                 <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Mis Amigos</h3>
                 <button 
                   className="btn-secondary" 
-                  onClick={() => userData?.id && fetchAnilistFollowing(userData.id)}
+                  onClick={() => fetchAnilistFollowing()}
                   style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
                 >
                   <Users size={14} /> Actualizar Lista

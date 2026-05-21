@@ -41,6 +41,15 @@
   padding: 0;
 }
 
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
 body {
   background-color: var(--color-bg-dark);
   color: var(--color-text-primary);
@@ -1846,34 +1855,31 @@ header {
   box-shadow: 0 0 8px rgba(61, 180, 242, 0.4);
 }
 
-/* Global overflow prevention and alignment */
-html, body {
-  max-width: 100%;
-  overflow-x: hidden;
-  position: relative;
-}
+@media (max-width: 600px) {
+  .app-main-content {
+    max-width: 100%;
+    overflow-x: hidden;
+    padding: 0 0 7rem 0;
+    background: transparent !important;
+  }
 
-/* overflow-x safety — applied globally, not duplicating .app-layout */
-body {
-  overflow-x: hidden;
+  [data-style="modern2"] .app-main-content {
+    background: transparent !important;
+  }
+
+  .card, .profile-card, .search-card, .friends-card, .anime-card {
+    padding: 10px !important;
+    border-radius: 12px;
+    width: 100% !important;
+    margin: 0 0 1rem 0 !important;
+    box-sizing: border-box;
+    max-width: 100vw;
+  }
 }
 
 /* Ensure no cards or containers overflow horizontally on mobile */
 /* ── Small mobile (≤600px) ── */
 @media (max-width: 600px) {
-  .app-main-content {
-    max-width: 100%;
-    overflow-x: hidden;
-    padding: 0.875rem 0.875rem 7rem 0.875rem; /* ~14px sides */
-  }
-
-  .card {
-    padding: 1.1rem;
-    border-radius: 12px;
-    width: 100%;
-    box-sizing: border-box;
-  }
-
   .stats-grid {
     grid-template-columns: repeat(2, 1fr); /* 2 columns even on small screens */
     gap: 0.75rem;

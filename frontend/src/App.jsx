@@ -2224,14 +2224,14 @@ export default function App() {
                 <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#ff8888' }}>Solicitudes Pendientes ({pendingRequests.length})</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {pendingRequests.map(req => (
-                    <div key={req.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '36px', height: '36px', borderRadius: '50%' }} />
-                        <span style={{ fontWeight: '500' }}>{req.name}</span>
+                    <div key={req.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', flexWrap: 'wrap', gap: '0.5rem', boxSizing: 'border-box', width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '0', flex: '1 1 150px' }}>
+                        <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0 }} />
+                        <span style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{req.name}</span>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={() => handleAcceptRequest(req.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', backgroundColor: 'var(--color-anilist-blue)' }}>Aceptar</button>
-                        <button onClick={() => handleRejectRequest(req.id)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', background: 'rgba(255,0,0,0.2)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer' }}>Rechazar</button>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', flex: '1 0 160px' }}>
+                        <button onClick={() => handleAcceptRequest(req.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', backgroundColor: 'var(--color-anilist-blue)', flex: 1, minWidth: '75px' }}>Aceptar</button>
+                        <button onClick={() => handleRejectRequest(req.id)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', background: 'rgba(255,0,0,0.2)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', flex: 1, minWidth: '75px' }}>Rechazar</button>
                       </div>
                     </div>
                   ))}

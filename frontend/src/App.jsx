@@ -2344,7 +2344,7 @@ export default function App() {
                   {friends.map(friend => (
                     <div 
                       key={friend.id} 
-                      onClick={() => { setSelectedFriend(friend); handleTabClick('friend-profile'); }} 
+                      onClick={() => handleNavigateToFriend(friend.name)} 
                       style={{ background: 'var(--color-bg-light)', borderRadius: '12px', padding: '1rem', textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)' }} 
                       className="card"
                     >
@@ -2713,8 +2713,8 @@ export default function App() {
     <div className="app-layout">
       {/* Notification Center Dropdown */}
       {showNotificationCenter && (
-        <div className="notification-dropdown card" style={{ position: 'fixed', top: '70px', right: '20px', width: '320px', maxHeight: '80vh', overflowY: 'auto', zIndex: 1000, boxShadow: '0 10px 40px rgba(0,0,0,0.8)', borderRadius: '16px', padding: '1.25rem', background: 'var(--color-bg-dark)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div className="notification-dropdown card" style={{ display: 'flex', flexDirection: 'column', position: 'fixed', top: '70px', right: '20px', width: '320px', maxHeight: 'calc(100vh - 90px)', zIndex: 1000, boxShadow: '0 10px 40px rgba(0,0,0,0.8)', borderRadius: '16px', padding: '1.25rem', background: 'var(--color-bg-dark)', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexShrink: 0 }}>
             <h2 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Bell size={18} style={{ color: 'var(--accent)' }} /> Notificaciones
             </h2>
@@ -2723,7 +2723,7 @@ export default function App() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem', flexShrink: 0 }}>
             <button 
               onClick={() => setNotificationTab('noticias')}
               style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: 'none', color: notificationTab === 'noticias' ? 'var(--accent)' : 'var(--color-text-secondary)', fontWeight: notificationTab === 'noticias' ? '600' : '400', cursor: 'pointer', borderBottom: notificationTab === 'noticias' ? '2px solid var(--accent)' : '2px solid transparent', transition: 'all 0.2s' }}
@@ -2743,7 +2743,7 @@ export default function App() {
             </button>
           </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', flex: 1, paddingRight: '0.25rem' }}>
             {notificationTab === 'noticias' && (
               <>
                 {episodeNotifications.length === 0 ? (

@@ -641,8 +641,8 @@ export default function App() {
         body: JSON.stringify({ query, variables: { userId } })
       });
       const data = await response.json();
-      if (!data.errors && data.data.Page.following) {
-        setAnilistFriends(data.data.Page.following);
+      if (!data.errors && data.data?.Page?.following) {
+        setAnilistFriends(data.data.Page.following || []);
       }
     } catch (err) {
       console.error('Error fetching anilist following:', err);
@@ -771,8 +771,8 @@ export default function App() {
 
       // Sort items inside the component chronologically
       component.sort((a, b) => {
-        const dateA = a.media.startDate;
-        const dateB = b.media.startDate;
+        const dateA = a?.media?.startDate;
+        const dateB = b?.media?.startDate;
         
         const yearA = dateA?.year || 0;
         const yearB = dateB?.year || 0;
@@ -790,15 +790,17 @@ export default function App() {
       // The last element in the sorted chronological list is the most recent one
       const mostRecentEntry = component[component.length - 1];
 
-      groups.push({
-        id: mostRecentEntry.id, // Group identifier (recent entry's list ID)
-        mostRecent: mostRecentEntry,
-        items: component // All items in the franchise, ordered chronologically
-      });
+      if (mostRecentEntry) {
+        groups.push({
+          id: mostRecentEntry.id || media.id, // Group identifier (recent entry's list ID)
+          mostRecent: mostRecentEntry,
+          items: component // All items in the franchise, ordered chronologically
+        });
+      }
     });
 
     // Sort the groups by recent entry's ID in descending order (latest completed first)
-    groups.sort((a, b) => b.mostRecent.id - a.mostRecent.id);
+    groups.sort((a, b) => (b.mostRecent?.id || 0) - (a.mostRecent?.id || 0));
 
     return groups;
   };

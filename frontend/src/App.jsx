@@ -1897,6 +1897,49 @@ export default function App() {
 
             {/* Token inspector removed */}
 
+            {/* ─── LOGROS ───────────────────────────────────────── */}
+            {(() => {
+              const totalEps   = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
+              const totalHrs   = Math.round(completedAnime.reduce((s, e) => s + (e.progress || 0) * (e.media?.duration || 24), 0) / 60);
+              const doneCount  = completedAnime.filter(e => e.status === 'COMPLETED').length;
+              const scored     = completedAnime.filter(e => e.score > 0);
+              const avgSc      = scored.length ? scored.reduce((s, e) => s + e.score, 0) / scored.length : 0;
+              const allBadges  = [
+                { id: 'eps100',    icon: <Zap   size={22} />, label: 'Maratonista',     desc: '100+ episodios vistos',    color: '#f59e0b', earned: totalEps >= 100 },
+                { id: 'eps1000',   icon: <Zap   size={22} />, label: 'Ultra Maratón',   desc: '1000+ episodios',          color: '#ef4444', earned: totalEps >= 1000 },
+                { id: 'comp50',    icon: <Award size={22} />, label: 'Coleccionista',   desc: '50+ animes completados',   color: '#3db4f2', earned: doneCount >= 50 },
+                { id: 'comp100',   icon: <Award size={22} />, label: 'Veterano',        desc: '100+ animes completados',  color: '#c084fc', earned: doneCount >= 100 },
+                { id: 'hrs100',    icon: <Clock size={22} />, label: 'Sin Vida Social', desc: '100+ horas de anime',      color: '#10b981', earned: totalHrs >= 100 },
+                { id: 'score8',    icon: <Star  size={22} />, label: 'Crítico Exigente', desc: 'Puntuación media ≥ 8',  color: '#f59e0b', earned: scored.length > 0 && avgSc >= 8 },
+                { id: 'firstscore',icon: <Star  size={22} />, label: 'Primer Voto',    desc: 'Puntuaste un anime',       color: '#a3e635', earned: scored.length > 0 },
+                { id: 'watching',  icon: <Play  size={22} />, label: 'En Marcha',      desc: 'Tienes animes en progreso',color: '#3db4f2', earned: completedAnime.some(e => e.status === 'CURRENT') },
+              ];
+              const earned = allBadges.filter(b => b.earned);
+              if (earned.length === 0) return null;
+              return (
+                <div className="profile-achievements-card" style={{ marginBottom: '1.25rem' }}>
+                  <h3 className="profile-section-title">
+                    <Award size={16} style={{ color: 'var(--accent)' }} /> Logros
+                    <span className="achievements-count">{earned.length}<span style={{ opacity: 0.4 }}>/{allBadges.length}</span></span>
+                  </h3>
+                  <div className="achievements-grid modern-4x2">
+                    {allBadges.map(badge => (
+                      <div
+                        key={badge.id}
+                        className={`achievement-badge ${badge.earned ? 'earned' : 'locked'}`}
+                        title={badge.earned ? `✔ ${badge.desc}` : `🔒 Bloqueado: ${badge.desc}`}
+                      >
+                        <div className={`achievement-icon ${badge.earned ? 'icon-3d' : ''}`} style={badge.earned ? { color: badge.color } : {}}>
+                          {badge.icon}
+                        </div>
+                        <span className="achievement-label">{badge.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* ─── RADAR DE GÉNEROS ───────────────────────────────── */}
             {(() => {
               if (!completedAnime || completedAnime.length === 0) return null;
@@ -1925,7 +1968,7 @@ export default function App() {
               }).join(', ');
 
               return (
-                <div className="profile-achievements-card" style={{ marginBottom: '1.25rem' }}>
+                <div className="profile-achievements-card">
                   <h3 className="profile-section-title">
                     <PieChart size={16} style={{ color: 'var(--accent)' }} /> Géneros Favoritos
                   </h3>
@@ -1947,49 +1990,6 @@ export default function App() {
                         </div>
                       ))}
                     </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* ─── LOGROS ───────────────────────────────────────── */}
-            {(() => {
-              const totalEps   = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
-              const totalHrs   = Math.round(completedAnime.reduce((s, e) => s + (e.progress || 0) * (e.media?.duration || 24), 0) / 60);
-              const doneCount  = completedAnime.filter(e => e.status === 'COMPLETED').length;
-              const scored     = completedAnime.filter(e => e.score > 0);
-              const avgSc      = scored.length ? scored.reduce((s, e) => s + e.score, 0) / scored.length : 0;
-              const allBadges  = [
-                { id: 'eps100',    icon: <Zap   size={22} />, label: 'Maratonista',     desc: '100+ episodios vistos',    color: '#f59e0b', earned: totalEps >= 100 },
-                { id: 'eps1000',   icon: <Zap   size={22} />, label: 'Ultra Maratón',   desc: '1000+ episodios',          color: '#ef4444', earned: totalEps >= 1000 },
-                { id: 'comp50',    icon: <Award size={22} />, label: 'Coleccionista',   desc: '50+ animes completados',   color: '#3db4f2', earned: doneCount >= 50 },
-                { id: 'comp100',   icon: <Award size={22} />, label: 'Veterano',        desc: '100+ animes completados',  color: '#c084fc', earned: doneCount >= 100 },
-                { id: 'hrs100',    icon: <Clock size={22} />, label: 'Sin Vida Social', desc: '100+ horas de anime',      color: '#10b981', earned: totalHrs >= 100 },
-                { id: 'score8',    icon: <Star  size={22} />, label: 'Crítico Exigente', desc: 'Puntuación media ≥ 8',  color: '#f59e0b', earned: scored.length > 0 && avgSc >= 8 },
-                { id: 'firstscore',icon: <Star  size={22} />, label: 'Primer Voto',    desc: 'Puntuaste un anime',       color: '#a3e635', earned: scored.length > 0 },
-                { id: 'watching',  icon: <Play  size={22} />, label: 'En Marcha',      desc: 'Tienes animes en progreso',color: '#3db4f2', earned: completedAnime.some(e => e.status === 'CURRENT') },
-              ];
-              const earned = allBadges.filter(b => b.earned);
-              if (earned.length === 0) return null;
-              return (
-                <div className="profile-achievements-card">
-                  <h3 className="profile-section-title">
-                    <Award size={16} style={{ color: 'var(--accent)' }} /> Logros
-                    <span className="achievements-count">{earned.length}<span style={{ opacity: 0.4 }}>/{allBadges.length}</span></span>
-                  </h3>
-                  <div className="achievements-grid modern-4x2">
-                    {allBadges.map(badge => (
-                      <div
-                        key={badge.id}
-                        className={`achievement-badge ${badge.earned ? 'earned' : 'locked'}`}
-                        title={badge.earned ? `✔ ${badge.desc}` : `🔒 Bloqueado: ${badge.desc}`}
-                      >
-                        <div className={`achievement-icon ${badge.earned ? 'icon-3d' : ''}`} style={badge.earned ? { color: badge.color } : {}}>
-                          {badge.icon}
-                        </div>
-                        <span className="achievement-label">{badge.label}</span>
-                      </div>
-                    ))}
                   </div>
                 </div>
               );
@@ -2697,65 +2697,66 @@ export default function App() {
           <div className="loader"></div>
           <p style={{ color: 'var(--color-text-secondary)', marginTop: '1rem' }}>Cargando tu perfil de AniList...</p>
         </div>
-        {/* Notification Center Dropdown */}
-        {showNotificationCenter && (
-          <div className="notification-dropdown card" style={{ position: 'fixed', top: '70px', right: '20px', width: '320px', maxHeight: '80vh', overflowY: 'auto', zIndex: 1000, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', borderRadius: '16px', padding: '1.25rem', background: 'var(--bg-secondary)', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
-              <h2 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Bell size={18} style={{ color: 'var(--accent)' }} /> Notificaciones
-              </h2>
-              <button onClick={() => setShowNotificationCenter(false)} className="settings-modal-close" aria-label="Cerrar notificaciones">
-                <X size={18} />
-              </button>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {pendingRequests.length === 0 && episodeNotifications.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
-                  <Bell size={32} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
-                  <p style={{ margin: 0, fontSize: '0.9rem' }}>Todo al día</p>
-                </div>
-              )}
-
-              {/* Episode Notifications */}
-              {episodeNotifications.map(notif => (
-                <div key={notif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'flex-start' }}>
-                  <img src={notif.anime.coverImage?.large} alt="cover" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', fontWeight: '500', lineHeight: 1.2 }}>{notif.anime.title.userPreferred}</p>
-                    <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: 'var(--accent)' }}>
-                      {notif.unseenCount} ep. nuevo(s) (hasta el {notif.latestAvailable})
-                    </p>
-                    <button onClick={() => { setShowNotificationCenter(false); handleTabClick('mylist'); setMylistSubTab('CURRENT'); }} className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', width: '100%' }}>
-                      Ver ahora
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {/* Friend Requests Notifications */}
-              {pendingRequests.map(req => (
-                <div key={req.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
-                  <div style={{ flex: '1 1 100px' }}>
-                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '500' }}>{req.name}</p>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Solicitud de amistad</p>
-                  </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                    <button onClick={() => { handleAcceptRequest(req.id); }} className="btn-primary" style={{ padding: '0.3rem', fontSize: '0.75rem', backgroundColor: 'var(--color-anilist-blue)', flex: 1 }}>Aceptar</button>
-                    <button onClick={() => { handleRejectRequest(req.id); }} style={{ padding: '0.3rem', fontSize: '0.75rem', background: 'rgba(255,0,0,0.2)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', flex: 1 }}>Rechazar</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     );
   }
 
   return (
     <div className="app-layout">
+      {/* Notification Center Dropdown */}
+      {showNotificationCenter && (
+        <div className="notification-dropdown card" style={{ position: 'fixed', top: '70px', right: '20px', width: '320px', maxHeight: '80vh', overflowY: 'auto', zIndex: 1000, boxShadow: '0 10px 40px rgba(0,0,0,0.5)', borderRadius: '16px', padding: '1.25rem', background: 'var(--bg-secondary)', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
+            <h2 style={{ fontSize: '1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Bell size={18} style={{ color: 'var(--accent)' }} /> Notificaciones
+            </h2>
+            <button onClick={() => setShowNotificationCenter(false)} className="settings-modal-close" aria-label="Cerrar notificaciones">
+              <X size={18} />
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {pendingRequests.length === 0 && episodeNotifications.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
+                <Bell size={32} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
+                <p style={{ margin: 0, fontSize: '0.9rem' }}>Todo al día</p>
+              </div>
+            )}
+
+            {/* Episode Notifications */}
+            {episodeNotifications.map(notif => (
+              <div key={notif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'flex-start' }}>
+                <img src={notif.anime.coverImage?.large} alt="cover" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', fontWeight: '500', lineHeight: 1.2 }}>{notif.anime.title.userPreferred}</p>
+                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: 'var(--accent)' }}>
+                    {notif.unseenCount} ep. nuevo(s) (hasta el {notif.latestAvailable})
+                  </p>
+                  <button onClick={() => { setShowNotificationCenter(false); handleTabClick('mylist'); setMylistSubTab('CURRENT'); }} className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', width: '100%' }}>
+                    Ver ahora
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* Friend Requests Notifications */}
+            {pendingRequests.map(req => (
+              <div key={req.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                <div style={{ flex: '1 1 100px' }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '500' }}>{req.name}</p>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Solicitud de amistad</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                  <button onClick={() => { handleAcceptRequest(req.id); }} className="btn-primary" style={{ padding: '0.3rem', fontSize: '0.75rem', backgroundColor: 'var(--color-anilist-blue)', flex: 1 }}>Aceptar</button>
+                  <button onClick={() => { handleRejectRequest(req.id); }} style={{ padding: '0.3rem', fontSize: '0.75rem', background: 'rgba(255,0,0,0.2)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', flex: 1 }}>Rechazar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* SIDEBAR FOR DESKTOP */}
       <aside className="sidebar">
         <div className="sidebar-logo" style={{ padding: '1rem 1.25rem 0.5rem' }}>

@@ -2709,6 +2709,7 @@ export default function App() {
             style={{ position: 'relative' }}
           >
             <Users size={18} />
+            <span>El Grupo</span>
           </button>
 
           <button 

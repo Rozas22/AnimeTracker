@@ -3404,3 +3404,8 @@ textarea {
     display: flex;
   }
 }
+
+
+.notification-dropdown { position: fixed; top: 70px; right: 20px; width: 340px; max-height: 80vh; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.5); transform-origin: top right; animation: dropdownIn 0.2s ease-out forwards; }
+@keyframes dropdownIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+@media (max-width: 600px) { .notification-dropdown { top: 60px; right: 10px; width: calc(100% - 20px); } }

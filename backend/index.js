@@ -530,17 +530,18 @@ app.post('/api/friends/add', authenticateToken, async (req, res) => {
 
     if (existingRel) {
       if (existingRel.status === 'accepted') {
-        return res.status(400).json({ error: 'Ya son amigos.' });
+        return res.status(400).json({ error: 'Ya estás siguiendo a este usuario.' });
       }
-      return res.status(400).json({ error: 'Ya existe una solicitud pendiente.' });
+      // If it was pending, convert it to accepted directly
+      existingRel.status = 'accepted';
+    } else {
+      // Create accepted request directly (Follow)
+      db.relationships.push({
+        requesterId: req.user.id,
+        targetId: userInfo.id,
+        status: 'accepted'
+      });
     }
-
-    // Create pending request
-    db.relationships.push({
-      requesterId: req.user.id,
-      targetId: userInfo.id,
-      status: 'pending'
-    });
     
     // Sync with AniList: Follow the user
     const authHeader = req.headers['authorization'];

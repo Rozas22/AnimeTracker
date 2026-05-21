@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check } from 'lucide-react';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
 
@@ -52,6 +52,8 @@ export default function App() {
 
   // Mobile Settings Modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const [episodeNotifications, setEpisodeNotifications] = useState([]);
 
   // Theme
   const { accentColor, setAccentColor, styleMode, setStyleMode } = useTheme();
@@ -182,6 +184,26 @@ export default function App() {
     fetchFriends();
     fetchNotifications();
   }, [token]);
+
+  // Compute Episode Notifications
+  useEffect(() => {
+    if (!completedAnime || completedAnime.length === 0) return;
+    const watching = completedAnime.filter(e => e.status === 'CURRENT' && e.media?.nextAiringEpisode);
+    const newNotifs = [];
+    watching.forEach(entry => {
+      const nextEp = entry.media.nextAiringEpisode.episode;
+      if (nextEp > entry.progress + 1) {
+        newNotifs.push({
+          id: `ep_${entry.media.id}`,
+          type: 'episode',
+          anime: entry.media,
+          unseenCount: nextEp - 1 - entry.progress,
+          latestAvailable: nextEp - 1
+        });
+      }
+    });
+    setEpisodeNotifications(newNotifs);
+  }, [completedAnime]);
 
   // Listen for PWA installation prompt
   useEffect(() => {
@@ -495,6 +517,10 @@ export default function App() {
                 }
               }
               status
+              nextAiringEpisode {
+                episode
+                timeUntilAiring
+              }
               startDate {
                 year
                 month
@@ -2239,6 +2265,32 @@ export default function App() {
               </div>
             )}
 
+            {/* AMIGOS CONFIRMADOS */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Mis Amigos</h3>
+              {friends.length === 0 ? (
+                <div style={{ background: 'var(--color-bg-light)', padding: '2rem', borderRadius: '12px', textAlign: 'center' }}>
+                  <Users size={40} style={{ color: 'var(--color-text-secondary)', opacity: 0.5, marginBottom: '1rem' }} />
+                  <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>Aún no tienes amigos en El Grupo.</p>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>Usa el buscador de abajo para encontrar usuarios de AniList y enviarles solicitudes.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '1rem' }}>
+                  {friends.map(friend => (
+                    <div 
+                      key={friend.id} 
+                      onClick={() => { setSelectedFriend(friend); handleTabClick('friend-profile'); }} 
+                      style={{ background: 'var(--color-bg-light)', borderRadius: '12px', padding: '1rem', textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)' }} 
+                      className="card"
+                    >
+                      <img src={friend.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={friend.name} style={{ width: '60px', height: '60px', borderRadius: '50%', marginBottom: '0.75rem', objectFit: 'cover' }} />
+                      <p style={{ fontWeight: '600', margin: 0, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friend.name}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Buscador de amigos */}
             <form onSubmit={handleAddFriend} className="friend-add-form">
               <label className="friend-add-label">
@@ -2588,6 +2640,61 @@ export default function App() {
           <div className="loader"></div>
           <p style={{ color: 'var(--color-text-secondary)', marginTop: '1rem' }}>Cargando tu perfil de AniList...</p>
         </div>
+        {/* Notification Center Modal Overlay */}
+        {showNotificationCenter && (
+          <div className="settings-modal-overlay" onClick={() => setShowNotificationCenter(false)}>
+            <div className="settings-modal-content card" onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Bell size={20} style={{ color: 'var(--accent)' }} /> Centro de Notificaciones
+                </h2>
+                <button onClick={() => setShowNotificationCenter(false)} className="settings-modal-close" aria-label="Cerrar notificaciones">
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {pendingRequests.length === 0 && episodeNotifications.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--color-text-secondary)' }}>
+                    <Bell size={40} style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                    <p>No tienes notificaciones nuevas</p>
+                  </div>
+                )}
+
+                {/* Episode Notifications */}
+                {episodeNotifications.map(notif => (
+                  <div key={notif.id} style={{ display: 'flex', gap: '1rem', padding: '1rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <img src={notif.anime.coverImage?.large} alt="cover" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
+                    <div style={{ flex: '1 1 180px' }}>
+                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '500' }}>{notif.anime.title.userPreferred}</p>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--accent)' }}>
+                        Tienes {notif.unseenCount} episodio(s) nuevos disponibles (hasta el {notif.latestAvailable})
+                      </p>
+                    </div>
+                    <button onClick={() => { setShowNotificationCenter(false); handleTabClick('mylist'); setMylistSubTab('CURRENT'); }} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+                      Ir a Viendo
+                    </button>
+                  </div>
+                ))}
+
+                {/* Friend Requests Notifications */}
+                {pendingRequests.map(req => (
+                  <div key={req.id} style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', padding: '1rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center' }}>
+                    <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                    <div style={{ flex: '1 1 120px' }}>
+                      <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '500' }}>{req.name}</p>
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>Quiere ser tu amigo</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button onClick={() => { handleAcceptRequest(req.id); }} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', backgroundColor: 'var(--color-anilist-blue)', flex: 1 }}>Aceptar</button>
+                      <button onClick={() => { handleRejectRequest(req.id); }} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', background: 'rgba(255,0,0,0.2)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', flex: 1 }}>Rechazar</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -2661,6 +2768,19 @@ export default function App() {
               <span className="sidebar-username">{userData.name}</span>
             </div>
             <button
+              onClick={() => setShowNotificationCenter(true)}
+              className="settings-gear-btn"
+              title="Notificaciones"
+              style={{ position: 'relative' }}
+            >
+              <Bell size={18} />
+              {(pendingRequests.length + episodeNotifications.length) > 0 && (
+                <span style={{ position: 'absolute', top: -5, right: -5, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                  {pendingRequests.length + episodeNotifications.length}
+                </span>
+              )}
+            </button>
+            <button
               onClick={() => handleTabClick('settings')}
               className="settings-gear-btn"
               title="Ajustes de Estética"
@@ -2681,7 +2801,18 @@ export default function App() {
           <div className="logo-container" style={{ padding: '0.1rem 0' }}>
             <img src="/logo.png" alt="AnimeTracker" style={{ width: '120px', objectFit: 'contain' }} />
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowNotificationCenter(true)}
+              style={{ background: 'transparent', border: 'none', color: 'var(--color-text-primary)', position: 'relative', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
+            >
+              <Bell size={20} />
+              {(pendingRequests.length + episodeNotifications.length) > 0 && (
+                <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                  {pendingRequests.length + episodeNotifications.length}
+                </span>
+              )}
+            </button>
             {showInstallBtn && (
               <button 
                 onClick={handleInstallApp} 

@@ -292,14 +292,14 @@ app.get('/api/friends', authenticateToken, async (req, res) => {
     
     // Find all accepted relationships for current user
     const acceptedRels = db.relationships.filter(r => 
-      r.status === 'accepted' && (r.requesterId === req.user.id || r.targetId === req.user.id)
+      r.status === 'accepted' && (String(r.requesterId) === String(req.user.id) || String(r.targetId) === String(req.user.id))
     );
     
-    const friendIds = acceptedRels.map(r => r.requesterId === req.user.id ? r.targetId : r.requesterId);
+    const friendIds = acceptedRels.map(r => String(r.requesterId) === String(req.user.id) ? String(r.targetId) : String(r.requesterId));
     
     // Map to public profiles
     const publicFriends = db.users
-      .filter(u => friendIds.includes(u.id))
+      .filter(u => friendIds.includes(String(u.id)))
       .map(u => ({
         id: u.id,
         name: u.name,
@@ -326,13 +326,13 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
     
     // Find requests targeting this user that are pending
     const pendingRels = db.relationships.filter(r => 
-      r.status === 'pending' && r.targetId === req.user.id
+      r.status === 'pending' && String(r.targetId) === String(req.user.id)
     );
+    const pendingIds = pendingRels.map(r => String(r.requesterId));
     
-    const requesterIds = pendingRels.map(r => r.requesterId);
-    
+    // Map to public profiles
     const requests = db.users
-      .filter(u => requesterIds.includes(u.id))
+      .filter(u => pendingIds.includes(String(u.id)))
       .map(u => ({
         id: u.id,
         name: u.name,
@@ -361,7 +361,7 @@ app.post('/api/friends/accept', authenticateToken, async (req, res) => {
     const db = JSON.parse(dbContent || '{"users":[],"relationships":[]}');
     
     const relIndex = db.relationships.findIndex(r => 
-      r.status === 'pending' && r.targetId === req.user.id && r.requesterId === requesterId
+      r.status === 'pending' && String(r.targetId) === String(req.user.id) && String(r.requesterId) === String(requesterId)
     );
 
     if (relIndex > -1) {
@@ -390,7 +390,7 @@ app.post('/api/friends/reject', authenticateToken, async (req, res) => {
     
     // Remove relationship
     db.relationships = db.relationships.filter(r => 
-      !(r.targetId === req.user.id && r.requesterId === requesterId && r.status === 'pending')
+      !(String(r.targetId) === String(req.user.id) && String(r.requesterId) === String(requesterId) && r.status === 'pending')
     );
     
     await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
@@ -474,8 +474,8 @@ app.post('/api/friends/add', authenticateToken, async (req, res) => {
 
     // Check relationship
     const existingRel = db.relationships.find(r => 
-      (r.requesterId === req.user.id && r.targetId === userInfo.id) ||
-      (r.requesterId === userInfo.id && r.targetId === req.user.id)
+      (String(r.requesterId) === String(req.user.id) && String(r.targetId) === String(userInfo.id)) ||
+      (String(r.requesterId) === String(userInfo.id) && String(r.targetId) === String(req.user.id))
     );
 
     if (existingRel) {

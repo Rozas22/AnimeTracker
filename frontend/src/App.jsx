@@ -520,9 +520,28 @@ export default function App() {
     }
     console.log('Token presente:', true);
 
-    const query = `query { Viewer { following(sort: [USERNAME]) { nodes { id name avatar { large } } } } }`;
+    const userId = userData?.id;
+    if (!userId) {
+      console.log('Esperando a que userData.id esté disponible...');
+      return;
+    }
+
+    const query = `
+      query ($userId: Int) {
+        Page(page: 1, perPage: 100) {
+          following(userId: $userId) {
+            id
+            name
+            avatar { large }
+          }
+        }
+      }
+    `;
     
-    console.log('Query que se está enviando:', JSON.stringify({ query }));
+    const variables = { userId };
+    
+    console.log('Query que se está enviando:', JSON.stringify(query));
+    console.log('Variables que se están enviando:', JSON.stringify(variables));
 
     const makeRequest = async (retries = 1) => {
       try {
@@ -533,7 +552,10 @@ export default function App() {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
-          body: JSON.stringify({ query })
+          body: JSON.stringify({
+            query: query,
+            variables: variables
+          })
         });
         
         if (response.status === 429) {
@@ -548,10 +570,14 @@ export default function App() {
         }
         
         const data = await response.json();
-        if (!data.errors && data.data?.Viewer?.following?.nodes) {
-          setAnilistFriends(data.data.Viewer.following.nodes);
-        } else {
-          console.error('AniList errors:', data.errors);
+        
+        if (data.errors) {
+          console.log('Error detallado de AniList:', data.errors);
+          return;
+        }
+
+        if (data.data?.Page?.following) {
+          setAnilistFriends(data.data.Page.following);
         }
       } catch (err) {
         console.error('Error fetching anilist following:', err);

@@ -557,6 +557,9 @@ export default function App() {
       return;
     }
     
+    const parsedUserId = parseInt(userId, 10);
+    console.log('Enviando mutación con ID:', parsedUserId);
+    
     setTogglingFollow(true);
     const query = `
       mutation ($userId: Int) {
@@ -575,7 +578,7 @@ export default function App() {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ query, variables: { userId } }),
+        body: JSON.stringify({ query, variables: { userId: parsedUserId } }),
       });
       
       const result = await response.json();

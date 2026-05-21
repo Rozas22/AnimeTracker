@@ -23,6 +23,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [isCallback, setIsCallback] = useState(window.location.pathname === '/callback');
   const [friends, setFriends] = useState([]);
+  const [anilistFriends, setAnilistFriends] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [notificationTab, setNotificationTab] = useState('noticias');
@@ -321,17 +322,6 @@ export default function App() {
           }
           siteUrl
           about
-          statistics {
-            anime {
-              count
-              minutesWatched
-              episodesWatched
-            }
-            manga {
-              count
-              chaptersRead
-            }
-          }
         }
       }
     `;
@@ -610,7 +600,12 @@ export default function App() {
 
       const viewer = result.data.Viewer;
       setUserData(viewer);
+      
+      // Fetch user's anime list
       await fetchUserAnimeList(viewer.id);
+      
+      // Fetch AniList following
+      await fetchAnilistFollowing(viewer.id);
     } catch (err) {
       console.error('Error refreshing user data:', err);
     } finally {
@@ -622,6 +617,36 @@ export default function App() {
     setActiveTab(tabName);
     window.history.pushState(null, '', '/');
     refreshUserData();
+  };
+
+  const fetchAnilistFollowing = async (userId) => {
+    const query = `
+      query ($userId: Int) {
+        Page(page: 1, perPage: 100) {
+          following(userId: $userId) {
+            id
+            name
+            avatar { large }
+          }
+        }
+      }
+    `;
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ query, variables: { userId } })
+      });
+      const data = await response.json();
+      if (!data.errors && data.data.Page.following) {
+        setAnilistFriends(data.data.Page.following);
+      }
+    } catch (err) {
+      console.error('Error fetching anilist following:', err);
+    }
   };
 
   const handleInstallApp = async () => {
@@ -1376,18 +1401,6 @@ export default function App() {
                     )}
                   </div>
                   <div className="stat-label">Horas Vistas</div>
-                </div>
-
-                <div className="stat-item">
-                  <BookOpen size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">{friendData.statistics?.manga?.count || 0}</div>
-                  <div className="stat-label">Manga en Lista</div>
-                </div>
-
-                <div className="stat-item">
-                  <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">{friendData.statistics?.manga?.chaptersRead || 0}</div>
-                  <div className="stat-label">Capítulos Leídos</div>
                 </div>
               </div>
             </div>
@@ -2323,27 +2336,40 @@ export default function App() {
             {/* AMIGOS CONFIRMADOS */}
             <div style={{ marginBottom: '2rem' }}>
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Mis Amigos</h3>
-              {friends.length === 0 ? (
-                <div style={{ background: 'var(--color-bg-light)', padding: '2rem', borderRadius: '12px', textAlign: 'center' }}>
-                  <Users size={40} style={{ color: 'var(--color-text-secondary)', opacity: 0.5, marginBottom: '1rem' }} />
-                  <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>Aún no tienes amigos en El Grupo.</p>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>Usa el buscador de abajo para encontrar usuarios de AniList y enviarles solicitudes.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '1rem' }}>
-                  {friends.map(friend => (
-                    <div 
-                      key={friend.id} 
-                      onClick={() => handleNavigateToFriend(friend.name)} 
-                      style={{ background: 'var(--color-bg-light)', borderRadius: '12px', padding: '1rem', textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)' }} 
-                      className="card"
-                    >
-                      <img src={friend.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={friend.name} style={{ width: '60px', height: '60px', borderRadius: '50%', marginBottom: '0.75rem', objectFit: 'cover' }} />
-                      <p style={{ fontWeight: '600', margin: 0, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friend.name}</p>
+              {(() => {
+                const combinedFriends = [...friends];
+                anilistFriends.forEach(af => {
+                  if (!combinedFriends.find(f => f.name === af.name)) {
+                    combinedFriends.push(af);
+                  }
+                });
+
+                if (combinedFriends.length === 0) {
+                  return (
+                    <div style={{ background: 'var(--color-bg-light)', padding: '2rem', borderRadius: '12px', textAlign: 'center' }}>
+                      <Users size={40} style={{ color: 'var(--color-text-secondary)', opacity: 0.5, marginBottom: '1rem' }} />
+                      <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>Aún no sigues a nadie en AniList ni tienes amigos en El Grupo.</p>
+                      <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>Usa el buscador de abajo para encontrar usuarios de AniList y seguirlos.</p>
                     </div>
-                  ))}
-                </div>
-              )}
+                  );
+                }
+
+                return (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '1rem' }}>
+                    {combinedFriends.map(friend => (
+                      <div 
+                        key={friend.name} 
+                        onClick={() => handleNavigateToFriend(friend.name)} 
+                        style={{ background: 'var(--color-bg-light)', borderRadius: '12px', padding: '1rem', textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)' }} 
+                        className="card"
+                      >
+                        <img src={friend.avatar?.large || friend.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={friend.name} style={{ width: '60px', height: '60px', borderRadius: '50%', marginBottom: '0.75rem', objectFit: 'cover' }} />
+                        <p style={{ fontWeight: '600', margin: 0, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friend.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Buscador de amigos */}

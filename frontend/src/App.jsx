@@ -527,7 +527,7 @@ export default function App() {
     }
 
     const query = `
-      query ($userId: Int) {
+      query ($userId: Int!) {
         Page(page: 1, perPage: 100) {
           following(userId: $userId) {
             id

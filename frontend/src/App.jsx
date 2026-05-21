@@ -22,12 +22,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isCallback, setIsCallback] = useState(window.location.pathname === '/callback');
-  const [friends, setFriends] = useState([]);
   const [anilistFriends, setAnilistFriends] = useState([]);
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [outgoingRequests, setOutgoingRequests] = useState([]);
   const [notificationTab, setNotificationTab] = useState('noticias');
-  const [loadingFriends, setLoadingFriends] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
 
@@ -61,137 +57,12 @@ export default function App() {
   // Theme
   const { accentColor, setAccentColor, styleMode, setStyleMode } = useTheme();
 
-  // Fetch accepted friends list
-  const fetchFriends = async () => {
-    if (!token) return;
-    setLoadingFriends(true);
-    const targetUrl = `${API_BASE_URL}/api/friends`;
-    try {
-      const response = await fetch(targetUrl, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      }).catch(err => {
-        console.log('Error de conexión:', err, 'al intentar conectar con:', targetUrl);
-        throw err;
-      });
-      if (response.headers.get('content-type')?.includes('text/html')) {
-        throw new Error(`El servidor devolvio HTML en lugar de JSON. Revisa VITE_API_URL.`);
-      }
-      if (!response.ok) {
-        throw new Error('No se pudo obtener la lista de amigos.');
-      }
-      const data = await response.json();
-      setFriends(data);
-    } catch (err) {
-      console.error('Error fetching friends list:', err);
-    } finally {
-      setLoadingFriends(false);
-    }
-  };
-
-  // Fetch pending friend requests (notifications)
-  const fetchNotifications = async () => {
-    if (!token) return;
-    const targetUrl = `${API_BASE_URL}/api/notifications`;
-    try {
-      const response = await fetch(targetUrl, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setPendingRequests(data);
-          setOutgoingRequests([]);
-        } else {
-          setPendingRequests(data.incoming || []);
-          setOutgoingRequests(data.outgoing || []);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
-    }
-  };
-
-  // Accept a friend request
-  const handleAcceptRequest = async (requesterId) => {
-    const targetUrl = `${API_BASE_URL}/api/friends/accept`;
-    try {
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requesterId })
-      });
-      if (response.ok) {
-        await fetchFriends();
-        await fetchNotifications();
-      }
-    } catch (err) {
-      console.error('Error accepting request:', err);
-    }
-  };
-
-  // Reject a friend request
-  const handleRejectRequest = async (requesterId) => {
-    const targetUrl = `${API_BASE_URL}/api/friends/reject`;
-    try {
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requesterId })
-      });
-      if (response.ok) {
-        await fetchNotifications();
-      }
-    } catch (err) {
-      console.error('Error rejecting request:', err);
-    }
-  };
-
-  const handleAddFriend = async (e) => {
-    e.preventDefault();
-    if (!friendSearchQuery.trim()) return;
-
-    setAddingFriend(true);
-    setFriendAddError('');
-    const targetUrl = `${API_BASE_URL}/api/friends/add`;
-
-    try {
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ username: friendSearchQuery.trim() }),
-      }).catch(err => {
-        console.log('Error de conexión:', err, 'al intentar conectar con:', targetUrl);
-        throw err;
-      });
-
-      if (response.headers.get('content-type')?.includes('text/html')) {
-        throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
-      }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'No se pudo agregar al amigo.');
-      }
-
-      showToast(`¡${data.name} ha sido agregado con éxito a El Grupo!`);
-      setFriendSearchQuery('');
-      await fetchFriends();
-    } catch (err) {
-      console.error('Error adding friend:', err);
-      setFriendAddError(err.message || 'Ocurrió un error al intentar agregar al amigo.');
-    } finally {
-      setAddingFriend(false);
-    }
-  };
-
-  // Fetch friends list and notifications whenever token changes (e.g. login/logout)
+  // Fetch notifications and friends removed (app is now read-only for friends)
   useEffect(() => {
-    fetchFriends();
-    fetchNotifications();
+    // Only refresh user data on token change
+    if (token) {
+      refreshUserData();
+    }
   }, [token]);
 
   // Computed notifications are now below completedAnime declaration
@@ -2311,54 +2182,27 @@ export default function App() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '1rem' }}>
               <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>El Grupo</h2>
               <span style={{ fontSize: '0.8rem', color: 'var(--color-anilist-blue)', backgroundColor: 'rgba(61, 180, 242, 0.1)', padding: '0.25rem 0.6rem', borderRadius: '20px', fontWeight: '600' }}>
-                {friends.length} {friends.length === 1 ? 'miembro' : 'miembros'}
+                {anilistFriends.length} {anilistFriends.length === 1 ? 'miembro' : 'miembros'}
               </span>
             </div>
 
-            {pendingRequests.length > 0 && (
-              <div style={{ marginBottom: '2rem', padding: '1.25rem', background: 'rgba(255,100,100,0.1)', border: '1px solid rgba(255,100,100,0.2)', borderRadius: '12px' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem', color: '#ff8888' }}>Solicitudes Pendientes ({pendingRequests.length})</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {pendingRequests.map(req => (
-                    <div key={req.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(0,0,0,0.3)', borderRadius: '8px', flexWrap: 'wrap', gap: '0.5rem', boxSizing: 'border-box', width: '100%' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '0', flex: '1 1 150px' }}>
-                        <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0 }} />
-                        <span style={{ fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>{req.name}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', flex: '1 0 160px' }}>
-                        <button onClick={() => handleAcceptRequest(req.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', backgroundColor: 'var(--color-anilist-blue)', flex: 1, minWidth: '75px' }}>Aceptar</button>
-                        <button onClick={() => handleRejectRequest(req.id)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', background: 'rgba(255,0,0,0.2)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', flex: 1, minWidth: '75px' }}>Rechazar</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* AMIGOS CONFIRMADOS */}
+            {/* AMIGOS */}
             <div style={{ marginBottom: '2rem' }}>
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Mis Amigos</h3>
               {(() => {
-                const combinedFriends = [...friends];
-                anilistFriends.forEach(af => {
-                  if (!combinedFriends.find(f => f.name === af.name)) {
-                    combinedFriends.push(af);
-                  }
-                });
-
-                if (combinedFriends.length === 0) {
+                if (anilistFriends.length === 0) {
                   return (
                     <div style={{ background: 'var(--color-bg-light)', padding: '2rem', borderRadius: '12px', textAlign: 'center' }}>
                       <Users size={40} style={{ color: 'var(--color-text-secondary)', opacity: 0.5, marginBottom: '1rem' }} />
-                      <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>Aún no sigues a nadie en AniList ni tienes amigos en El Grupo.</p>
-                      <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>Usa el buscador de abajo para encontrar usuarios de AniList y seguirlos.</p>
+                      <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>Aún no sigues a nadie en AniList.</p>
+                      <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>Usa el buscador de abajo para encontrar usuarios y ver sus perfiles.</p>
                     </div>
                   );
                 }
 
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '1rem' }}>
-                    {combinedFriends.map(friend => (
+                    {anilistFriends.map(friend => (
                       <div 
                         key={friend.name} 
                         onClick={() => handleNavigateToFriend(friend.name)} 
@@ -2375,74 +2219,25 @@ export default function App() {
             </div>
 
             {/* Buscador de amigos */}
-            <form onSubmit={handleAddFriend} className="friend-add-form">
+            <form onSubmit={(e) => { e.preventDefault(); if (friendSearchQuery.trim()) { handleNavigateToFriend(friendSearchQuery.trim()); setFriendSearchQuery(''); } }} className="friend-add-form">
               <label className="friend-add-label">
-                Buscar y Agregar Amigos (Usuario de AniList)
+                Buscar Perfil (Usuario de AniList)
               </label>
-              <div className="friend-add-row">
+              <div className="friend-add-row" style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
                   type="text"
                   value={friendSearchQuery}
                   onChange={(e) => setFriendSearchQuery(e.target.value)}
                   placeholder="Ej: Rozas22, iker_..."
-                  className="friend-add-input"
+                  className="friend-search-input"
+                  style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', border: '1px solid var(--border-glass)', background: 'rgba(0,0,0,0.2)', color: 'white' }}
                 />
-                <button
-                  type="submit"
-                  disabled={addingFriend || !friendSearchQuery.trim()}
-                  className="btn-primary friend-add-btn"
-                >
-                  {addingFriend ? 'Agregando…' : 'Agregar'}
+                <button type="submit" className="btn-primary" disabled={!friendSearchQuery.trim()} style={{ padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Search size={18} />
+                  Buscar
                 </button>
               </div>
-              {friendAddError && (
-                <span className="friend-add-error">⚠️ {friendAddError}</span>
-              )}
             </form>
-
-            {loadingFriends ? (
-              <div style={{ textAlign: 'center', padding: '3rem 0' }}>
-                <div className="loader" style={{ width: '30px', height: '30px', margin: '0 auto 1rem auto' }}></div>
-                <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Cargando amigos...</p>
-              </div>
-            ) : friends.length === 0 ? (
-              <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem', marginTop: '2rem', textAlign: 'center', lineHeight: '1.6' }}>
-                Aún no hay amigos registrados en el grupo.<br />
-                ¡Usa el buscador superior para agregar a tus amigos por su usuario de AniList!
-              </p>
-            ) : (
-              <div className="friends-list">
-                {friends.map((friend) => (
-                  <div 
-                    key={friend.id} 
-                    onClick={() => handleNavigateToFriend(friend.name)}
-                    className="friend-item"
-                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', transition: 'var(--transition-smooth)' }}
-                    title={`Ver perfil interno de ${friend.name}`}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <img 
-                        src={friend.avatar || 'https://anilist.co/img/icons/icon.svg'} 
-                        alt={friend.name} 
-                        className="friend-avatar" 
-                      />
-                      <div className="friend-info" style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span className="friend-name" style={{ fontWeight: '600', color: 'var(--color-text-primary)' }}>{friend.name}</span>
-                        <span className="friend-status" style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-                          Activo: {new Date(friend.updatedAt).toLocaleDateString('es-ES', { 
-                            day: 'numeric', 
-                            month: 'short', 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                    <span className="view-details-arrow" style={{ color: 'var(--color-text-secondary)', transition: 'var(--transition-smooth)' }}>→</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         );
       case 'analytics': {
@@ -2741,28 +2536,7 @@ export default function App() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem', flexShrink: 0 }}>
-            <button 
-              onClick={() => setNotificationTab('noticias')}
-              style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: 'none', color: notificationTab === 'noticias' ? 'var(--accent)' : 'var(--color-text-secondary)', fontWeight: notificationTab === 'noticias' ? '600' : '400', cursor: 'pointer', borderBottom: notificationTab === 'noticias' ? '2px solid var(--accent)' : '2px solid transparent', transition: 'all 0.2s' }}
-            >
-              Noticias
-            </button>
-            <button 
-              onClick={() => setNotificationTab('solicitudes')}
-              style={{ flex: 1, padding: '0.5rem', background: 'transparent', border: 'none', color: notificationTab === 'solicitudes' ? 'var(--accent)' : 'var(--color-text-secondary)', fontWeight: notificationTab === 'solicitudes' ? '600' : '400', cursor: 'pointer', borderBottom: notificationTab === 'solicitudes' ? '2px solid var(--accent)' : '2px solid transparent', transition: 'all 0.2s' }}
-            >
-              Solicitudes
-              {(pendingRequests.length > 0 || outgoingRequests.length > 0) && (
-                <span style={{ marginLeft: '6px', background: 'var(--accent)', color: '#fff', fontSize: '0.65rem', padding: '2px 6px', borderRadius: '10px' }}>
-                  {pendingRequests.length + outgoingRequests.length}
-                </span>
-              )}
-            </button>
-          </div>
-          
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', flex: 1, paddingRight: '0.25rem' }}>
-            {notificationTab === 'noticias' && (
               <>
                 {episodeNotifications.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
@@ -2786,46 +2560,6 @@ export default function App() {
                   ))
                 )}
               </>
-            )}
-
-            {notificationTab === 'solicitudes' && (
-              <>
-                {pendingRequests.length === 0 && outgoingRequests.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
-                    <Users size={32} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
-                    <p style={{ margin: 0, fontSize: '0.9rem' }}>No hay solicitudes de amistad</p>
-                  </div>
-                ) : (
-                  <>
-                    {pendingRequests.length > 0 && <p style={{ margin: '0', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Recibidas</p>}
-                    {pendingRequests.map(req => (
-                      <div key={req.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                        <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
-                        <div style={{ flex: '1 1 100px' }}>
-                          <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '500' }}>{req.name}</p>
-                          <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Te ha enviado solicitud</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
-                          <button onClick={() => { handleAcceptRequest(req.id); }} className="btn-primary" style={{ padding: '0.3rem', fontSize: '0.75rem', backgroundColor: 'var(--color-anilist-blue)', flex: 1 }}>Aceptar</button>
-                          <button onClick={() => { handleRejectRequest(req.id); }} style={{ padding: '0.3rem', fontSize: '0.75rem', background: 'rgba(255,0,0,0.2)', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', flex: 1 }}>Rechazar</button>
-                        </div>
-                      </div>
-                    ))}
-
-                    {outgoingRequests.length > 0 && <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Enviadas</p>}
-                    {outgoingRequests.map(req => (
-                      <div key={req.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center' }}>
-                        <img src={req.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={req.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
-                        <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: '500' }}>{req.name}</p>
-                          <p style={{ margin: 0, fontSize: '0.75rem', color: '#f59e0b' }}>Pendiente de respuesta</p>
-                        </div>
-                      </div>
-                    ))}
-                  </>
-                )}
-              </>
-            )}
           </div>
         </div>
       )}
@@ -2871,10 +2605,6 @@ export default function App() {
             style={{ position: 'relative' }}
           >
             <Users size={18} />
-            <span>El Grupo</span>
-            {pendingRequests.length > 0 && (
-              <div style={{ position: 'absolute', top: 10, right: 15, width: 8, height: 8, backgroundColor: 'red', borderRadius: '50%' }}></div>
-            )}
           </button>
 
           <button 
@@ -2903,9 +2633,9 @@ export default function App() {
               style={{ position: 'relative' }}
             >
               <Bell size={18} />
-              {(pendingRequests.length + episodeNotifications.length) > 0 && (
+              {episodeNotifications.length > 0 && (
                 <span style={{ position: 'absolute', top: -5, right: -5, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                  {pendingRequests.length + episodeNotifications.length}
+                  {episodeNotifications.length}
                 </span>
               )}
             </button>
@@ -2944,9 +2674,9 @@ export default function App() {
               title="Notificaciones"
             >
               <Bell size={20} />
-              {(pendingRequests.length + episodeNotifications.length) > 0 && (
+              {episodeNotifications.length > 0 && (
                 <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                  {pendingRequests.length + episodeNotifications.length}
+                  {episodeNotifications.length}
                 </span>
               )}
             </button>
@@ -3013,10 +2743,6 @@ export default function App() {
             style={{ position: 'relative' }}
           >
             <Users size={20} />
-            <span>Grupo</span>
-            {pendingRequests.length > 0 && (
-              <div style={{ position: 'absolute', top: 5, right: '25%', width: 8, height: 8, backgroundColor: 'red', borderRadius: '50%' }}></div>
-            )}
           </button>
 
           <button

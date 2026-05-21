@@ -172,6 +172,13 @@ export default function App() {
     }
   }, [activeTab, viewedFriendUsername]);
 
+  // Force fetch Anilist following when entering Group tab
+  useEffect(() => {
+    if (activeTab === 'group' && userData?.id) {
+      fetchAnilistFollowing(userData.id);
+    }
+  }, [activeTab, userData?.id]);
+
   const fetchFriendProfile = async (username) => {
     if (!username) return;
     setFriendLoading(true);
@@ -2295,7 +2302,16 @@ export default function App() {
 
             {/* AMIGOS */}
             <div style={{ marginBottom: '2rem' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Mis Amigos</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1.1rem', margin: 0 }}>Mis Amigos</h3>
+                <button 
+                  className="btn-secondary" 
+                  onClick={() => userData?.id && fetchAnilistFollowing(userData.id)}
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                >
+                  <Users size={14} /> Actualizar Lista
+                </button>
+              </div>
               {(() => {
                 if (anilistFriends.length === 0) {
                   return (

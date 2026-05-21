@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart } from 'lucide-react';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
 
@@ -1897,49 +1897,44 @@ export default function App() {
 
             {/* Token inspector removed */}
 
-            {/* ─── ACTIVIDAD RECIENTE ───────────────────────────── */}
+            {/* ─── RADAR DE GÉNEROS ───────────────────────────────── */}
             {(() => {
-              const recent = [...completedAnime]
-                .filter(e => e.updatedAt)
-                .sort((a, b) => b.updatedAt - a.updatedAt)
-                .slice(0, 4);
-              if (recent.length === 0) return null;
-              const statusLabel = { COMPLETED: 'Completado', CURRENT: 'Viendo', PLANNING: 'Planeado', DROPPED: 'Abandonado', PAUSED: 'Pausado' };
-              const statusColor = { COMPLETED: 'var(--color-accent-green)', CURRENT: 'var(--accent)', PLANNING: 'var(--color-text-secondary)', DROPPED: '#ef4444', PAUSED: '#f59e0b' };
+              if (completedAnime.length === 0) return null;
+              const genreCounts = {};
+              completedAnime.forEach(entry => {
+                if (entry.media?.genres) {
+                  entry.media.genres.forEach(g => {
+                    genreCounts[g] = (genreCounts[g] || 0) + 1;
+                  });
+                }
+              });
+              const topGenres = Object.entries(genreCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3);
+              if (topGenres.length === 0) return null;
+              const maxGenreCount = topGenres[0][1];
+
               return (
-                <div className="profile-activity-card">
+                <div className="profile-achievements-card" style={{ marginBottom: '1.25rem' }}>
                   <h3 className="profile-section-title">
-                    <Clock size={16} style={{ color: 'var(--accent)' }} /> Actividad Reciente
+                    <PieChart size={16} style={{ color: 'var(--accent)' }} /> Géneros Favoritos
                   </h3>
-                  <div className="profile-activity-list">
-                    {recent.map(entry => (
-                      <div key={entry.id} className="profile-activity-item">
-                        <img src={entry.media?.coverImage?.large} alt={entry.media?.title?.userPreferred} className="profile-activity-cover" />
-                        <div className="profile-activity-info">
-                          <p className="profile-activity-title">{entry.media?.title?.userPreferred}</p>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span className="profile-activity-status" style={{ color: statusColor[entry.status] }}>
-                              {statusLabel[entry.status] || entry.status}
-                            </span>
-                            {entry.progress > 0 && (
-                              <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
-                                · Ep. {entry.progress}
-                              </span>
-                            )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                    {topGenres.map(([genre, count], index) => {
+                      const percentage = Math.round((count / maxGenreCount) * 100);
+                      const colors = ['var(--color-anilist-blue)', 'var(--color-accent-purple)', 'var(--color-accent-green)'];
+                      return (
+                        <div key={genre}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
+                            <span style={{ fontWeight: '500' }}>{genre}</span>
+                            <span style={{ color: 'var(--color-text-secondary)' }}>{count}</span>
                           </div>
-                          {entry.updatedAt && (
-                            <p className="profile-activity-date">
-                              {new Date(entry.updatedAt * 1000).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                            </p>
-                          )}
+                          <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: `${percentage}%`, height: '100%', background: colors[index % colors.length], borderRadius: '4px', transition: 'width 1s ease-out' }}></div>
+                          </div>
                         </div>
-                        {entry.score > 0 && (
-                          <div className="profile-activity-score">
-                            <Star size={10} /> {entry.score}
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -1981,6 +1976,54 @@ export default function App() {
                           {badge.icon}
                         </div>
                         <span className="achievement-label">{badge.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ─── ACTIVIDAD RECIENTE ───────────────────────────── */}
+            {(() => {
+              const recent = [...completedAnime]
+                .filter(e => e.updatedAt)
+                .sort((a, b) => b.updatedAt - a.updatedAt)
+                .slice(0, 4);
+              if (recent.length === 0) return null;
+              const statusLabel = { COMPLETED: 'Completado', CURRENT: 'Viendo', PLANNING: 'Planeado', DROPPED: 'Abandonado', PAUSED: 'Pausado' };
+              const statusColor = { COMPLETED: 'var(--color-accent-green)', CURRENT: 'var(--accent)', PLANNING: 'var(--color-text-secondary)', DROPPED: '#ef4444', PAUSED: '#f59e0b' };
+              return (
+                <div className="profile-activity-card">
+                  <h3 className="profile-section-title">
+                    <Clock size={16} style={{ color: 'var(--accent)' }} /> Actividad Reciente
+                  </h3>
+                  <div className="profile-activity-list">
+                    {recent.map(entry => (
+                      <div key={entry.id} className="profile-activity-item">
+                        <img src={entry.media?.coverImage?.large} alt={entry.media?.title?.userPreferred} className="profile-activity-cover" />
+                        <div className="profile-activity-info">
+                          <p className="profile-activity-title">{entry.media?.title?.userPreferred}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span className="profile-activity-status" style={{ color: statusColor[entry.status] }}>
+                              {statusLabel[entry.status] || entry.status}
+                            </span>
+                            {entry.progress > 0 && (
+                              <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
+                                · Ep. {entry.progress}
+                              </span>
+                            )}
+                          </div>
+                          {entry.updatedAt && (
+                            <p className="profile-activity-date">
+                              {new Date(entry.updatedAt * 1000).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                            </p>
+                          )}
+                        </div>
+                        {entry.score > 0 && (
+                          <div className="profile-activity-score">
+                            <Star size={10} /> {entry.score}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

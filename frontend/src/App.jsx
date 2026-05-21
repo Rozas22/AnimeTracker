@@ -2713,7 +2713,7 @@ export default function App() {
     <div className="app-layout">
       {/* Notification Center Dropdown */}
       {showNotificationCenter && (
-        <div className="notification-dropdown card" style={{ display: 'flex', flexDirection: 'column', position: 'fixed', top: '70px', right: '20px', width: '320px', maxHeight: 'calc(100vh - 90px)', zIndex: 1000, boxShadow: '0 10px 40px rgba(0,0,0,0.8)', borderRadius: '16px', padding: '1.25rem', background: 'var(--color-bg-dark)', border: '1px solid rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+        <div className="notification-dropdown card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexShrink: 0 }}>
             <h2 style={{ fontSize: '1.1rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Bell size={18} style={{ color: 'var(--accent)' }} /> Notificaciones

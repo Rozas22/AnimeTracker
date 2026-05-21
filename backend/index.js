@@ -381,12 +381,47 @@ app.post('/api/friends/accept', authenticateToken, async (req, res) => {
 
     if (relIndex > -1) {
       db.relationships[relIndex].status = 'accepted';
+      
+      // Sync with AniList: Follow the user back
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      
+      if (token) {
+        try {
+          const query = `
+            mutation ($userId: Int) {
+              ToggleFollow(userId: $userId) {
+                id
+                isFollowing
+              }
+            }
+          `;
+          await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              query,
+              variables: { userId: parseInt(requesterId, 10) }
+            })
+          });
+          console.log(`AniList ToggleFollow executed for user: ${requesterId}`);
+        } catch (apiErr) {
+          console.error('Failed to sync Follow on AniList:', apiErr);
+          // Non-fatal, we still accept locally
+        }
+      }
+
       await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
       res.json({ success: true });
     } else {
       res.status(404).json({ error: 'Solicitud no encontrada.' });
     }
   } catch (error) {
+    console.error('Error accepting friend:', error);
     res.status(500).json({ error: 'Error interno al aceptar solicitud.' });
   }
 });
@@ -506,6 +541,38 @@ app.post('/api/friends/add', authenticateToken, async (req, res) => {
       targetId: userInfo.id,
       status: 'pending'
     });
+    
+    // Sync with AniList: Follow the user
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (token) {
+      try {
+        const mutationQuery = `
+          mutation ($userId: Int) {
+            ToggleFollow(userId: $userId) {
+              id
+              isFollowing
+            }
+          }
+        `;
+        await fetch('https://graphql.anilist.co', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            query: mutationQuery,
+            variables: { userId: parseInt(userInfo.id, 10) }
+          })
+        });
+        console.log(`AniList ToggleFollow executed for user: ${userInfo.id}`);
+      } catch (apiErr) {
+        console.error('Failed to sync Follow on AniList:', apiErr);
+      }
+    }
 
     await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
 

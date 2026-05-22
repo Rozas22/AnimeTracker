@@ -23,7 +23,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [isCallback, setIsCallback] = useState(window.location.pathname === '/callback');
   const [anilistFriends, setAnilistFriends] = useState([]);
-  const [notificationTab, setNotificationTab] = useState('noticias');
+  const [notificationTab, setNotificationTab] = useState('episodes');
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
 
@@ -55,6 +55,12 @@ export default function App() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [episodeNotifications, setEpisodeNotifications] = useState([]);
+  const [socialNotifications, setSocialNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem('animeTrackerSocialNotifs');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
 
   // Theme
   const { accentColor, setAccentColor, styleMode, setStyleMode } = useTheme();
@@ -458,6 +464,59 @@ export default function App() {
     }
   };
 
+  const fetchSocialActivity = async () => {
+    if (!token) return;
+    const query = `
+      query {
+        Page(page: 1, perPage: 5) {
+          activities(type: FOLLOWING, sort: ID_DESC) {
+            ... on FollowingActivity {
+              id
+              createdAt
+              user { id name avatar { large } }
+            }
+          }
+        }
+      }
+    `;
+    try {
+      const response = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ query })
+      });
+      const data = await response.json();
+      if (!data.errors && data.data?.Page?.activities) {
+        const activities = data.data.Page.activities.filter(a => a && a.user);
+        setSocialNotifications(prev => {
+          let newNotifs = [...prev];
+          activities.forEach(act => {
+            if (!newNotifs.some(n => n.id === act.id)) {
+              newNotifs.unshift({ ...act, isRead: false });
+            }
+          });
+          newNotifs = newNotifs.slice(0, 20);
+          localStorage.setItem('animeTrackerSocialNotifs', JSON.stringify(newNotifs));
+          return newNotifs;
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching social activity:', err);
+    }
+  };
+
+  const dismissSocialNotification = (id) => {
+    setSocialNotifications(prev => {
+      const newNotifs = prev.filter(n => n.id !== id);
+      localStorage.setItem('animeTrackerSocialNotifs', JSON.stringify(newNotifs));
+      return newNotifs;
+    });
+  };
+
   const refreshUserData = async () => {
     if (!token) return;
     setLoading(true);
@@ -465,7 +524,15 @@ export default function App() {
     const query = `
       query {
         Viewer {
+          id
           name
+          avatar { large }
+          siteUrl
+          about (asHtml: true)
+          statistics {
+            anime { count episodesWatched minutesWatched }
+            manga { count chaptersRead }
+          }
         }
       }
     `;
@@ -488,19 +555,13 @@ export default function App() {
 
       const viewer = result.data.Viewer;
       
-      // MOCK DATA TO PREVENT UI CRASH DURING THIS TEST
-      setUserData({
-        id: 0,
-        name: viewer.name,
-        avatar: { large: 'https://anilist.co/img/icons/icon.svg' },
-        siteUrl: '#',
-        about: 'Test mode active',
-        statistics: { anime: {}, manga: {} }
-      });
+      setUserData(viewer);
       
-      // Temporarily disabled for test
-      // await fetchUserAnimeList(viewer.id);
-      // await fetchAnilistFollowing(viewer.id);
+      if (viewer.id) {
+        await fetchUserAnimeList(viewer.id);
+        await fetchAnilistFollowing();
+        await fetchSocialActivity();
+      }
     } catch (err) {
       console.error('Error refreshing user data:', err);
     } finally {
@@ -2684,8 +2745,27 @@ export default function App() {
               <X size={18} />
             </button>
           </div>
+          
+          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+            <button 
+              onClick={() => setNotificationTab('episodes')}
+              style={{ background: 'transparent', border: 'none', padding: '0.5rem 0', color: notificationTab === 'episodes' ? 'var(--accent)' : 'var(--color-text-secondary)', fontWeight: notificationTab === 'episodes' ? '600' : '400', borderBottom: notificationTab === 'episodes' ? '2px solid var(--accent)' : '2px solid transparent', cursor: 'pointer', flex: 1 }}
+            >
+              Noticias
+            </button>
+            <button 
+              onClick={() => setNotificationTab('social')}
+              style={{ background: 'transparent', border: 'none', padding: '0.5rem 0', color: notificationTab === 'social' ? 'var(--accent)' : 'var(--color-text-secondary)', fontWeight: notificationTab === 'social' ? '600' : '400', borderBottom: notificationTab === 'social' ? '2px solid var(--accent)' : '2px solid transparent', cursor: 'pointer', flex: 1, position: 'relative' }}
+            >
+              Social
+              {socialNotifications.filter(n => !n.isRead).length > 0 && (
+                <span style={{ position: 'absolute', top: '2px', right: '10px', background: 'var(--color-accent-red)', width: '6px', height: '6px', borderRadius: '50%' }}></span>
+              )}
+            </button>
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', flex: 1, paddingRight: '0.25rem' }}>
+            {notificationTab === 'episodes' ? (
               <>
                 {episodeNotifications.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
@@ -2709,6 +2789,33 @@ export default function App() {
                   ))
                 )}
               </>
+            ) : (
+              <>
+                {socialNotifications.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
+                    <Users size={32} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
+                    <p style={{ margin: 0, fontSize: '0.9rem' }}>No hay actividad social reciente</p>
+                  </div>
+                ) : (
+                  socialNotifications.map(notif => (
+                    <div key={notif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center', position: 'relative' }}>
+                      <img src={notif.user?.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} alt="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: notif.isRead ? 'none' : '2px solid var(--accent)' }} />
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', lineHeight: 1.2 }}>
+                          <span style={{ fontWeight: 'bold' }}>{notif.user?.name}</span> te ha empezado a seguir.
+                        </p>
+                        <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
+                          {new Date(notif.createdAt * 1000).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <button onClick={() => dismissSocialNotification(notif.id)} style={{ background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.2rem' }} aria-label="Descartar">
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -2783,9 +2890,9 @@ export default function App() {
               style={{ position: 'relative' }}
             >
               <Bell size={18} />
-              {episodeNotifications.length > 0 && (
+              {(episodeNotifications.length + socialNotifications.filter(n => !n.isRead).length) > 0 && (
                 <span style={{ position: 'absolute', top: -5, right: -5, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                  {episodeNotifications.length}
+                  {episodeNotifications.length + socialNotifications.filter(n => !n.isRead).length}
                 </span>
               )}
             </button>
@@ -2824,9 +2931,9 @@ export default function App() {
               title="Notificaciones"
             >
               <Bell size={20} />
-              {episodeNotifications.length > 0 && (
+              {(episodeNotifications.length + socialNotifications.filter(n => !n.isRead).length) > 0 && (
                 <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                  {episodeNotifications.length}
+                  {episodeNotifications.length + socialNotifications.filter(n => !n.isRead).length}
                 </span>
               )}
             </button>

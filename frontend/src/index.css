@@ -1580,6 +1580,37 @@ header {
   }
 }
 
+/* Badge for search results indicating list status and progress */
+.search-list-status-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 10;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.search-list-status-badge.completed {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9));
+}
+
+.search-list-status-badge.in-progress {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
+}
+
+/* By default, list-view status badge is hidden */
+.search-list-status-badge-list {
+  display: none;
+}
+
 /* Franchise Expandable Card */
 .franchise-card {
   transition: var(--transition-smooth);
@@ -2001,6 +2032,30 @@ header {
   border-radius: 6px;
   bottom: 0.25rem;
   right: 0.25rem;
+}
+
+.anime-grid.view-list .anime-card .cover-wrapper .search-list-status-badge {
+  display: none;
+}
+
+.anime-grid.view-list .anime-card .search-list-status-badge-list {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 0.25rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #ffffff;
+  width: max-content;
+}
+
+.anime-grid.view-list .anime-card .search-list-status-badge-list.completed {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9));
+}
+
+.anime-grid.view-list .anime-card .search-list-status-badge-list.in-progress {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
 }
 
 .anime-grid.view-list .anime-card .quick-plus-btn svg {

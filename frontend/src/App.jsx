@@ -1080,6 +1080,10 @@ export default function App() {
           episodes
           format
           status
+          mediaListEntry {
+            status
+            progress
+          }
         }
       }
     }`;
@@ -1090,6 +1094,7 @@ export default function App() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           query,
@@ -2357,6 +2362,14 @@ export default function App() {
                           alt={anime.title?.userPreferred} 
                           className="anime-cover"
                         />
+                        {anime.mediaListEntry && (
+                          <div className={`search-list-status-badge ${anime.mediaListEntry.status === 'COMPLETED' ? 'completed' : 'in-progress'}`}>
+                            {anime.mediaListEntry.status === 'COMPLETED' 
+                              ? `Visto: ${anime.mediaListEntry.progress}/${anime.episodes || anime.mediaListEntry.progress} eps` 
+                              : `Visto: ${anime.mediaListEntry.progress}/${anime.episodes || '?'} eps`
+                            }
+                          </div>
+                        )}
                       </div>
                       <div className="anime-info">
                         <span className="anime-title" title={anime.title?.userPreferred}>
@@ -2366,6 +2379,14 @@ export default function App() {
                           <span>{anime.format || 'ANIME'}</span>
                           <span>{anime.episodes ? `${anime.episodes} eps` : '?' }</span>
                         </div>
+                        {anime.mediaListEntry && (
+                          <div className={`search-list-status-badge-list ${anime.mediaListEntry.status === 'COMPLETED' ? 'completed' : 'in-progress'}`}>
+                            {anime.mediaListEntry.status === 'COMPLETED' 
+                              ? `Visto: ${anime.mediaListEntry.progress}/${anime.episodes || anime.mediaListEntry.progress} eps` 
+                              : `Visto: ${anime.mediaListEntry.progress}/${anime.episodes || '?'} eps`
+                            }
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

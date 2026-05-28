@@ -262,28 +262,33 @@ export default function App() {
   const fetchFriendAnimeList = async (userId) => {
     const query = `
       query ($userId: Int) {
-        Page(page: 1, perPage: 100) {
-          mediaList(userId: $userId, type: ANIME) {
-            id
+        MediaListCollection(userId: $userId, type: ANIME) {
+          lists {
+            name
+            isCustomList
             status
-            progress
-            score(format: POINT_10)
-            media {
+            entries {
               id
-              title {
-                userPreferred
-              }
-              coverImage {
-                large
-              }
-              format
-              episodes
-              duration
               status
-              startDate {
-                year
-                month
-                day
+              progress
+              score(format: POINT_10)
+              media {
+                id
+                title {
+                  userPreferred
+                }
+                coverImage {
+                  large
+                }
+                format
+                episodes
+                duration
+                status
+                startDate {
+                  year
+                  month
+                  day
+                }
               }
             }
           }
@@ -317,8 +322,15 @@ export default function App() {
         }
 
         const result = await response.json();
-        if (!result.errors && result.data?.Page?.mediaList) {
-          setFriendAnimeList(result.data.Page.mediaList);
+        if (!result.errors && result.data?.MediaListCollection?.lists) {
+          const lists = result.data.MediaListCollection.lists;
+          const allEntries = [];
+          lists.forEach(list => {
+            if (list.entries) {
+              allEntries.push(...list.entries);
+            }
+          });
+          setFriendAnimeList(allEntries);
         }
       } catch (err) {
         console.error('Error fetching friend anime list:', err);
@@ -393,45 +405,50 @@ export default function App() {
     if (!token) return;
     const query = `
       query ($userId: Int) {
-        Page(page: 1, perPage: 100) {
-          mediaList(userId: $userId, type: ANIME) {
-            id
+        MediaListCollection(userId: $userId, type: ANIME) {
+          lists {
+            name
+            isCustomList
             status
-            progress
-            score(format: POINT_10)
-            updatedAt
-            media {
+            entries {
               id
-              title {
-                userPreferred
-              }
-              coverImage {
-                large
-              }
-              format
-              episodes
-              duration
-              genres
-              studios(isMain: true) {
-                nodes {
-                  name
-                }
-              }
               status
-              nextAiringEpisode {
-                episode
-                timeUntilAiring
-              }
-              startDate {
-                year
-                month
-                day
-              }
-              relations {
-                edges {
-                  relationType
-                  node {
-                    id
+              progress
+              score(format: POINT_10)
+              updatedAt
+              media {
+                id
+                title {
+                  userPreferred
+                }
+                coverImage {
+                  large
+                }
+                format
+                episodes
+                duration
+                genres
+                studios(isMain: true) {
+                  nodes {
+                    name
+                  }
+                }
+                status
+                nextAiringEpisode {
+                  episode
+                  timeUntilAiring
+                }
+                startDate {
+                  year
+                  month
+                  day
+                }
+                relations {
+                  edges {
+                    relationType
+                    node {
+                      id
+                    }
                   }
                 }
               }
@@ -456,8 +473,15 @@ export default function App() {
       });
 
       const result = await response.json();
-      if (!result.errors && result.data?.Page?.mediaList) {
-        setCompletedAnime(result.data.Page.mediaList);
+      if (!result.errors && result.data?.MediaListCollection?.lists) {
+        const lists = result.data.MediaListCollection.lists;
+        const allEntries = [];
+        lists.forEach(list => {
+          if (list.entries) {
+            allEntries.push(...list.entries);
+          }
+        });
+        setCompletedAnime(allEntries);
       }
     } catch (err) {
       console.error('Error fetching user anime list:', err);

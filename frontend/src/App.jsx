@@ -55,6 +55,20 @@ export default function App() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [episodeNotifications, setEpisodeNotifications] = useState([]);
+  const [dismissedEpNotifs, setDismissedEpNotifs] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('animeTrackerDismissedEpNotifs') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  const [readEpNotifs, setReadEpNotifs] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('animeTrackerReadEpNotifs') || '[]');
+    } catch {
+      return [];
+    }
+  });
   const [socialNotifications, setSocialNotifications] = useState(() => {
     try {
       const saved = localStorage.getItem('animeTrackerSocialNotifs');
@@ -371,17 +385,37 @@ export default function App() {
     watching.forEach(entry => {
       const nextEp = entry.media.nextAiringEpisode.episode;
       if (nextEp > entry.progress + 1) {
+        const latestAvailable = nextEp - 1;
+        const notifId = `ep_${entry.media.id}_${latestAvailable}`;
+        
+        // Skip if this notification has been dismissed
+        if (dismissedEpNotifs.includes(notifId)) return;
+
+        // Calculate elapsed time from nextAiringEpisode weekly cycle
+        const timeUntil = entry.media.nextAiringEpisode.timeUntilAiring || 0;
+        const secondsAgo = (604800 - (timeUntil % 604800)) % 604800;
+        const hoursAgo = Math.floor(secondsAgo / 3600);
+        const daysAgo = Math.floor(hoursAgo / 24);
+        let timeText = '';
+        if (daysAgo > 0) {
+          timeText = `Hace ${daysAgo} ${daysAgo === 1 ? 'día' : 'días'}`;
+        } else {
+          timeText = `Hace ${Math.max(1, hoursAgo)} ${hoursAgo <= 1 ? 'hora' : 'horas'}`;
+        }
+
         newNotifs.push({
-          id: `ep_${entry.media.id}`,
+          id: notifId,
           type: 'episode',
           anime: entry.media,
-          unseenCount: nextEp - 1 - entry.progress,
-          latestAvailable: nextEp - 1
+          unseenCount: latestAvailable - entry.progress,
+          latestAvailable,
+          timeText,
+          isRead: readEpNotifs.includes(notifId)
         });
       }
     });
     setEpisodeNotifications(newNotifs);
-  }, [completedAnime]);
+  }, [completedAnime, dismissedEpNotifs, readEpNotifs]);
   const [mylistSubTab, setMylistSubTab] = useState('CURRENT');
   const [searchPage, setSearchPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -539,6 +573,56 @@ export default function App() {
       localStorage.setItem('animeTrackerSocialNotifs', JSON.stringify(newNotifs));
       return newNotifs;
     });
+  };
+
+  const dismissEpisodeNotification = (id) => {
+    setDismissedEpNotifs(prev => {
+      if (prev.includes(id)) return prev;
+      const next = [...prev, id];
+      localStorage.setItem('animeTrackerDismissedEpNotifs', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const markEpisodeNotificationAsRead = (id) => {
+    setReadEpNotifs(prev => {
+      if (prev.includes(id)) return prev;
+      const next = [...prev, id];
+      localStorage.setItem('animeTrackerReadEpNotifs', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleOpenNotificationCenter = () => {
+    setShowNotificationCenter(true);
+    // Mark all current episode notifications as read
+    const newReadIds = [...readEpNotifs];
+    let changed = false;
+    episodeNotifications.forEach(notif => {
+      if (!newReadIds.includes(notif.id)) {
+        newReadIds.push(notif.id);
+        changed = true;
+      }
+    });
+    if (changed) {
+      setReadEpNotifs(newReadIds);
+      localStorage.setItem('animeTrackerReadEpNotifs', JSON.stringify(newReadIds));
+    }
+
+    // Mark all social notifications as read
+    setSocialNotifications(prev => {
+      const updated = prev.map(n => ({ ...n, isRead: true }));
+      localStorage.setItem('animeTrackerSocialNotifs', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const toggleNotificationCenter = () => {
+    if (!showNotificationCenter) {
+      handleOpenNotificationCenter();
+    } else {
+      setShowNotificationCenter(false);
+    }
   };
 
   const refreshUserData = async () => {
@@ -2819,17 +2903,36 @@ export default function App() {
                   </div>
                 ) : (
                   episodeNotifications.map(notif => (
-                    <div key={notif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'flex-start' }}>
-                      <img src={notif.anime.coverImage?.large} alt="cover" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
-                      <div style={{ flex: 1 }}>
+                    <div key={notif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'flex-start', position: 'relative' }}>
+                      <img src={notif.anime.coverImage?.large} alt="cover" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: notif.isRead ? 'none' : '2px solid var(--accent)' }} />
+                      <div style={{ flex: 1, paddingRight: '1.25rem' }}>
                         <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', fontWeight: '500', lineHeight: 1.2 }}>{notif.anime.title.userPreferred}</p>
+                        <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
+                          {notif.timeText}
+                        </p>
                         <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: 'var(--accent)' }}>
                           {notif.unseenCount} ep. nuevo(s) (hasta el {notif.latestAvailable})
                         </p>
-                        <button onClick={() => { setShowNotificationCenter(false); handleTabClick('mylist'); setMylistSubTab('CURRENT'); }} className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', width: '100%' }}>
+                        <button 
+                          onClick={() => { 
+                            markEpisodeNotificationAsRead(notif.id);
+                            setShowNotificationCenter(false); 
+                            handleTabClick('mylist'); 
+                            setMylistSubTab('CURRENT'); 
+                          }} 
+                          className="btn-primary" 
+                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', width: '100%' }}
+                        >
                           Ver ahora
                         </button>
                       </div>
+                      <button 
+                        onClick={() => dismissEpisodeNotification(notif.id)} 
+                        style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                        aria-label="Descartar"
+                      >
+                        <X size={14} />
+                      </button>
                     </div>
                   ))
                 )}
@@ -2929,15 +3032,15 @@ export default function App() {
               <span className="sidebar-username">{userData.name}</span>
             </div>
             <button
-              onClick={() => setShowNotificationCenter(true)}
+              onClick={handleOpenNotificationCenter}
               className="settings-gear-btn"
               title="Notificaciones"
               style={{ position: 'relative' }}
             >
               <Bell size={18} />
-              {(episodeNotifications.length + socialNotifications.filter(n => !n.isRead).length) > 0 && (
-                <span style={{ position: 'absolute', top: -5, right: -5, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                  {episodeNotifications.length + socialNotifications.filter(n => !n.isRead).length}
+              {(episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length) > 0 && (
+                <span style={{ position: 'absolute', top: -2, right: -2, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                  {episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length}
                 </span>
               )}
             </button>
@@ -2965,20 +3068,21 @@ export default function App() {
           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
             <button
               onClick={() => setShowSettingsModal(true)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--color-text-primary)', position: 'relative', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
+              className="settings-gear-btn"
               title="Ajustes de Estética"
             >
               <Settings size={20} />
             </button>
             <button
-              onClick={() => setShowNotificationCenter(!showNotificationCenter)}
-              style={{ background: 'transparent', border: 'none', color: 'var(--color-text-primary)', position: 'relative', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center' }}
+              onClick={toggleNotificationCenter}
+              className="settings-gear-btn"
               title="Notificaciones"
+              style={{ position: 'relative' }}
             >
               <Bell size={20} />
-              {(episodeNotifications.length + socialNotifications.filter(n => !n.isRead).length) > 0 && (
-                <span style={{ position: 'absolute', top: 0, right: 0, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                  {episodeNotifications.length + socialNotifications.filter(n => !n.isRead).length}
+              {(episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length) > 0 && (
+                <span style={{ position: 'absolute', top: -2, right: -2, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                  {episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length}
                 </span>
               )}
             </button>

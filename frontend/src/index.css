@@ -3489,3 +3489,28 @@ textarea {
     max-height: calc(100vh - 80px);
   } 
 }
+
+/* Polished transparent rounded buttons for Settings and Notifications */
+.settings-gear-btn {
+  background: transparent !important;
+  border: none !important;
+  color: var(--color-text-primary) !important;
+  cursor: pointer;
+  padding: 8px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  width: 36px;
+  height: 36px;
+}
+
+.settings-gear-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--accent) !important;
+}
+
+.settings-gear-btn svg {
+  color: currentColor;
+}

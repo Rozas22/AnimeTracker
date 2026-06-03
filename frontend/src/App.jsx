@@ -177,12 +177,13 @@ const ProfileDisplay = ({
 }) => {
   if (!user?.id) return null;
 
-  const isDesktop = window.innerWidth >= 768;
-  const totalEpsForLevel = user.statistics?.anime?.episodesWatched || animeList.reduce((s, e) => s + (e.progress || 0), 0);
-  const { computedLevel } = calculateLevelStats(totalEpsForLevel);
+  try {
+    const isDesktop = window.innerWidth >= 768;
+    const totalEpsForLevel = user.statistics?.anime?.episodesWatched || animeList.reduce((s, e) => s + (e.progress || 0), 0);
+    const { computedLevel } = calculateLevelStats(totalEpsForLevel);
 
-  return (
-    <div className="card profile-card" style={{ position: 'relative' }}>
+    return (
+      <div className="card profile-card" style={{ position: 'relative' }}>
       {children && <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>{children}</div>}
 
       <div className="profile-layout-grid">
@@ -232,10 +233,10 @@ const ProfileDisplay = ({
                     </p>
                     {pct !== null && (
                       <div className="profile-now-bar-track">
-                        <div className="profile-now-bar-fill" style={{ width: str(min(pct, 100)) + '%' }} />
+                        <div className="profile-now-bar-fill" style={{ width: String(Math.min(pct, 100)) + '%' }} />
                       </div>
                     )}
-                    <p className="profile-now-pct">{pct !== null ? str(pct) + '% completado' : 'En progreso'}</p>
+                    <p className="profile-now-pct">{pct !== null ? String(pct) + '% completado' : 'En progreso'}</p>
                   </div>
                 </div>
               </div>
@@ -300,7 +301,17 @@ const ProfileDisplay = ({
         </div>
       </div>
     </div>
-  );
+    );
+  } catch (err) {
+    console.error('Error rendering ProfileDisplay:', err);
+    return (
+      <div className="card" style={{ padding: '3rem 1rem', textAlign: 'center', marginTop: '1rem' }}>
+        <ShieldAlert size={48} style={{ color: 'var(--color-accent-red)', marginBottom: '1rem', opacity: 0.8 }} />
+        <h3>Error al renderizar el perfil</h3>
+        <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>Ha ocurrido un problema al procesar los datos de este perfil. Intenta recargar la página.</p>
+      </div>
+    );
+  }
 };
 
 export default function App() {

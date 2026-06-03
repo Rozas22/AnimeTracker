@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart } from 'lucide-react';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
+import confetti from 'canvas-confetti';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -53,6 +54,8 @@ export default function App() {
 
   // Mobile Settings Modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showLevelUpModal, setShowLevelUpModal] = useState(false);
+  const [levelUpData, setLevelUpData] = useState(null);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [episodeNotifications, setEpisodeNotifications] = useState([]);
   const [dismissedEpNotifs, setDismissedEpNotifs] = useState(() => {
@@ -376,6 +379,47 @@ export default function App() {
   const [completedAnime, setCompletedAnime] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
+
+  // Compute global level based on arithmetic progression
+  const totalEpsForLevel = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
+  let computedLevel = 1;
+  let episodiosRestantes = totalEpsForLevel;
+  let episodiosParaSiguienteNivel = computedLevel * 25;
+
+  while (episodiosRestantes >= episodiosParaSiguienteNivel) {
+    episodiosRestantes -= episodiosParaSiguienteNivel;
+    computedLevel++;
+    episodiosParaSiguienteNivel = computedLevel * 25;
+  }
+  
+  const progresoPorcentaje = (episodiosRestantes / episodiosParaSiguienteNivel) * 100;
+  
+  let userTitle = 'Novato';
+  if (computedLevel >= 50) userTitle = 'Leyenda';
+  else if (computedLevel >= 26) userTitle = 'Veterano';
+  else if (computedLevel >= 11) userTitle = 'Aprendiz';
+
+  // Check for level up
+  useEffect(() => {
+    if (completedAnime.length > 0 && computedLevel > 1) {
+      const savedLevel = parseInt(localStorage.getItem('animeTrackerSavedLevel') || '1', 10);
+      if (computedLevel > savedLevel) {
+        // Trigger Level Up
+        setLevelUpData({ level: computedLevel, title: userTitle, totalEps: totalEpsForLevel });
+        setShowLevelUpModal(true);
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          zIndex: 9999
+        });
+        localStorage.setItem('animeTrackerSavedLevel', computedLevel.toString());
+      } else if (computedLevel < savedLevel) {
+        // Fallback sync
+        localStorage.setItem('animeTrackerSavedLevel', computedLevel.toString());
+      }
+    }
+  }, [computedLevel, completedAnime.length, userTitle, totalEpsForLevel]);
 
   // Compute Episode Notifications
   useEffect(() => {
@@ -3397,6 +3441,28 @@ export default function App() {
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Level Up Modal */}
+      {showLevelUpModal && levelUpData && (
+        <div className="modal-overlay" onClick={() => setShowLevelUpModal(false)} style={{ zIndex: 9998 }}>
+          <div className="modal-content card" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: '400px' }}>
+            <h2 style={{ color: 'var(--accent)', marginBottom: '1rem', fontSize: '2rem' }}>¡Nivel Alcanzado!</h2>
+            <Award size={64} style={{ color: 'var(--accent)', marginBottom: '1rem', margin: '0 auto' }} />
+            <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+              ¡Felicidades <strong>{userData?.name}</strong>! Has alcanzado el Nivel {levelUpData.level}.
+            </p>
+            <p style={{ fontSize: '1.1rem', color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
+              Rango actual: <strong style={{ color: 'var(--accent)' }}>{levelUpData.title}</strong>
+            </p>
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginBottom: '2rem' }}>
+              Llevas un total de {levelUpData.totalEps} episodios vistos.
+            </p>
+            <button className="btn-primary" onClick={() => setShowLevelUpModal(false)} style={{ width: '100%', fontSize: '1.1rem', padding: '0.8rem' }}>
+              ¡Increíble!
+            </button>
+          </div>
         </div>
       )}
     </div>

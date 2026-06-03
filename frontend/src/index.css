@@ -3514,3 +3514,5 @@ textarea {
 .settings-gear-btn svg {
   color: currentColor;
 }
+@keyframes intense-glow { 0% { box-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent); } 50% { box-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent), 0 0 45px var(--accent); } 100% { box-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent); } }
+.level-bar-fill.glow { animation: intense-glow 1.5s infinite alternate; }

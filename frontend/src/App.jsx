@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart, Lock } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart, Lock, ChevronUp, ChevronDown, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
@@ -65,7 +65,7 @@ const getHighestFrame = (level) => {
 };
 
 const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, children }) => {
-  if (!user) return null;
+  if (!user?.id) return null;
   
   // LOG requested by user for debugging API data
   console.log('ProfileHeader received user data:', user.name, 'Episodes Watched:', user.statistics?.anime?.episodesWatched);
@@ -175,7 +175,7 @@ const ProfileDisplay = ({
   onTabClick,
   onSubTabClick
 }) => {
-  if (!user) return null;
+  if (!user?.id) return null;
 
   const isDesktop = window.innerWidth >= 768;
   const totalEpsForLevel = user.statistics?.anime?.episodesWatched || animeList.reduce((s, e) => s + (e.progress || 0), 0);
@@ -582,6 +582,7 @@ export default function App() {
   };
 
   const fetchFriendAnimeList = async (userId) => {
+    if (!userId) return null;
     const query = `
       query ($userId: Int) {
         MediaListCollection(userId: $userId, type: ANIME) {
@@ -773,6 +774,7 @@ export default function App() {
 
   const fetchUserAnimeList = async (userId) => {
     if (!token) return;
+    if (!userId) return null;
     const query = `
       query ($userId: Int) {
         MediaListCollection(userId: $userId, type: ANIME) {

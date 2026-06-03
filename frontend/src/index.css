@@ -3516,3 +3516,19 @@ textarea {
 }
 @keyframes intense-glow { 0% { box-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent); } 50% { box-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent), 0 0 45px var(--accent); } 100% { box-shadow: 0 0 5px var(--accent), 0 0 10px var(--accent); } }
 .level-bar-fill.glow { animation: intense-glow 1.5s infinite alternate; }
+
+/* Dynamic Frames */
+.frame-bronze { border: 4px solid #cd7f32; box-shadow: 0 0 10px #cd7f32; }
+.frame-silver { border: 4px solid #c0c0c0; box-shadow: 0 0 12px #c0c0c0; }
+.frame-gold { border: 4px solid #ffd700; box-shadow: 0 0 15px #ffd700; animation: intense-glow 2s infinite alternate; }
+
+/* Trophy Gallery */
+.trophy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; margin-top: 1rem; }
+.trophy-card { background: var(--color-bg-light); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transition: all 0.2s ease; }
+.trophy-card:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.03); }
+.trophy-locked { filter: grayscale(100%); opacity: 0.5; }
+.trophy-icon-wrapper { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem; background: rgba(255, 255, 255, 0.05); }
+.trophy-unlocked .trophy-icon-wrapper { background: var(--accent); box-shadow: 0 0 15px var(--accent-glow); color: #fff; }
+.trophy-locked .trophy-icon-wrapper { background: rgba(0, 0, 0, 0.2); color: var(--color-text-secondary); }
+.trophy-title { font-size: 0.9rem; font-weight: 600; color: var(--color-text-primary); margin: 0 0 0.25rem 0; }
+.trophy-req { font-size: 0.75rem; color: var(--color-text-secondary); margin: 0; }

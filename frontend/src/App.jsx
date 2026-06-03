@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart, Lock } from 'lucide-react';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
 import confetti from 'canvas-confetti';
@@ -54,6 +54,7 @@ export default function App() {
 
   // Mobile Settings Modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [selectedFrame, setSelectedFrame] = useState(localStorage.getItem('animeTrackerSelectedFrame') || 'none');
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
   const [levelUpData, setLevelUpData] = useState(null);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
@@ -1125,6 +1126,11 @@ export default function App() {
     window.history.replaceState({}, document.title, '/');
   };
 
+  const handleFrameSelect = (frame) => {
+    setSelectedFrame(frame);
+    localStorage.setItem('animeTrackerSelectedFrame', frame);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('anilist_token');
     setToken('');
@@ -2001,7 +2007,7 @@ export default function App() {
                 <img 
                   src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
                   alt={userData.name} 
-                  className="avatar" 
+                  className={`avatar ${selectedFrame !== 'none' ? `frame-${selectedFrame}` : ''}`} 
                 />
                 <div className="profile-meta">
                   <h2>Bienvenido, {userData.name}</h2>
@@ -2039,6 +2045,7 @@ export default function App() {
                 else if (nivelActual >= 10) title = 'Aficionado';
 
                 return (
+                  <>
                   <div className="profile-level-container">
                     <div className="level-header">
                       <span className="level-number">Nivel {nivelActual}</span>
@@ -2051,6 +2058,26 @@ export default function App() {
                       Progreso: {episodiosRestantes} / {episodiosParaSiguienteNivel} para el siguiente nivel
                     </div>
                   </div>
+                  
+                  {/* TROPHY GALLERY */}
+                  <div style={{ marginTop: '2rem', width: '100%' }}>
+                    <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: 'var(--color-text-primary)' }}>Galería de Trofeos</h3>
+                    <div className="trophy-grid">
+                      {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(level => {
+                        const isUnlocked = computedLevel >= level;
+                        return (
+                          <div key={level} className={`trophy-card ${isUnlocked ? 'trophy-unlocked' : 'trophy-locked'}`}>
+                            <div className="trophy-icon-wrapper">
+                              {isUnlocked ? <Award size={24} /> : <Lock size={20} />}
+                            </div>
+                            <h4 className="trophy-title">Nivel {level}</h4>
+                            <p className="trophy-req">{isUnlocked ? 'Desbloqueado' : 'Bloqueado'}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
                 );
               })()}
 
@@ -2339,6 +2366,15 @@ export default function App() {
                         </button>
                       </div>
                     </div>
+                    <div className="aesthetics-section">
+                      <span className="aesthetics-label">Marco del Perfil</span>
+                      <div className="style-mode-toggle">
+                        <button className={`style-mode-btn ${selectedFrame === 'none' ? 'active' : ''}`} onClick={() => handleFrameSelect('none')}>Ninguno</button>
+                        <button className={`style-mode-btn ${selectedFrame === 'bronze' ? 'active' : ''}`} disabled={computedLevel < 10} onClick={() => handleFrameSelect('bronze')}>Bronce</button>
+                        <button className={`style-mode-btn ${selectedFrame === 'silver' ? 'active' : ''}`} disabled={computedLevel < 25} onClick={() => handleFrameSelect('silver')}>Plata</button>
+                        <button className={`style-mode-btn ${selectedFrame === 'gold' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('gold')}>Oro</button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2400,6 +2436,15 @@ export default function App() {
                     ? '✔️ Moderno 2: layout 2 columnas, fondos sólidos, sombras neumorfóficas.'
                     : 'Modo clásico: diseño plano y limpio.'}
                 </p>
+              </div>
+              <div className="aesthetics-section">
+                <span className="aesthetics-label">Marco del Perfil</span>
+                <div className="style-mode-toggle">
+                  <button className={`style-mode-btn ${selectedFrame === 'none' ? 'active' : ''}`} onClick={() => handleFrameSelect('none')}>Ninguno</button>
+                  <button className={`style-mode-btn ${selectedFrame === 'bronze' ? 'active' : ''}`} disabled={computedLevel < 10} onClick={() => handleFrameSelect('bronze')}>Bronce</button>
+                  <button className={`style-mode-btn ${selectedFrame === 'silver' ? 'active' : ''}`} disabled={computedLevel < 25} onClick={() => handleFrameSelect('silver')}>Plata</button>
+                  <button className={`style-mode-btn ${selectedFrame === 'gold' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('gold')}>Oro</button>
+                </div>
               </div>
             </div>
           </div>
@@ -3081,7 +3126,7 @@ export default function App() {
             <img 
               src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
               alt={userData.name} 
-              className="sidebar-avatar"
+              className={`sidebar-avatar ${selectedFrame !== 'none' ? `frame-${selectedFrame}` : ''}`}
             />
             <div className="sidebar-user-meta">
               <span className="sidebar-username">{userData.name}</span>
@@ -3459,9 +3504,14 @@ export default function App() {
             <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginBottom: '2rem' }}>
               Llevas un total de {levelUpData.totalEps} episodios vistos.
             </p>
-            <button className="btn-primary" onClick={() => setShowLevelUpModal(false)} style={{ width: '100%', fontSize: '1.1rem', padding: '0.8rem' }}>
-              ¡Increíble!
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button className="btn-secondary" onClick={() => { setShowLevelUpModal(false); handleTabClick('profile'); }} style={{ flex: 1, fontSize: '1rem', padding: '0.8rem' }}>
+                Ver Trofeos
+              </button>
+              <button className="btn-primary" onClick={() => setShowLevelUpModal(false)} style={{ flex: 1, fontSize: '1rem', padding: '0.8rem' }}>
+                ¡Increíble!
+              </button>
+            </div>
           </div>
         </div>
       )}

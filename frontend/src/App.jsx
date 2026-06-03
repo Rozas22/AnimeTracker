@@ -2027,8 +2027,17 @@ export default function App() {
                   className={`avatar ${selectedFrame !== 'none' ? `frame-${selectedFrame}` : ''}`} 
                 />
                 <div className="profile-meta">
-                  <h2>Bienvenido, {userData.name}</h2>
-                  <p>ID de AniList: #{userData.id}</p>
+                  <h2 className={computedLevel >= 50 ? 'epic-name' : ''}>
+                    Bienvenido, {userData.name}
+                  </h2>
+                  <div 
+                    className="level-badge" 
+                    title={`Faltan ${episodiosParaSiguienteNivel - episodiosRestantes} capítulos para el Nivel ${computedLevel + 1}`}
+                  >
+                    <Star size={14} style={{ color: 'var(--accent)' }} />
+                    <span>Nivel <strong>{computedLevel}</strong> - {userTitle}</span>
+                  </div>
+                  <p style={{ marginTop: '0.5rem' }}>ID de AniList: #{userData.id}</p>
                   <a 
                     href={userData.siteUrl} 
                     target="_blank" 

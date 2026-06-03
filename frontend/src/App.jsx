@@ -1976,24 +1976,35 @@ export default function App() {
               {/* LEVEL SYSTEM */}
               {(() => {
                 const totalEpsForLevel = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
-                const level = Math.floor(totalEpsForLevel / 50) + 1;
+                
+                let nivelActual = 1;
+                let episodiosRestantes = totalEpsForLevel;
+                let episodiosParaSiguienteNivel = nivelActual * 25;
+
+                while (episodiosRestantes >= episodiosParaSiguienteNivel) {
+                  episodiosRestantes -= episodiosParaSiguienteNivel;
+                  nivelActual++;
+                  episodiosParaSiguienteNivel = nivelActual * 25;
+                }
+
+                const progresoPorcentaje = (episodiosRestantes / episodiosParaSiguienteNivel) * 100;
+
                 let title = 'Novato';
-                if (level >= 50) title = 'Leyenda';
-                else if (level >= 20) title = 'Viciado';
-                else if (level >= 10) title = 'Aficionado';
-                const progressPct = ((totalEpsForLevel % 50) / 50) * 100;
+                if (nivelActual >= 50) title = 'Leyenda';
+                else if (nivelActual >= 20) title = 'Viciado';
+                else if (nivelActual >= 10) title = 'Aficionado';
 
                 return (
                   <div className="profile-level-container">
                     <div className="level-header">
-                      <span className="level-number">Nivel {level}</span>
+                      <span className="level-number">Nivel {nivelActual}</span>
                       <span className="level-title" style={{ color: 'var(--accent)' }}>{title}</span>
                     </div>
                     <div className="level-bar-track">
-                      <div className="level-bar-fill" style={{ width: `${progressPct}%`, background: 'var(--accent)', boxShadow: '0 0 10px var(--accent-glow)' }} />
+                      <div className="level-bar-fill" style={{ width: `${progresoPorcentaje}%`, background: 'var(--accent)', boxShadow: '0 0 10px var(--accent-glow)' }} />
                     </div>
                     <div className="level-progress-text">
-                      {totalEpsForLevel % 50} / 50 eps para el siguiente nivel
+                      Progreso: {episodiosRestantes} / {episodiosParaSiguienteNivel} para el siguiente nivel
                     </div>
                   </div>
                 );

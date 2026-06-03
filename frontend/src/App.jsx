@@ -25,7 +25,12 @@ const getEpsForNextLevel = (level) => {
   if (level <= 10) return 25;
   if (level <= 30) return 50;
   if (level <= 60) return 100;
-  return 200;
+  
+  // Escala exponencial para los rangos de 'Leyenda' y superiores (61-100)
+  // Base 200, crece un 8% cada nivel. 
+  // Nivel 61 = 200, Nivel 80 = ~862, Nivel 100 = ~4022
+  const growthRate = 1.08;
+  return Math.floor(200 * Math.pow(growthRate, level - 61));
 };
 
 const calculateLevelStats = (totalEpisodes) => {

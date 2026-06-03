@@ -21,6 +21,44 @@ const TROPHY_CONFIG = [
   { level: 100, title: 'Completista', frameName: 'chroma', frameLabel: 'Marco Croma' }
 ];
 
+const getEpsForNextLevel = (level) => {
+  if (level <= 10) return 25;
+  if (level <= 30) return 50;
+  if (level <= 60) return 100;
+  return 200;
+};
+
+const calculateLevelStats = (totalEpisodes) => {
+  let computedLevel = 1;
+  let episodiosRestantes = totalEpisodes || 0;
+  let episodiosParaSiguienteNivel = getEpsForNextLevel(computedLevel);
+
+  while (episodiosRestantes >= episodiosParaSiguienteNivel) {
+    episodiosRestantes -= episodiosParaSiguienteNivel;
+    computedLevel++;
+    episodiosParaSiguienteNivel = getEpsForNextLevel(computedLevel);
+  }
+  
+  const progresoPorcentaje = (episodiosRestantes / episodiosParaSiguienteNivel) * 100;
+  
+  let userTitle = 'Novato';
+  if (computedLevel >= 61) userTitle = 'Leyenda';
+  else if (computedLevel >= 31) userTitle = 'Veterano';
+  else if (computedLevel >= 11) userTitle = 'Aprendiz';
+
+  return { computedLevel, userTitle, episodiosRestantes, episodiosParaSiguienteNivel, progresoPorcentaje };
+};
+
+const getHighestFrame = (level) => {
+  if (level >= 100) return 'chroma';
+  if (level >= 80) return 'diamond';
+  if (level >= 60) return 'ruby';
+  if (level >= 50) return 'gold';
+  if (level >= 30) return 'silver';
+  if (level >= 10) return 'bronze';
+  return 'none';
+};
+
 export default function App() {
   const getInitialRouteInfo = () => {
     const path = window.location.pathname;
@@ -398,30 +436,8 @@ export default function App() {
   const [expandedGroups, setExpandedGroups] = useState({});
 
   // Compute global level based on tiered progression
-  const getEpsForNextLevel = (level) => {
-    if (level <= 10) return 25;
-    if (level <= 30) return 50;
-    if (level <= 60) return 100;
-    return 200;
-  };
-
   const totalEpsForLevel = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
-  let computedLevel = 1;
-  let episodiosRestantes = totalEpsForLevel;
-  let episodiosParaSiguienteNivel = getEpsForNextLevel(computedLevel);
-
-  while (episodiosRestantes >= episodiosParaSiguienteNivel) {
-    episodiosRestantes -= episodiosParaSiguienteNivel;
-    computedLevel++;
-    episodiosParaSiguienteNivel = getEpsForNextLevel(computedLevel);
-  }
-  
-  const progresoPorcentaje = (episodiosRestantes / episodiosParaSiguienteNivel) * 100;
-  
-  let userTitle = 'Novato';
-  if (computedLevel >= 61) userTitle = 'Leyenda';
-  else if (computedLevel >= 31) userTitle = 'Veterano';
-  else if (computedLevel >= 11) userTitle = 'Aprendiz';
+  const { computedLevel, userTitle, episodiosRestantes, episodiosParaSiguienteNivel, progresoPorcentaje } = calculateLevelStats(totalEpsForLevel);
 
 
   // Check for level up
@@ -772,6 +788,11 @@ export default function App() {
             id
             name
             avatar { large }
+            statistics {
+              anime {
+                episodesWatched
+              }
+            }
           }
         }
       }
@@ -2686,17 +2707,40 @@ export default function App() {
 
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '1rem' }}>
-                    {anilistFriends.map(friend => (
-                      <div 
-                        key={friend.name} 
-                        onClick={() => handleNavigateToFriend(friend.name)} 
-                        style={{ background: 'var(--color-bg-light)', borderRadius: '12px', padding: '1rem', textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)' }} 
-                        className="card"
-                      >
-                        <img src={friend.avatar?.large || friend.avatar || 'https://anilist.co/img/icons/icon.svg'} alt={friend.name} style={{ width: '60px', height: '60px', borderRadius: '50%', marginBottom: '0.75rem', objectFit: 'cover' }} />
-                        <p style={{ fontWeight: '600', margin: 0, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{friend.name}</p>
-                      </div>
-                    ))}
+                    {anilistFriends.map(friend => {
+                      const eps = friend.statistics?.anime?.episodesWatched || 0;
+                      const stats = calculateLevelStats(eps);
+                      const highestFrame = getHighestFrame(stats.computedLevel);
+                      const isClose = (stats.episodiosParaSiguienteNivel - stats.episodiosRestantes) <= 10;
+                      
+                      return (
+                        <div 
+                          key={friend.name} 
+                          onClick={() => handleNavigateToFriend(friend.name)} 
+                          style={{ background: 'var(--color-bg-light)', borderRadius: '12px', padding: '1rem', textAlign: 'center', cursor: 'pointer', border: '1px solid var(--border-glass)', display: 'flex', flexDirection: 'column', alignItems: 'center' }} 
+                          className="card"
+                        >
+                          <img 
+                            src={friend.avatar?.large || friend.avatar || 'https://anilist.co/img/icons/icon.svg'} 
+                            alt={friend.name} 
+                            style={{ width: '60px', height: '60px', borderRadius: '50%', marginBottom: '0.75rem', objectFit: 'cover' }} 
+                            className={`avatar ${highestFrame !== 'none' ? `frame-${highestFrame}` : ''}`}
+                          />
+                          <p style={{ fontWeight: '600', margin: 0, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }} className={stats.computedLevel >= 61 ? 'epic-name' : ''}>
+                            {friend.name}
+                          </p>
+                          <div className="level-badge" style={{ marginTop: '0.5rem', marginBottom: '0.5rem', transform: 'scale(0.85)' }}>
+                            <Star size={12} style={{ color: 'var(--accent)' }} />
+                            <span>Nivel <strong>{stats.computedLevel}</strong> - {stats.userTitle}</span>
+                          </div>
+                          {isClose && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 'bold', animation: 'pulse 2s infinite' }}>
+                              ¡A {stats.episodiosParaSiguienteNivel - stats.episodiosRestantes} eps del Nivel {stats.computedLevel + 1}!
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })()}

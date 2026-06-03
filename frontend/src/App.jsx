@@ -137,6 +137,172 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
   );
 };
 
+const CollapsibleSection = ({ title, children, defaultOpen = false }) => {
+  const [isOpen, setIsOpen] = React.useState(defaultOpen);
+  return (
+    <div style={{ marginTop: '2rem', width: '100%' }}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '1rem' }}
+      >
+        <h3 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--color-text-primary)' }}>{title}</h3>
+        {isOpen ? <ChevronUp size={20} color="var(--color-text-secondary)" /> : <ChevronDown size={20} color="var(--color-text-secondary)" />}
+      </div>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const ProfileDisplay = ({ 
+  user, 
+  isOwnProfile, 
+  animeList, 
+  selectedFrame, 
+  onTestAnimation, 
+  children,
+  onTabClick,
+  onSubTabClick
+}) => {
+  if (!user) return null;
+
+  const isDesktop = window.innerWidth >= 768;
+  const totalEpsForLevel = user.statistics?.anime?.episodesWatched || animeList.reduce((s, e) => s + (e.progress || 0), 0);
+  const { computedLevel } = calculateLevelStats(totalEpsForLevel);
+
+  return (
+    <div className="card profile-card" style={{ position: 'relative' }}>
+      {children && <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>{children}</div>}
+
+      <div className="profile-layout-grid">
+        <div className="profile-col-left">
+          <ProfileHeader 
+            user={user} 
+            isPublic={!isOwnProfile} 
+            selectedFrame={selectedFrame} 
+            onTestAnimation={onTestAnimation}
+          />
+
+          {user.about && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem', width: '100%', marginTop: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre {user.name}</h3>
+              <div 
+                style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
+                dangerouslySetInnerHTML={{ __html: user.about }}
+              />
+            </div>
+          )}
+
+          {(() => {
+            const watching = animeList
+              .filter(e => e.status === 'CURRENT')
+              .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+            if (!watching) return null;
+            const pct = watching.media?.episodes
+              ? Math.round((watching.progress / watching.media.episodes) * 100)
+              : null;
+            return (
+              <div className="profile-now-card" style={{ marginTop: '1.5rem' }}>
+                <div className="profile-now-badge">
+                  <Play size={12} style={{ marginRight: '4px' }} /> VIENDO AHORA
+                </div>
+                <div className="profile-now-body">
+                  <img
+                    src={watching.media?.coverImage?.large}
+                    alt={watching.media?.title?.userPreferred}
+                    className="profile-now-cover"
+                    onClick={() => { onTabClick('mylist'); onSubTabClick('CURRENT'); }}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <div className="profile-now-info">
+                    <p className="profile-now-title">{watching.media?.title?.userPreferred}</p>
+                    <p className="profile-now-progress">
+                      Episodio {watching.progress}{watching.media?.episodes ? " / " + watching.media.episodes : ''}
+                    </p>
+                    {pct !== null && (
+                      <div className="profile-now-bar-track">
+                        <div className="profile-now-bar-fill" style={{ width: str(min(pct, 100)) + '%' }} />
+                      </div>
+                    )}
+                    <p className="profile-now-pct">{pct !== null ? str(pct) + '% completado' : 'En progreso'}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        <div className="profile-col-right">
+          <CollapsibleSection title="Estadísticas en AniList" defaultOpen={isDesktop}>
+            <div className="stats-grid">
+              <div className="stat-item clickable" onClick={() => { onTabClick('mylist'); onSubTabClick('COMPLETED'); }} style={{ cursor: 'pointer' }}>
+                <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
+                <div className="stat-value">{animeList.filter(e => e.status === 'COMPLETED').length}</div>
+                <div className="stat-label">Animes Vistos</div>
+              </div>
+              <div className="stat-item">
+                <Tv size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                <div className="stat-value">{animeList.reduce((sum, e) => sum + (e.progress || 0), 0)}</div>
+                <div className="stat-label">Episodios Vistos</div>
+              </div>
+              <div className="stat-item">
+                <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
+                <div className="stat-value">{Math.round(animeList.reduce((sum, e) => sum + (e.progress || 0) * (e.media?.duration || 24), 0) / 60)}</div>
+                <div className="stat-label">Horas Vistas</div>
+              </div>
+              {user.statistics?.manga && (
+                <>
+                  <div className="stat-item">
+                    <BookOpen size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
+                    <div className="stat-value">{user.statistics.manga.count || 0}</div>
+                    <div className="stat-label">Manga en Lista</div>
+                  </div>
+                  <div className="stat-item">
+                    <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
+                    <div className="stat-value">{user.statistics.manga.chaptersRead || 0}</div>
+                    <div className="stat-label">Capítulos Leídos</div>
+                  </div>
+                </>
+              )}
+            </div>
+          </CollapsibleSection>
+
+          <CollapsibleSection title="Galería de Trofeos" defaultOpen={isDesktop}>
+            <div className="trophy-grid">
+              {TROPHY_CONFIG.map(trophy => {
+                const isUnlocked = computedLevel >= trophy.level;
+                return (
+                  <div 
+                    key={trophy.level} 
+                    className={"trophy-card " + (isUnlocked ? 'trophy-unlocked' : 'trophy-locked')}
+                  >
+                    <div className="trophy-icon-wrapper">
+                      {isUnlocked ? <Award size={24} /> : <Lock size={20} />}
+                    </div>
+                    <h4 className="trophy-title">Nivel {trophy.level}</h4>
+                    <p className="trophy-req">{isUnlocked ? 'Desbloqueado' : 'Bloqueado'}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </CollapsibleSection>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const getInitialRouteInfo = () => {
     const path = window.location.pathname;
@@ -1650,7 +1816,7 @@ export default function App() {
   // Render active tab content
   const renderContent = () => {
     switch (activeTab) {
-      case 'friend-profile': {
+            case 'friend-profile': {
         if (friendLoading) {
           return (
             <div style={{ textAlign: 'center', padding: '4rem' }}>
@@ -1673,21 +1839,23 @@ export default function App() {
           );
         }
 
-        const filteredList = friendAnimeList.filter(entry => entry.status === friendMylistSubTab);
-        const groupedList = groupCompletedAnimeByFranchise(filteredList);
-
         return (
-          <div className="card profile-card friend-profile-card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.75rem' }}>
+          <ProfileDisplay
+            user={friendData}
+            isOwnProfile={false}
+            animeList={friendAnimeList}
+            onTabClick={handleTabClick}
+            onSubTabClick={setFriendMylistSubTab}
+          >
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>Perfil de Miembro del Grupo</span>
-              <button className="btn-secondary" onClick={() => handleTabClick('group')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
-                Volver al Grupo
-              </button>
-              <ProfileHeader user={friendData} isPublic={true}>
-              {userData && userData.id !== friendData.id && (
-                <div style={{ marginTop: '1rem' }}>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button className="btn-secondary" onClick={() => handleTabClick('group')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                  Volver al Grupo
+                </button>
+                {userData && userData.id !== friendData.id && (
                   <button 
-                    className={`btn-primary ${anilistFriends.some(f => f.id === friendData.id) ? 'following' : ''}`}
+                    className={"btn-primary" + (anilistFriends.some(f => f.id === friendData.id) ? ' following' : '')}
                     onClick={() => handleFollowUser(friendData.id)}
                     disabled={togglingFollow}
                     style={{ 
@@ -1708,203 +1876,13 @@ export default function App() {
                       <><UserPlus size={16} /> Seguir en AniList</>
                     )}
                   </button>
-                </div>
-              )}
-            </ProfileHeader>             </div>
-
-            {friendData.about && (
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre {friendData.name}</h3>
-                <div 
-                  style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
-                  dangerouslySetInnerHTML={{ __html: friendData.about }}
-                />
-              </div>
-            )}
-
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem', marginBottom: '2.5rem' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Estadísticas en AniList</h3>
-              
-              <div className="stats-grid">
-                <div className="stat-item">
-                  <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">{friendAnimeList.filter(e => e.status === 'COMPLETED').length}</div>
-                  <div className="stat-label">Animes Vistos</div>
-                </div>
-
-                <div className="stat-item">
-                  <Tv size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">
-                    {friendAnimeList.reduce((sum, e) => sum + (e.progress || 0), 0)}
-                  </div>
-                  <div className="stat-label">Episodios Vistos</div>
-                </div>
-
-                <div className="stat-item">
-                  <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
-                  <div className="stat-value">
-                    {Math.round(
-                      friendAnimeList.reduce((sum, e) => sum + (e.progress || 0) * (e.media?.duration || 24), 0) / 60
-                    )}
-                  </div>
-                  <div className="stat-label">Horas Vistas</div>
-                </div>
+                )}
               </div>
             </div>
-
-            {/* Lista de anime del amigo */}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', margin: 0 }}>Lista de Anime de {friendData.name}</h3>
-                <button 
-                  className="view-mode-toggle"
-                  onClick={toggleViewMode}
-                  title={viewMode === 'grid' ? 'Cambiar a Vista Lista' : 'Cambiar a Vista Mosaico'}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--color-text-primary)', width: '36px', height: '36px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'var(--transition-smooth)' }}
-                >
-                  {viewMode === 'grid' ? <List size={18} /> : <Grid size={18} />}
-                </button>
-              </div>
-
-              <div className="mylist-tabs">
-                <button 
-                  className={`mylist-tab-item ${friendMylistSubTab === 'CURRENT' ? 'active' : ''}`}
-                  onClick={() => setFriendMylistSubTab('CURRENT')}
-                >
-                  <span>Viendo</span>
-                  <span className="mylist-tab-count">
-                    {friendAnimeList.filter(e => e.status === 'CURRENT').length}
-                  </span>
-                </button>
-                <button 
-                  className={`mylist-tab-item ${friendMylistSubTab === 'COMPLETED' ? 'active' : ''}`}
-                  onClick={() => setFriendMylistSubTab('COMPLETED')}
-                >
-                  <span>Vistos</span>
-                  <span className="mylist-tab-count">
-                    {friendAnimeList.filter(e => e.status === 'COMPLETED').length}
-                  </span>
-                </button>
-                <button 
-                  className={`mylist-tab-item ${friendMylistSubTab === 'PLANNING' ? 'active' : ''}`}
-                  onClick={() => setFriendMylistSubTab('PLANNING')}
-                >
-                  <span>Planeado</span>
-                  <span className="mylist-tab-count">
-                    {friendAnimeList.filter(e => e.status === 'PLANNING').length}
-                  </span>
-                </button>
-              </div>
-
-              {filteredList.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--color-text-secondary)' }}>
-                  <Tv size={36} style={{ opacity: 0.3, marginBottom: '0.75rem' }} />
-                  <p>Este usuario no tiene ningún anime en esta sección de su lista.</p>
-                </div>
-              ) : (
-                <div className={`anime-grid ${viewMode === 'list' ? 'view-list' : ''}`}>
-                  {groupedList.map((group) => {
-                    const anime = group.mostRecent.media;
-                    if (!anime) return null;
-                    const isExpanded = expandedGroups[group.id];
-
-                    return (
-                      <div 
-                        key={group.id} 
-                        className={`anime-card ${group.items.length > 1 ? 'franchise-group-card' : ''} ${isExpanded ? 'expanded' : ''}`}
-                        onClick={() => {
-                          if (group.items.length > 1) {
-                            setExpandedGroups(prev => ({
-                              ...prev,
-                              [group.id]: !prev[group.id]
-                            }));
-                          } else {
-                            fetchAnimeDetails(anime.id);
-                          }
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        {anime.status && (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') && (
-                          <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En Emisión' : 'Próximamente'} />
-                        )}
-
-                        <div className="cover-wrapper" style={{ position: 'relative' }}>
-                          <img 
-                            src={anime.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                            alt={anime.title?.userPreferred} 
-                            className="anime-cover"
-                          />
-                          {group.items.length > 1 && (
-                            <div className="franchise-count-badge">
-                              {group.items.length} {group.items.length === 1 ? 'Temporada' : 'Temporadas'}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="anime-info">
-                          <span className="anime-title" title={anime.title?.userPreferred}>
-                            {anime.title?.userPreferred}
-                          </span>
-                          <div className="anime-meta">
-                            <span style={{ color: 'var(--color-accent-green)', fontWeight: '600' }}>
-                              {group.mostRecent.score ? `${group.mostRecent.score}/10` : 'Sin nota'}
-                            </span>
-                            <span>
-                              {anime.episodes ? `${group.mostRecent.progress}/${anime.episodes} eps` : `${group.mostRecent.progress} eps`}
-                            </span>
-                          </div>
-                        </div>
-
-                        {group.items.length > 1 && (
-                          <div className="franchise-expand-header">
-                            <span>{isExpanded ? 'Ocultar temporadas' : 'Ver temporadas'}</span>
-                            <span className={`arrow-icon ${isExpanded ? 'rotated' : ''}`}>▼</span>
-                          </div>
-                        )}
-
-                        {isExpanded && (
-                          <div className="franchise-seasons-list" onClick={(e) => e.stopPropagation()}>
-                            {group.items.map((item) => {
-                              const seasonMedia = item.media;
-                              if (!seasonMedia) return null;
-                              return (
-                                <div 
-                                  key={item.id} 
-                                  className="franchise-season-item"
-                                  onClick={() => fetchAnimeDetails(seasonMedia.id)}
-                                  title="Ver detalles"
-                                >
-                                  <img 
-                                    src={seasonMedia.coverImage?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                                    alt={seasonMedia.title?.userPreferred} 
-                                    className="season-mini-cover"
-                                  />
-                                  <div className="season-item-info">
-                                    <span className="season-item-title">{seasonMedia.title?.userPreferred}</span>
-                                    <div className="season-item-meta">
-                                      <span className="season-item-format">{seasonMedia.format || 'TV'}</span>
-                                      <span className="season-item-progress">
-                                        {seasonMedia.episodes ? `${item.progress}/${seasonMedia.episodes} eps` : `${item.progress} eps`}
-                                      </span>
-                                      <span className="season-item-score">{item.score ? `${item.score}/10` : 'Sin nota'}</span>
-                                    </div>
-                                  </div>
-                                  <span className="view-details-arrow">→</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+          </ProfileDisplay>
         );
       }
-      case 'mylist': {
+case 'mylist': {
         const userAnimeList = completedAnime;
         const filteredList = userAnimeList.filter(entry => entry.status === mylistSubTab);
         const groupedList = groupCompletedAnimeByFranchise(filteredList);
@@ -2104,366 +2082,23 @@ export default function App() {
           </div>
         );
       }
-      case 'profile':
+            case 'profile':
         return (
-          <div className="card profile-card" style={{ position: 'relative' }}>
-            {/* Mobile Settings FAB */}
-            <button className="mobile-settings-fab" onClick={() => setShowSettingsModal(true)}>
-              <Settings size={20} />
-            </button>
-            {/* LEFT COLUMN: identity + aesthetics */}
-            <div className="profile-col-left">
-              <ProfileHeader 
-                user={userData} 
-                isPublic={false} 
-                selectedFrame={selectedFrame} 
-                onTestAnimation={(stats) => {
-                  setLevelUpData({ level: stats.computedLevel, title: stats.userTitle, totalEps: totalEpsForLevel });
-                  setShowLevelUpModal(true);
-                  confetti({
-                    particleCount: 150,
-                    spread: 70,
-                    origin: { y: 0.6 },
-                    zIndex: 9999
-                  });
-                }}
-              />
-                  
-                  {/* TROPHY GALLERY */}
-                  <div style={{ marginTop: '2rem', width: '100%' }}>
-                    <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: 'var(--color-text-primary)' }}>Galería de Trofeos</h3>
-                    <div className="trophy-grid">
-                      {TROPHY_CONFIG.map(trophy => {
-                        const isUnlocked = computedLevel >= trophy.level;
-                        const lastSavedLevel = parseInt(localStorage.getItem('animeTrackerSavedLevel') || '1', 10);
-                        const isRecentlyUnlocked = isUnlocked && lastSavedLevel < trophy.level;
-                        
-                        return (
-                          <motion.div 
-                            key={trophy.level} 
-                            className={`trophy-card ${isUnlocked ? 'trophy-unlocked' : 'trophy-locked'}`}
-                            onClick={() => setSelectedTrophy({...trophy, isUnlocked})}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            animate={isRecentlyUnlocked ? { y: [0, -10, 0] } : {}}
-                            transition={isRecentlyUnlocked ? { repeat: Infinity, duration: 1.5 } : {}}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            <div className="trophy-icon-wrapper">
-                              {isUnlocked ? <Award size={24} /> : <Lock size={20} />}
-                            </div>
-                            <h4 className="trophy-title">Nivel {trophy.level}</h4>
-                            <p className="trophy-req">{isUnlocked ? 'Desbloqueado' : 'Bloqueado'}</p>
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-              </div>
-
-              {userData.about && (
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem', width: '100%' }}>
-                  <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem', color: 'var(--color-text-primary)' }}>Sobre mí</h3>
-                  <div 
-                    style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }} 
-                    dangerouslySetInnerHTML={{ __html: userData.about }}
-                  />
-                </div>
-              )}
-
-              {/* ─── VIENDO AHORA (Movido a columna izquierda) ─── */}
-              {(() => {
-                const watching = completedAnime
-                  .filter(e => e.status === 'CURRENT')
-                  .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
-                if (!watching) return null;
-                const pct = watching.media?.episodes
-                  ? Math.round((watching.progress / watching.media.episodes) * 100)
-                  : null;
-                return (
-                  <div className="profile-now-card">
-                    <div className="profile-now-badge">
-                      <Play size={12} style={{ marginRight: '4px' }} /> VIENDO AHORA
-                    </div>
-                    <div className="profile-now-body">
-                      <img
-                        src={watching.media?.coverImage?.large}
-                        alt={watching.media?.title?.userPreferred}
-                        className="profile-now-cover"
-                        onClick={() => { handleTabClick('mylist'); setMylistSubTab('CURRENT'); }}
-                        style={{ cursor: 'pointer' }}
-                      />
-                      <div className="profile-now-info">
-                        <p className="profile-now-title">{watching.media?.title?.userPreferred}</p>
-                        <p className="profile-now-progress">
-                          Episodio {watching.progress}{watching.media?.episodes ? ` / ${watching.media.episodes}` : ''}
-                        </p>
-                        {pct !== null && (
-                          <div className="profile-now-bar-track">
-                            <div className="profile-now-bar-fill" style={{ width: `${Math.min(pct, 100)}%` }} />
-                          </div>
-                        )}
-                        <p className="profile-now-pct">{pct !== null ? `${pct}% completado` : 'En progreso'}</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* RIGHT COLUMN: stats */}
-            <div className="profile-col-right">
-              <div className="profile-stats-section">
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)' }}>Tus Estadísticas en AniList</h3>
-                <div className="stats-grid">
-                  <div className="stat-item clickable" onClick={() => { handleTabClick('mylist'); setMylistSubTab('COMPLETED'); }} style={{ cursor: 'pointer' }}>
-                    <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                    <div className="stat-value">{completedAnime.filter(e => e.status === 'COMPLETED').length}</div>
-                    <div className="stat-label">Animes Vistos</div>
-                  </div>
-
-                  <div className="stat-item">
-                    <Tv size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                    <div className="stat-value">
-                      {completedAnime.reduce((sum, e) => sum + (e.progress || 0), 0)}
-                    </div>
-                    <div className="stat-label">Episodios Vistos</div>
-                  </div>
-
-                  <div className="stat-item">
-                    <Clock size={24} style={{ color: 'var(--color-accent-purple)', marginBottom: '0.5rem' }} />
-                    <div className="stat-value">
-                      {Math.round(
-                        completedAnime.reduce((sum, e) => sum + (e.progress || 0) * (e.media?.duration || 24), 0) / 60
-                      )}
-                    </div>
-                    <div className="stat-label">Horas Vistas</div>
-                  </div>
-
-                  <div className="stat-item">
-                    <BookOpen size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
-                    <div className="stat-value">{userData.statistics?.manga?.count || 0}</div>
-                    <div className="stat-label">Manga en Lista</div>
-                  </div>
-
-                  <div className="stat-item">
-                    <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
-                    <div className="stat-value">{userData.statistics?.manga?.chaptersRead || 0}</div>
-                    <div className="stat-label">Capítulos Leídos</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Token inspector removed */}
-
-            {/* ─── LOGROS ───────────────────────────────────────── */}
-            {(() => {
-              const totalEps   = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
-              const totalHrs   = Math.round(completedAnime.reduce((s, e) => s + (e.progress || 0) * (e.media?.duration || 24), 0) / 60);
-              const doneCount  = completedAnime.filter(e => e.status === 'COMPLETED').length;
-              const scored     = completedAnime.filter(e => e.score > 0);
-              const avgSc      = scored.length ? scored.reduce((s, e) => s + e.score, 0) / scored.length : 0;
-              const allBadges  = [
-                { id: 'eps100',    icon: <Zap   size={22} />, label: 'Maratonista',     desc: '100+ episodios vistos',    color: '#f59e0b', earned: totalEps >= 100 },
-                { id: 'eps1000',   icon: <Zap   size={22} />, label: 'Ultra Maratón',   desc: '1000+ episodios',          color: '#ef4444', earned: totalEps >= 1000 },
-                { id: 'comp50',    icon: <Award size={22} />, label: 'Coleccionista',   desc: '50+ animes completados',   color: '#3db4f2', earned: doneCount >= 50 },
-                { id: 'comp100',   icon: <Award size={22} />, label: 'Veterano',        desc: '100+ animes completados',  color: '#c084fc', earned: doneCount >= 100 },
-                { id: 'hrs100',    icon: <Clock size={22} />, label: 'Sin Vida Social', desc: '100+ horas de anime',      color: '#10b981', earned: totalHrs >= 100 },
-                { id: 'score8',    icon: <Star  size={22} />, label: 'Crítico Exigente', desc: 'Puntuación media ≥ 8',  color: '#f59e0b', earned: scored.length > 0 && avgSc >= 8 },
-                { id: 'firstscore',icon: <Star  size={22} />, label: 'Primer Voto',    desc: 'Puntuaste un anime',       color: '#a3e635', earned: scored.length > 0 },
-                { id: 'watching',  icon: <Play  size={22} />, label: 'En Marcha',      desc: 'Tienes animes en progreso',color: '#3db4f2', earned: completedAnime.some(e => e.status === 'CURRENT') },
-              ];
-              const earned = allBadges.filter(b => b.earned);
-              if (earned.length === 0) return null;
-              return (
-                <div className="profile-achievements-card" style={{ marginBottom: '1.25rem' }}>
-                  <h3 className="profile-section-title">
-                    <Award size={16} style={{ color: 'var(--accent)' }} /> Logros
-                    <span className="achievements-count">{earned.length}<span style={{ opacity: 0.4 }}>/{allBadges.length}</span></span>
-                  </h3>
-                  <div className="achievements-grid modern-4x2">
-                    {allBadges.map(badge => (
-                      <div
-                        key={badge.id}
-                        className={`achievement-badge ${badge.earned ? 'earned' : 'locked'}`}
-                        title={badge.earned ? `✔ ${badge.desc}` : `🔒 Bloqueado: ${badge.desc}`}
-                      >
-                        <div className={`achievement-icon ${badge.earned ? 'icon-3d' : ''}`} style={badge.earned ? { color: badge.color } : {}}>
-                          {badge.icon}
-                        </div>
-                        <span className="achievement-label">{badge.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* ─── RADAR DE GÉNEROS ───────────────────────────────── */}
-            {(() => {
-              if (!completedAnime || completedAnime.length === 0) return null;
-              const genreCounts = {};
-              completedAnime.forEach(entry => {
-                if (entry?.media?.genres) {
-                  entry.media.genres.forEach(g => {
-                    genreCounts[g] = (genreCounts[g] || 0) + 1;
-                  });
-                }
-              });
-              const topGenres = Object.entries(genreCounts)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 3);
-              if (topGenres.length === 0) return null;
-              
-              const totalTop = topGenres.reduce((acc, [, count]) => acc + count, 0);
-              let currentDeg = 0;
-              const colors = ['var(--color-anilist-blue)', 'var(--color-accent-purple)', 'var(--color-accent-green)'];
-              const conicStops = topGenres.map(([, count], index) => {
-                const percentage = (count / totalTop) * 100;
-                const start = currentDeg;
-                const end = currentDeg + percentage;
-                currentDeg += percentage;
-                return `${colors[index % colors.length]} ${start}% ${end}%`;
-              }).join(', ');
-
-              return (
-                <div className="profile-achievements-card">
-                  <h3 className="profile-section-title">
-                    <PieChart size={16} style={{ color: 'var(--accent)' }} /> Géneros Favoritos
-                  </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginTop: '1rem', padding: '0.5rem 0' }}>
-                    <div style={{
-                      width: '100px', height: '100px', borderRadius: '50%',
-                      background: `conic-gradient(${conicStops})`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
-                    }}>
-                      <div style={{ width: '65px', height: '65px', borderRadius: '50%', background: 'var(--color-bg-light)' }}></div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-                      {topGenres.map(([genre, count], index) => (
-                        <div key={genre} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem' }}>
-                          <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: colors[index % colors.length], display: 'inline-block' }}></span>
-                          <span style={{ fontWeight: '500', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{genre}</span>
-                          <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>{Math.round((count/totalTop)*100)}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* ─── ACTIVIDAD RECIENTE ───────────────────────────── */}
-            {(() => {
-              const recent = [...completedAnime]
-                .filter(e => e.updatedAt)
-                .sort((a, b) => b.updatedAt - a.updatedAt)
-                .slice(0, 4);
-              if (recent.length === 0) return null;
-              const statusLabel = { COMPLETED: 'Completado', CURRENT: 'Viendo', PLANNING: 'Planeado', DROPPED: 'Abandonado', PAUSED: 'Pausado' };
-              const statusColor = { COMPLETED: 'var(--color-accent-green)', CURRENT: 'var(--accent)', PLANNING: 'var(--color-text-secondary)', DROPPED: '#ef4444', PAUSED: '#f59e0b' };
-              return (
-                <div className="profile-activity-card">
-                  <h3 className="profile-section-title">
-                    <Clock size={16} style={{ color: 'var(--accent)' }} /> Actividad Reciente
-                  </h3>
-                  <div className="profile-activity-list">
-                    {recent.map(entry => (
-                      <div key={entry.id} className="profile-activity-item">
-                        <img src={entry.media?.coverImage?.large} alt={entry.media?.title?.userPreferred} className="profile-activity-cover" />
-                        <div className="profile-activity-info">
-                          <p className="profile-activity-title">{entry.media?.title?.userPreferred}</p>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <span className="profile-activity-status" style={{ color: statusColor[entry.status] }}>
-                              {statusLabel[entry.status] || entry.status}
-                            </span>
-                            {entry.progress > 0 && (
-                              <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem' }}>
-                                · Ep. {entry.progress}
-                              </span>
-                            )}
-                          </div>
-                          {entry.updatedAt && (
-                            <p className="profile-activity-date">
-                              {new Date(entry.updatedAt * 1000).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                            </p>
-                          )}
-                        </div>
-                        {entry.score > 0 && (
-                          <div className="profile-activity-score">
-                            <Star size={10} /> {entry.score}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })()}
-
-            {/* Mobile Settings Modal Overlay */}
-            {showSettingsModal && (
-              <div className="settings-modal-overlay" onClick={() => setShowSettingsModal(false)}>
-                <div className="settings-modal-content card" onClick={(e) => e.stopPropagation()}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>
-                    <h2 style={{ fontSize: '1.2rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Palette size={20} style={{ color: 'var(--accent)' }} /> Ajustes
-                    </h2>
-                    <button onClick={() => setShowSettingsModal(false)} className="settings-modal-close" aria-label="Cerrar ajustes">
-                      <X size={20} />
-                    </button>
-                  </div>
-                  
-                  <div className="aesthetics-panel" style={{ padding: 0 }}>
-                    <div className="aesthetics-section">
-                      <span className="aesthetics-label">Color de Acento</span>
-                      <div className="color-swatches">
-                        {ACCENT_COLORS.map(({ key, color, label }) => (
-                          <button
-                            key={key}
-                            className={`swatch ${accentColor === key ? 'active' : ''}`}
-                            style={{ background: color }}
-                            onClick={() => setAccentColor(key)}
-                            title={label}
-                            aria-label={`Color de acento: ${label}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="aesthetics-section">
-                      <span className="aesthetics-label">Estilo de Interfaz</span>
-                      <div className="style-mode-toggle">
-                        <button className={`style-mode-btn ${styleMode === 'classic' ? 'active' : ''}`} onClick={() => setStyleMode('classic')}>
-                          Clásico
-                        </button>
-                        <button className={`style-mode-btn ${styleMode === 'modern' ? 'active' : ''}`} onClick={() => setStyleMode('modern')}>
-                          Moderno
-                        </button>
-                        <button className={`style-mode-btn ${styleMode === 'modern2' ? 'active' : ''}`} onClick={() => setStyleMode('modern2')}>
-                          Moderno 2
-                        </button>
-                      </div>
-                    </div>
-                    <div className="aesthetics-section">
-                      <span className="aesthetics-label">Marco del Perfil</span>
-                      <div className="style-mode-toggle">
-                        <button className={`style-mode-btn ${selectedFrame === 'none' ? 'active' : ''}`} onClick={() => handleFrameSelect('none')}>Ninguno</button>
-                        <button className={`style-mode-btn ${selectedFrame === 'bronze' ? 'active' : ''}`} disabled={computedLevel < 10} onClick={() => handleFrameSelect('bronze')}>Bronce</button>
-                        <button className={`style-mode-btn ${selectedFrame === 'silver' ? 'active' : ''}`} disabled={computedLevel < 30} onClick={() => handleFrameSelect('silver')}>Plata</button>
-                        <button className={`style-mode-btn ${selectedFrame === 'gold' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('gold')}>Oro</button>
-                        <button className={`style-mode-btn ${selectedFrame === 'ruby' ? 'active' : ''}`} disabled={computedLevel < 60} onClick={() => handleFrameSelect('ruby')}>Rubí</button>
-                        <button className={`style-mode-btn ${selectedFrame === 'diamond' ? 'active' : ''}`} disabled={computedLevel < 80} onClick={() => handleFrameSelect('diamond')}>Diamante</button>
-                        <button className={`style-mode-btn ${selectedFrame === 'chroma' ? 'active' : ''}`} disabled={computedLevel < 100} onClick={() => handleFrameSelect('chroma')}>Croma</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <ProfileDisplay
+            user={userData}
+            isOwnProfile={true}
+            animeList={completedAnime}
+            selectedFrame={selectedFrame}
+            onTestAnimation={(stats) => {
+              setLevelUpData({ level: stats.computedLevel, title: stats.userTitle, totalEps: stats.totalEpsForLevel });
+              setShowLevelUpModal(true);
+              confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, zIndex: 9999 });
+            }}
+            onTabClick={handleTabClick}
+            onSubTabClick={setMylistSubTab}
+          />
         );
-      case 'settings':
+case 'settings':
         return (
           <div className="settings-card card" style={{ maxWidth: '700px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>

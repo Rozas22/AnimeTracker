@@ -1,10 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart, Lock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
 import confetti from 'canvas-confetti';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const ITEMS_PER_PAGE = 24;
+
+const TROPHY_CONFIG = [
+  { level: 10, title: 'Novato de Bronce', frameName: 'bronze', frameLabel: 'Marco de Bronce' },
+  { level: 20, title: 'Aprendiz', frameName: null, frameLabel: 'Sin Marco' },
+  { level: 30, title: 'Maestro de Plata', frameName: 'silver', frameLabel: 'Marco de Plata' },
+  { level: 40, title: 'Veterano', frameName: null, frameLabel: 'Sin Marco' },
+  { level: 50, title: 'Leyenda del Anime', frameName: 'gold', frameLabel: 'Marco de Oro' },
+  { level: 60, title: 'Mito', frameName: null, frameLabel: 'Sin Marco' },
+  { level: 70, title: 'Semi-Dios', frameName: null, frameLabel: 'Sin Marco' },
+  { level: 80, title: 'Dios', frameName: null, frameLabel: 'Sin Marco' },
+  { level: 90, title: 'Titán', frameName: null, frameLabel: 'Sin Marco' },
+  { level: 100, title: 'Completista', frameName: null, frameLabel: 'Sin Marco' }
+];
 
 export default function App() {
   const getInitialRouteInfo = () => {
@@ -57,6 +72,7 @@ export default function App() {
   const [selectedFrame, setSelectedFrame] = useState(localStorage.getItem('animeTrackerSelectedFrame') || 'none');
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
   const [levelUpData, setLevelUpData] = useState(null);
+  const [selectedTrophy, setSelectedTrophy] = useState(null);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const [episodeNotifications, setEpisodeNotifications] = useState([]);
   const [dismissedEpNotifs, setDismissedEpNotifs] = useState(() => {
@@ -2063,16 +2079,28 @@ export default function App() {
                   <div style={{ marginTop: '2rem', width: '100%' }}>
                     <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: 'var(--color-text-primary)' }}>Galería de Trofeos</h3>
                     <div className="trophy-grid">
-                      {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(level => {
-                        const isUnlocked = computedLevel >= level;
+                      {TROPHY_CONFIG.map(trophy => {
+                        const isUnlocked = computedLevel >= trophy.level;
+                        const lastSavedLevel = parseInt(localStorage.getItem('animeTrackerSavedLevel') || '1', 10);
+                        const isRecentlyUnlocked = isUnlocked && lastSavedLevel < trophy.level;
+                        
                         return (
-                          <div key={level} className={`trophy-card ${isUnlocked ? 'trophy-unlocked' : 'trophy-locked'}`}>
+                          <motion.div 
+                            key={trophy.level} 
+                            className={`trophy-card ${isUnlocked ? 'trophy-unlocked' : 'trophy-locked'}`}
+                            onClick={() => setSelectedTrophy({...trophy, isUnlocked})}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            animate={isRecentlyUnlocked ? { y: [0, -10, 0] } : {}}
+                            transition={isRecentlyUnlocked ? { repeat: Infinity, duration: 1.5 } : {}}
+                            style={{ cursor: 'pointer' }}
+                          >
                             <div className="trophy-icon-wrapper">
                               {isUnlocked ? <Award size={24} /> : <Lock size={20} />}
                             </div>
-                            <h4 className="trophy-title">Nivel {level}</h4>
+                            <h4 className="trophy-title">Nivel {trophy.level}</h4>
                             <p className="trophy-req">{isUnlocked ? 'Desbloqueado' : 'Bloqueado'}</p>
-                          </div>
+                          </motion.div>
                         );
                       })}
                     </div>
@@ -2371,7 +2399,7 @@ export default function App() {
                       <div className="style-mode-toggle">
                         <button className={`style-mode-btn ${selectedFrame === 'none' ? 'active' : ''}`} onClick={() => handleFrameSelect('none')}>Ninguno</button>
                         <button className={`style-mode-btn ${selectedFrame === 'bronze' ? 'active' : ''}`} disabled={computedLevel < 10} onClick={() => handleFrameSelect('bronze')}>Bronce</button>
-                        <button className={`style-mode-btn ${selectedFrame === 'silver' ? 'active' : ''}`} disabled={computedLevel < 25} onClick={() => handleFrameSelect('silver')}>Plata</button>
+                        <button className={`style-mode-btn ${selectedFrame === 'silver' ? 'active' : ''}`} disabled={computedLevel < 30} onClick={() => handleFrameSelect('silver')}>Plata</button>
                         <button className={`style-mode-btn ${selectedFrame === 'gold' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('gold')}>Oro</button>
                       </div>
                     </div>
@@ -2442,7 +2470,7 @@ export default function App() {
                 <div className="style-mode-toggle">
                   <button className={`style-mode-btn ${selectedFrame === 'none' ? 'active' : ''}`} onClick={() => handleFrameSelect('none')}>Ninguno</button>
                   <button className={`style-mode-btn ${selectedFrame === 'bronze' ? 'active' : ''}`} disabled={computedLevel < 10} onClick={() => handleFrameSelect('bronze')}>Bronce</button>
-                  <button className={`style-mode-btn ${selectedFrame === 'silver' ? 'active' : ''}`} disabled={computedLevel < 25} onClick={() => handleFrameSelect('silver')}>Plata</button>
+                  <button className={`style-mode-btn ${selectedFrame === 'silver' ? 'active' : ''}`} disabled={computedLevel < 30} onClick={() => handleFrameSelect('silver')}>Plata</button>
                   <button className={`style-mode-btn ${selectedFrame === 'gold' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('gold')}>Oro</button>
                 </div>
               </div>
@@ -3515,6 +3543,62 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* Interactive Trophy Modal */}
+      <AnimatePresence>
+        {selectedTrophy && (
+          <motion.div 
+            className="trophy-modal-overlay" 
+            onClick={() => setSelectedTrophy(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div 
+              className="trophy-modal-content card"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.8, y: 50, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.8, y: 50, opacity: 0 }}
+            >
+              <button className="settings-modal-close" onClick={() => setSelectedTrophy(null)} style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+                <X size={20} />
+              </button>
+
+              <div className={`trophy-modal-icon ${!selectedTrophy.isUnlocked ? 'locked' : ''} ${selectedTrophy.frameName ? `frame-${selectedTrophy.frameName}` : ''}`}>
+                {!selectedTrophy.isUnlocked ? <Lock size={48} /> : <Award size={48} />}
+              </div>
+
+              <h2 className="trophy-modal-title">{selectedTrophy.title}</h2>
+              
+              <div className="trophy-modal-status">
+                {selectedTrophy.isUnlocked ? (
+                  <span style={{ color: 'var(--accent)' }}>¡Desbloqueado!</span>
+                ) : (
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Bloqueado: Alcanza el Nivel {selectedTrophy.level}</span>
+                )}
+              </div>
+
+              {selectedTrophy.frameName && (
+                <div className="trophy-modal-reward">
+                  <p>Recompensa: <strong>{selectedTrophy.frameLabel}</strong></p>
+                  {selectedTrophy.isUnlocked && (
+                    <button 
+                      className="btn-primary" 
+                      style={{ marginTop: '1rem', width: '100%' }}
+                      onClick={() => {
+                        handleFrameSelect(selectedTrophy.frameName);
+                        setSelectedTrophy(null);
+                      }}
+                    >
+                      Equipar Marco
+                    </button>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -59,6 +59,79 @@ const getHighestFrame = (level) => {
   return 'none';
 };
 
+const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, children }) => {
+  if (!user) return null;
+  
+  // LOG requested by user for debugging API data
+  console.log('ProfileHeader received user data:', user.name, 'Episodes Watched:', user.statistics?.anime?.episodesWatched);
+
+  const totalEps = user.statistics?.anime?.episodesWatched || 0;
+  const stats = calculateLevelStats(totalEps);
+  
+  const frameToRender = isPublic ? getHighestFrame(stats.computedLevel) : selectedFrame;
+
+  return (
+    <>
+      <div className="profile-header">
+        <div className="profile-avatar-container">
+          <img 
+            src={user.avatar?.large || user.avatar || 'https://anilist.co/img/icons/icon.svg'} 
+            alt={user.name} 
+            className={`avatar ${frameToRender !== 'none' ? `frame-${frameToRender}` : ''}`} 
+          />
+        </div>
+        <div className="profile-meta">
+          <h2 className={stats.computedLevel >= 61 ? 'epic-name' : ''}>
+            {isPublic ? user.name : `Bienvenido, ${user.name}`}
+          </h2>
+          <div 
+            className="level-badge" 
+            title={`Faltan ${stats.episodiosParaSiguienteNivel - stats.episodiosRestantes} capítulos para el Nivel ${stats.computedLevel + 1}`}
+          >
+            <Star size={14} style={{ color: 'var(--accent)' }} />
+            <span>Nivel <strong>{stats.computedLevel}</strong> - {stats.userTitle}</span>
+          </div>
+          <p style={{ marginTop: '0.5rem' }}>ID de AniList: #{user.id}</p>
+          <a 
+            href={user.siteUrl} 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
+          >
+            Ver perfil original en AniList.co →
+          </a>
+          {children}
+        </div>
+      </div>
+
+      {/* LEVEL SYSTEM */}
+      <div className="profile-level-container">
+        <div className="level-header">
+          <span className="level-number">Nivel {stats.computedLevel}</span>
+          <span className="level-title" style={{ color: 'var(--accent)' }}>{stats.userTitle}</span>
+        </div>
+        <div className="level-bar-track">
+          <div className="level-bar-fill" style={{ width: `${stats.progresoPorcentaje}%`, background: 'var(--accent)', boxShadow: '0 0 10px var(--accent-glow)' }} />
+        </div>
+        <div className="level-progress-text">
+          Progreso: {stats.episodiosRestantes} / {stats.episodiosParaSiguienteNivel} para el siguiente nivel
+          <br/>
+          <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Dificultad actual: {stats.userTitle}</span>
+        </div>
+        {!isPublic && onTestAnimation && (
+          <button 
+            className="btn-secondary" 
+            style={{ marginTop: '1rem', width: '100%', border: '1px dashed var(--accent)', color: 'var(--accent)' }} 
+            onClick={() => onTestAnimation(stats)}
+          >
+            Probar Animación de Nivel
+          </button>
+        )}
+      </div>
+    </>
+  );
+};
+
 export default function App() {
   const getInitialRouteInfo = () => {
     const path = window.location.pathname;
@@ -280,6 +353,12 @@ export default function App() {
           }
           siteUrl
           about
+          statistics {
+            anime {
+              count
+              episodesWatched
+            }
+          }
         }
       }
     `;
@@ -436,7 +515,7 @@ export default function App() {
   const [expandedGroups, setExpandedGroups] = useState({});
 
   // Compute global level based on tiered progression
-  const totalEpsForLevel = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
+  const totalEpsForLevel = userData?.statistics?.anime?.episodesWatched || completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
   const { computedLevel, userTitle, episodiosRestantes, episodiosParaSiguienteNivel, progresoPorcentaje } = calculateLevelStats(totalEpsForLevel);
 
 
@@ -1599,54 +1678,34 @@ export default function App() {
               <button className="btn-secondary" onClick={() => handleTabClick('group')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
                 Volver al Grupo
               </button>
-            </div>
-
-            <div className="profile-header">
-              <img 
-                src={friendData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                alt={friendData.name} 
-                className="avatar" 
-              />
-              <div className="profile-meta">
-                <h2>{friendData.name}</h2>
-                <p>ID de AniList: #{friendData.id}</p>
-                <a 
-                  href={friendData.siteUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
-                >
-                  Ver perfil original en AniList.co →
-                </a>
-                
-                {userData && userData.id !== friendData.id && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <button 
-                      className={`btn-primary ${anilistFriends.some(f => f.id === friendData.id) ? 'following' : ''}`}
-                      onClick={() => handleFollowUser(friendData.id)}
-                      disabled={togglingFollow}
-                      style={{ 
-                        padding: '0.5rem 1.25rem', 
-                        fontSize: '0.9rem',
-                        background: anilistFriends.some(f => f.id === friendData.id) ? 'rgba(255,255,255,0.1)' : 'var(--color-anilist-blue)',
-                        border: anilistFriends.some(f => f.id === friendData.id) ? '1px solid rgba(255,255,255,0.2)' : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
-                      }}
-                    >
-                      {togglingFollow ? (
-                        <div className="loader" style={{ width: '14px', height: '14px', borderWidth: '2px' }}></div>
-                      ) : anilistFriends.some(f => f.id === friendData.id) ? (
-                        <><Check size={16} /> Siguiendo</>
-                      ) : (
-                        <><Users size={16} /> Agregar</>
-                      )}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+              <ProfileHeader user={friendData} isPublic={true}>
+              {userData && userData.id !== friendData.id && (
+                <div style={{ marginTop: '1rem' }}>
+                  <button 
+                    className={`btn-primary ${anilistFriends.some(f => f.id === friendData.id) ? 'following' : ''}`}
+                    onClick={() => handleFollowUser(friendData.id)}
+                    disabled={togglingFollow}
+                    style={{ 
+                      padding: '0.5rem 1.25rem', 
+                      fontSize: '0.9rem',
+                      background: anilistFriends.some(f => f.id === friendData.id) ? 'rgba(255,255,255,0.1)' : 'var(--color-anilist-blue)',
+                      border: anilistFriends.some(f => f.id === friendData.id) ? '1px solid rgba(255,255,255,0.2)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    {togglingFollow ? (
+                      <div className="loader" style={{ width: '14px', height: '14px', borderWidth: '2px' }}></div>
+                    ) : anilistFriends.some(f => f.id === friendData.id) ? (
+                      <><Check size={16} /> Siguiendo</>
+                    ) : (
+                      <><UserPlus size={16} /> Seguir en AniList</>
+                    )}
+                  </button>
+                </div>
+              )}
+            </ProfileHeader>             </div>
 
             {friendData.about && (
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
@@ -2049,66 +2108,21 @@ export default function App() {
             </button>
             {/* LEFT COLUMN: identity + aesthetics */}
             <div className="profile-col-left">
-              <div className="profile-header">
-                <img 
-                  src={userData.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} 
-                  alt={userData.name} 
-                  className={`avatar ${selectedFrame !== 'none' ? `frame-${selectedFrame}` : ''}`} 
-                />
-                <div className="profile-meta">
-                  <h2 className={computedLevel >= 50 ? 'epic-name' : ''}>
-                    Bienvenido, {userData.name}
-                  </h2>
-                  <div 
-                    className="level-badge" 
-                    title={`Faltan ${episodiosParaSiguienteNivel - episodiosRestantes} capítulos para el Nivel ${computedLevel + 1}`}
-                  >
-                    <Star size={14} style={{ color: 'var(--accent)' }} />
-                    <span>Nivel <strong>{computedLevel}</strong> - {userTitle}</span>
-                  </div>
-                  <p style={{ marginTop: '0.5rem' }}>ID de AniList: #{userData.id}</p>
-                  <a 
-                    href={userData.siteUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
-                  >
-                    Ver perfil en AniList.co →
-                  </a>
-                </div>
-              </div>
-
-              {/* LEVEL SYSTEM */}
-              <div className="profile-level-container">
-                <div className="level-header">
-                  <span className="level-number">Nivel {computedLevel}</span>
-                  <span className="level-title" style={{ color: 'var(--accent)' }}>{userTitle}</span>
-                </div>
-                    <div className="level-bar-track">
-                      <div className="level-bar-fill" style={{ width: `${progresoPorcentaje}%`, background: 'var(--accent)', boxShadow: '0 0 10px var(--accent-glow)' }} />
-                    </div>
-                <div className="level-progress-text">
-                  Progreso: {episodiosRestantes} / {episodiosParaSiguienteNivel} para el siguiente nivel
-                  <br/>
-                  <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Dificultad actual: {userTitle}</span>
-                </div>
-                <button 
-                  className="btn-secondary" 
-                  style={{ marginTop: '1rem', width: '100%', border: '1px dashed var(--accent)', color: 'var(--accent)' }} 
-                  onClick={() => {
-                    setLevelUpData({ level: computedLevel, title: userTitle, totalEps: totalEpsForLevel });
-                    setShowLevelUpModal(true);
-                    confetti({
-                      particleCount: 150,
-                      spread: 70,
-                      origin: { y: 0.6 },
-                      zIndex: 9999
-                    });
-                  }}
-                >
-                  Probar Animación de Nivel
-                </button>
-              </div>
+              <ProfileHeader 
+                user={userData} 
+                isPublic={false} 
+                selectedFrame={selectedFrame} 
+                onTestAnimation={(stats) => {
+                  setLevelUpData({ level: stats.computedLevel, title: stats.userTitle, totalEps: totalEpsForLevel });
+                  setShowLevelUpModal(true);
+                  confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    zIndex: 9999
+                  });
+                }}
+              />
                   
                   {/* TROPHY GALLERY */}
                   <div style={{ marginTop: '2rem', width: '100%' }}>

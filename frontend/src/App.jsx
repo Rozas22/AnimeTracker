@@ -420,6 +420,7 @@ export default function App() {
   useEffect(() => {
     if (completedAnime.length > 0 && computedLevel > 1) {
       const savedLevel = parseInt(localStorage.getItem('animeTrackerSavedLevel') || '1', 10);
+      console.log('Nivel guardado:', savedLevel, 'Nivel actual:', computedLevel); // DEBUG
       if (computedLevel > savedLevel) {
         // Trigger Level Up
         setLevelUpData({ level: computedLevel, title: userTitle, totalEps: totalEpsForLevel });
@@ -2073,6 +2074,22 @@ export default function App() {
                     <div className="level-progress-text">
                       Progreso: {episodiosRestantes} / {episodiosParaSiguienteNivel} para el siguiente nivel
                     </div>
+                    <button 
+                      className="btn-secondary" 
+                      style={{ marginTop: '1rem', width: '100%', border: '1px dashed var(--accent)', color: 'var(--accent)' }} 
+                      onClick={() => {
+                        setLevelUpData({ level: nivelActual, title: title, totalEps: totalEpsForLevel });
+                        setShowLevelUpModal(true);
+                        confetti({
+                          particleCount: 150,
+                          spread: 70,
+                          origin: { y: 0.6 },
+                          zIndex: 9999
+                        });
+                      }}
+                    >
+                      Probar Animación de Nivel
+                    </button>
                   </div>
                   
                   {/* TROPHY GALLERY */}

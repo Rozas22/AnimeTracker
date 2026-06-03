@@ -1925,8 +1925,20 @@ header {
   }
 
   .profile-header {
-    flex-wrap: wrap;
-    gap: 1rem;
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+    padding: 1rem;
+  }
+
+  .profile-meta {
+    width: 100%;
+    word-break: break-word;
+  }
+
+  [data-style="modern"] .stat-item,
+  [data-style="modern2"] .stat-item {
+    padding: 0.75rem;
   }
 }
 
@@ -2378,7 +2390,10 @@ header {
   border-radius: 12px;
   padding: 4px;
   box-shadow: var(--shadow-neu-in);
-  width: fit-content;
+  width: 100%;
+  max-width: 100%;
+  flex-wrap: wrap;
+  overflow-x: auto;
 }
 
 .style-mode-btn {
@@ -3534,7 +3549,7 @@ textarea {
 .trophy-req { font-size: 0.75rem; color: var(--color-text-secondary); margin: 0; }
 
 /* Trophy Modal Overlay */
-.trophy-modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.trophy-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100vh; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
 .trophy-modal-content { position: relative; width: 100%; max-width: 400px; background: var(--color-bg-elevated); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5); border-radius: 16px; padding: 2.5rem 1.5rem 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; }
 .trophy-modal-icon { width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; background: var(--color-bg-light); color: var(--accent); }
 .trophy-modal-icon.locked { filter: grayscale(100%) brightness(0.5); color: var(--color-text-secondary); }

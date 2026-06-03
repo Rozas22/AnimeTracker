@@ -14,11 +14,11 @@ const TROPHY_CONFIG = [
   { level: 30, title: 'Maestro de Plata', frameName: 'silver', frameLabel: 'Marco de Plata' },
   { level: 40, title: 'Veterano', frameName: null, frameLabel: 'Sin Marco' },
   { level: 50, title: 'Leyenda del Anime', frameName: 'gold', frameLabel: 'Marco de Oro' },
-  { level: 60, title: 'Mito', frameName: null, frameLabel: 'Sin Marco' },
+  { level: 60, title: 'Mito', frameName: 'ruby', frameLabel: 'Marco de Rubí' },
   { level: 70, title: 'Semi-Dios', frameName: null, frameLabel: 'Sin Marco' },
-  { level: 80, title: 'Dios', frameName: null, frameLabel: 'Sin Marco' },
+  { level: 80, title: 'Dios', frameName: 'diamond', frameLabel: 'Marco de Diamante' },
   { level: 90, title: 'Titán', frameName: null, frameLabel: 'Sin Marco' },
-  { level: 100, title: 'Completista', frameName: null, frameLabel: 'Sin Marco' }
+  { level: 100, title: 'Completista', frameName: 'chroma', frameLabel: 'Marco Croma' }
 ];
 
 export default function App() {
@@ -397,24 +397,32 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
 
-  // Compute global level based on arithmetic progression
+  // Compute global level based on tiered progression
+  const getEpsForNextLevel = (level) => {
+    if (level <= 10) return 25;
+    if (level <= 30) return 50;
+    if (level <= 60) return 100;
+    return 200;
+  };
+
   const totalEpsForLevel = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
   let computedLevel = 1;
   let episodiosRestantes = totalEpsForLevel;
-  let episodiosParaSiguienteNivel = computedLevel * 25;
+  let episodiosParaSiguienteNivel = getEpsForNextLevel(computedLevel);
 
   while (episodiosRestantes >= episodiosParaSiguienteNivel) {
     episodiosRestantes -= episodiosParaSiguienteNivel;
     computedLevel++;
-    episodiosParaSiguienteNivel = computedLevel * 25;
+    episodiosParaSiguienteNivel = getEpsForNextLevel(computedLevel);
   }
   
   const progresoPorcentaje = (episodiosRestantes / episodiosParaSiguienteNivel) * 100;
   
   let userTitle = 'Novato';
-  if (computedLevel >= 50) userTitle = 'Leyenda';
-  else if (computedLevel >= 26) userTitle = 'Veterano';
+  if (computedLevel >= 61) userTitle = 'Leyenda';
+  else if (computedLevel >= 31) userTitle = 'Veterano';
   else if (computedLevel >= 11) userTitle = 'Aprendiz';
+
 
   // Check for level up
   useEffect(() => {
@@ -2050,56 +2058,36 @@ export default function App() {
               </div>
 
               {/* LEVEL SYSTEM */}
-              {(() => {
-                const totalEpsForLevel = completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
-                
-                let nivelActual = 1;
-                let episodiosRestantes = totalEpsForLevel;
-                let episodiosParaSiguienteNivel = nivelActual * 25;
-
-                while (episodiosRestantes >= episodiosParaSiguienteNivel) {
-                  episodiosRestantes -= episodiosParaSiguienteNivel;
-                  nivelActual++;
-                  episodiosParaSiguienteNivel = nivelActual * 25;
-                }
-
-                const progresoPorcentaje = (episodiosRestantes / episodiosParaSiguienteNivel) * 100;
-
-                let title = 'Novato';
-                if (nivelActual >= 50) title = 'Leyenda';
-                else if (nivelActual >= 20) title = 'Viciado';
-                else if (nivelActual >= 10) title = 'Aficionado';
-
-                return (
-                  <>
-                  <div className="profile-level-container">
-                    <div className="level-header">
-                      <span className="level-number">Nivel {nivelActual}</span>
-                      <span className="level-title" style={{ color: 'var(--accent)' }}>{title}</span>
-                    </div>
+              <div className="profile-level-container">
+                <div className="level-header">
+                  <span className="level-number">Nivel {computedLevel}</span>
+                  <span className="level-title" style={{ color: 'var(--accent)' }}>{userTitle}</span>
+                </div>
                     <div className="level-bar-track">
                       <div className="level-bar-fill" style={{ width: `${progresoPorcentaje}%`, background: 'var(--accent)', boxShadow: '0 0 10px var(--accent-glow)' }} />
                     </div>
-                    <div className="level-progress-text">
-                      Progreso: {episodiosRestantes} / {episodiosParaSiguienteNivel} para el siguiente nivel
-                    </div>
-                    <button 
-                      className="btn-secondary" 
-                      style={{ marginTop: '1rem', width: '100%', border: '1px dashed var(--accent)', color: 'var(--accent)' }} 
-                      onClick={() => {
-                        setLevelUpData({ level: nivelActual, title: title, totalEps: totalEpsForLevel });
-                        setShowLevelUpModal(true);
-                        confetti({
-                          particleCount: 150,
-                          spread: 70,
-                          origin: { y: 0.6 },
-                          zIndex: 9999
-                        });
-                      }}
-                    >
-                      Probar Animación de Nivel
-                    </button>
-                  </div>
+                <div className="level-progress-text">
+                  Progreso: {episodiosRestantes} / {episodiosParaSiguienteNivel} para el siguiente nivel
+                  <br/>
+                  <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Dificultad actual: {userTitle}</span>
+                </div>
+                <button 
+                  className="btn-secondary" 
+                  style={{ marginTop: '1rem', width: '100%', border: '1px dashed var(--accent)', color: 'var(--accent)' }} 
+                  onClick={() => {
+                    setLevelUpData({ level: computedLevel, title: userTitle, totalEps: totalEpsForLevel });
+                    setShowLevelUpModal(true);
+                    confetti({
+                      particleCount: 150,
+                      spread: 70,
+                      origin: { y: 0.6 },
+                      zIndex: 9999
+                    });
+                  }}
+                >
+                  Probar Animación de Nivel
+                </button>
+              </div>
                   
                   {/* TROPHY GALLERY */}
                   <div style={{ marginTop: '2rem', width: '100%' }}>
@@ -2130,10 +2118,7 @@ export default function App() {
                         );
                       })}
                     </div>
-                  </div>
-                </>
-                );
-              })()}
+              </div>
 
               {userData.about && (
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem', width: '100%' }}>
@@ -2427,6 +2412,9 @@ export default function App() {
                         <button className={`style-mode-btn ${selectedFrame === 'bronze' ? 'active' : ''}`} disabled={computedLevel < 10} onClick={() => handleFrameSelect('bronze')}>Bronce</button>
                         <button className={`style-mode-btn ${selectedFrame === 'silver' ? 'active' : ''}`} disabled={computedLevel < 30} onClick={() => handleFrameSelect('silver')}>Plata</button>
                         <button className={`style-mode-btn ${selectedFrame === 'gold' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('gold')}>Oro</button>
+                        <button className={`style-mode-btn ${selectedFrame === 'ruby' ? 'active' : ''}`} disabled={computedLevel < 60} onClick={() => handleFrameSelect('ruby')}>Rubí</button>
+                        <button className={`style-mode-btn ${selectedFrame === 'diamond' ? 'active' : ''}`} disabled={computedLevel < 80} onClick={() => handleFrameSelect('diamond')}>Diamante</button>
+                        <button className={`style-mode-btn ${selectedFrame === 'chroma' ? 'active' : ''}`} disabled={computedLevel < 100} onClick={() => handleFrameSelect('chroma')}>Croma</button>
                       </div>
                     </div>
                   </div>
@@ -2498,6 +2486,9 @@ export default function App() {
                   <button className={`style-mode-btn ${selectedFrame === 'bronze' ? 'active' : ''}`} disabled={computedLevel < 10} onClick={() => handleFrameSelect('bronze')}>Bronce</button>
                   <button className={`style-mode-btn ${selectedFrame === 'silver' ? 'active' : ''}`} disabled={computedLevel < 30} onClick={() => handleFrameSelect('silver')}>Plata</button>
                   <button className={`style-mode-btn ${selectedFrame === 'gold' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('gold')}>Oro</button>
+                  <button className={`style-mode-btn ${selectedFrame === 'ruby' ? 'active' : ''}`} disabled={computedLevel < 60} onClick={() => handleFrameSelect('ruby')}>Rubí</button>
+                  <button className={`style-mode-btn ${selectedFrame === 'diamond' ? 'active' : ''}`} disabled={computedLevel < 80} onClick={() => handleFrameSelect('diamond')}>Diamante</button>
+                  <button className={`style-mode-btn ${selectedFrame === 'chroma' ? 'active' : ''}`} disabled={computedLevel < 100} onClick={() => handleFrameSelect('chroma')}>Croma</button>
                 </div>
               </div>
             </div>

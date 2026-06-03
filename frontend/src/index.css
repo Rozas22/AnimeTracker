@@ -3549,3 +3549,9 @@ textarea {
 .level-badge { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; color: var(--color-text-secondary); margin-top: 0.5rem; cursor: help; transition: all 0.2s ease; }
 .level-badge:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--accent); }
 .level-badge strong { color: var(--accent); font-weight: 600; }
+
+/* Premium Epic Frames */
+.frame-ruby { border: 3px solid #ff003c; box-shadow: 0 0 15px rgba(255, 0, 60, 0.8), inset 0 0 10px rgba(255, 0, 60, 0.5); }
+.frame-diamond { border: 3px solid #00ffff; box-shadow: 0 0 15px rgba(0, 255, 255, 0.8), inset 0 0 10px rgba(0, 255, 255, 0.5); }
+@keyframes chroma-pulse { 0% { border-color: #ff0000; box-shadow: 0 0 15px rgba(255, 0, 0, 0.8); } 33% { border-color: #00ff00; box-shadow: 0 0 15px rgba(0, 255, 0, 0.8); } 66% { border-color: #0000ff; box-shadow: 0 0 15px rgba(0, 0, 255, 0.8); } 100% { border-color: #ff0000; box-shadow: 0 0 15px rgba(255, 0, 0, 0.8); } }
+.frame-chroma { border: 3px solid #ff0000; animation: chroma-pulse 3s linear infinite; }

@@ -3579,7 +3579,7 @@ textarea {
 .frame-chroma { border: 3px solid #ff0000; animation: chroma-pulse 3s linear infinite; }
 
 
-/* Estilos dinámicos para los marcos de perfil */
+/* Estilos dinmicos para los marcos de perfil */
 .profile-avatar-container {
   position: relative;
   overflow: visible;
@@ -3587,10 +3587,10 @@ textarea {
 
 .profile-frame {
    position: absolute;
-   top: -5%;
-   left: -5%;
-   width: 110%;
-   height: 110%;
+   top: -16%;
+   left: -16%;
+   width: 132%;
+   height: 132%;
    object-fit: contain;
    pointer-events: none;
    z-index: 10;

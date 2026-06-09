@@ -1135,7 +1135,22 @@ export default function App() {
         }
 
         if (data.data?.Page?.following) {
-          setAnilistFriends(data.data.Page.following);
+          const friendsList = data.data.Page.following;
+          setAnilistFriends(friendsList);
+          
+          // Upsert friends into Supabase to ensure they exist for Arena
+          try {
+            const friendsToUpsert = friendsList.map(f => ({
+              anilist_id: f.id.toString(),
+              username: f.name
+            }));
+            const { error: syncErr } = await supabase
+              .from('users')
+              .upsert(friendsToUpsert, { onConflict: 'anilist_id' });
+            if (syncErr) console.error("Error syncing friends to Supabase:", syncErr);
+          } catch (e) {
+            console.error("Exception syncing friends:", e);
+          }
         }
       } catch (err) {
         console.error('Error fetching anilist following:', err);

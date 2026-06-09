@@ -1954,6 +1954,7 @@ export default function App() {
   );
 
   const renderContent = () => {
+    const userLeague = getLeagueInfo(calculatePL(userData?.statistics?.anime?.episodesWatched || 0, quizPoints || 0));
     switch (activeTab) {
             case 'friend-profile': {
         if (friendLoading) {

@@ -39,7 +39,10 @@ const ArenaView = ({ user, anilistFriends }) => {
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
 
       try {
@@ -56,9 +59,12 @@ const ArenaView = ({ user, anilistFriends }) => {
               .in('anilist_id', ids);
               
             if (!error && data) {
+                console.log('Supabase connection test - Data returned:', data);
                 data.forEach(row => {
                     quizPointsMap[row.anilist_id] = row.quiz_points;
                 });
+            } else if (error) {
+                console.log('Supabase query error:', error);
             }
         } catch(e) {
             console.error("Error fetching from supabase", e);

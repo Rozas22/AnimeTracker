@@ -46,7 +46,7 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
   // LOG requested by user for debugging API data
   console.log('ProfileHeader received user data:', user.name, 'Episodes Watched:', user.statistics?.anime?.episodesWatched);
 
-  const totalEps = user.statistics?.anime?.episodesWatched || 0;
+  const totalEps = user.statistics?.anime?.episodesWatched;
   const stats = calculateLevel(totalEps);
   
   if (user.supabaseLevel) {
@@ -2496,10 +2496,10 @@ case 'mylist': {
                 return (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '1rem' }}>
                     {anilistFriends.map(friend => {
-                      const eps = friend.statistics?.anime?.episodesWatched || 0;
+                      const eps = friend.statistics?.anime?.episodesWatched;
                       const stats = calculateLevel(eps);
-                      const highestFrame = getHighestFrame(stats.computedLevel);
-                      const isClose = (stats.episodiosParaSiguienteNivel - stats.episodiosRestantes) <= 10;
+                      const highestFrame = stats.isPrivate ? 'none' : getHighestFrame(stats.computedLevel);
+                      const isClose = !stats.isPrivate && (stats.episodiosParaSiguienteNivel - stats.episodiosRestantes) <= 10;
                       
                       return (
                         <div 

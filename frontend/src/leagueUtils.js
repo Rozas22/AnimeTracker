@@ -10,6 +10,10 @@ export const getEpsForNextLevel = (level) => {
 };
 
 export const calculateLevel = (totalEpisodes) => {
+  if (totalEpisodes === undefined || totalEpisodes === null) {
+    return { isPrivate: true, computedLevel: null, userTitle: 'Sin clasificar', episodiosRestantes: 0, episodiosParaSiguienteNivel: 1, progresoPorcentaje: 0 };
+  }
+
   let computedLevel = 1;
   let episodiosRestantes = totalEpisodes || 0;
   let episodiosParaSiguienteNivel = getEpsForNextLevel(computedLevel);

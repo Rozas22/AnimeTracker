@@ -165,14 +165,17 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
             const friendAnimePoints = friendPoints.anime > 0 ? friendPoints.anime : (realEps * 10);
             
             // Supabase is the source of truth for episodes (anime_points / 10)
-            const friendEpisodes = friendPoints.anime > 0 ? Math.floor(friendPoints.anime / 10) : realEps;
+            const friendEpisodes = friendPoints.anime > 0 ? Math.floor(friendPoints.anime / 10) : (friend.statistics?.anime?.episodesWatched);
+            
+            const stats = calculateLevel(friendEpisodes);
 
             players.push({
                 id: friend.id,
                 name: friend.name,
                 avatar: friend.avatar?.large,
                 isMe: false,
-                level: calculateLevel(friendEpisodes).computedLevel,
+                level: stats.computedLevel,
+                isPrivate: stats.isPrivate,
                 pl: friendAnimePoints + friendPoints.quiz
             });
         });
@@ -307,8 +310,12 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
                     <div className="ranking-info">
                         <div className="ranking-name">
                             {player.name}
-                            {player.isMe && <span style={{ fontSize: '0.7rem', background: 'var(--accent)', color: 'white', padding: '2px 6px', borderRadius: '4px' }}>TÚ</span>}
-                            <span className={`league-badge ${league.class}`}>{league.icon} {league.name}</span>
+                            {player.isMe && <span style={{ fontSize: '0.7rem', background: 'var(--accent)', color: 'white', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>TÚ</span>}
+                            {player.isPrivate ? (
+                                <span className="league-badge" style={{ background: 'transparent', color: '#888', border: '1px solid #444' }}>🔒 Privado</span>
+                            ) : (
+                                <span className={`league-badge ${league.class}`}>{league.icon} {league.name}</span>
+                            )}
                         </div>
                     </div>
 

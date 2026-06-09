@@ -229,7 +229,7 @@ const ProfileDisplay = ({
                     src={watching.media?.coverImage?.large}
                     alt={watching.media?.title?.userPreferred}
                     className="profile-now-cover"
-                    onClick={() => { onTabClick('mylist'); onSubTabClick('CURRENT'); }}
+                    onClick={() => { onTabClick('mylist', isOwnProfile ? null : user.name); onSubTabClick('CURRENT'); }}
                     style={{ cursor: 'pointer' }}
                   />
                   <div className="profile-now-info">
@@ -253,7 +253,7 @@ const ProfileDisplay = ({
         <div className="profile-col-right">
           <CollapsibleSection title="Estadísticas en AniList" defaultOpen={isDesktop}>
             <div className="stats-grid">
-              <div className="stat-item clickable" onClick={() => { onTabClick('mylist'); onSubTabClick('COMPLETED'); }} style={{ cursor: 'pointer' }}>
+              <div className="stat-item clickable" onClick={() => { onTabClick('mylist', isOwnProfile ? null : user.name); onSubTabClick('COMPLETED'); }} style={{ cursor: 'pointer' }}>
                 <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
                 <div className="stat-value">{animeList.filter(e => e.status === 'COMPLETED').length}</div>
                 <div className="stat-label">Animes Vistos</div>
@@ -534,7 +534,7 @@ export default function App() {
 
   // Fetch friend's profile when routing is triggered
   useEffect(() => {
-    if (activeTab === 'friend-profile' && viewedFriendUsername) {
+    if ((activeTab === 'friend-profile' || activeTab === 'mylist') && viewedFriendUsername) {
       fetchFriendProfile(viewedFriendUsername);
     }
   }, [activeTab, viewedFriendUsername]);
@@ -1099,9 +1099,22 @@ export default function App() {
     }
   };
 
-  const handleTabClick = (tabName) => {
+  const handleTabClick = (tabName, username = null) => {
     setActiveTab(tabName);
-    window.history.pushState(null, '', '/');
+    if (username) {
+      setViewedFriendUsername(username);
+    }
+    
+    if (tabName === 'mylist') {
+        window.history.pushState(null, '', username ? `/lista/${username}` : '/lista');
+    } else if (tabName === 'friend-profile' && username) {
+        window.history.pushState(null, '', `/profile/${username}`);
+    } else {
+        window.history.pushState(null, '', '/');
+        if (tabName !== 'friend-profile' && tabName !== 'mylist') {
+            setViewedFriendUsername(null);
+        }
+    }
   };
 
   const fetchAnilistFollowing = async (overrideUserId = null) => {
@@ -2113,7 +2126,7 @@ case 'mylist': {
                 </button>
                 <button 
                   className="btn-secondary" 
-                  onClick={() => handleTabClick('profile')}
+                  onClick={() => handleTabClick(isFriendList ? 'friend-profile' : 'profile', viewedFriendUsername)}
                   style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
                 >
                   Volver al Perfil

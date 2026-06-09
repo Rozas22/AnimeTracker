@@ -3591,6 +3591,8 @@ textarea {
    left: -25%;
    width: 150%;
    height: 150%;
+   max-width: none !important;
+   max-height: none !important;
    object-fit: contain;
    pointer-events: none;
    z-index: 10;

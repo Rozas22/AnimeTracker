@@ -3587,10 +3587,10 @@ textarea {
 
 .profile-frame {
    position: absolute;
-   top: -16%;
-   left: -16%;
-   width: 132%;
-   height: 132%;
+   top: -25%;
+   left: -25%;
+   width: 150%;
+   height: 150%;
    object-fit: contain;
    pointer-events: none;
    z-index: 10;

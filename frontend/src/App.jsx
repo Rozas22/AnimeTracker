@@ -1174,21 +1174,39 @@ export default function App() {
 
         if (data.data?.Page?.following) {
           const friendsList = data.data.Page.following;
-          setAnilistFriends(friendsList);
           
-          // Upsert friends into Supabase to ensure they exist for Arena
+          // Upsert friends into Supabase and fetch their anime_points
           try {
             const friendsToUpsert = friendsList.map(f => ({
               anilist_id: f.id.toString(),
               username: f.name
             }));
-            const { error: syncErr } = await supabase
+            const { data: supaFriends, error: syncErr } = await supabase
               .from('users')
-              .upsert(friendsToUpsert, { onConflict: 'anilist_id' });
-            if (syncErr) console.error("Error syncing friends to Supabase:", syncErr);
+              .upsert(friendsToUpsert, { onConflict: 'anilist_id' })
+              .select('anilist_id, anime_points');
+              
+            if (!syncErr && supaFriends) {
+              const supaMap = {};
+              supaFriends.forEach(row => supaMap[row.anilist_id] = row.anime_points);
+              
+              friendsList.forEach(friend => {
+                const supaPts = supaMap[friend.id.toString()];
+                if (supaPts > 0) {
+                  // Supabase is the absolute source of truth
+                  if (!friend.statistics) friend.statistics = { anime: {} };
+                  if (!friend.statistics.anime) friend.statistics.anime = {};
+                  friend.statistics.anime.episodesWatched = Math.floor(supaPts / 10);
+                }
+              });
+            } else if (syncErr) {
+              console.error("Error syncing friends to Supabase:", syncErr);
+            }
           } catch (e) {
             console.error("Exception syncing friends:", e);
           }
+          
+          setAnilistFriends([...friendsList]);
         }
       } catch (err) {
         console.error('Error fetching anilist following:', err);

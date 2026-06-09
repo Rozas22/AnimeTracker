@@ -8,6 +8,10 @@ import { supabase } from '../supabase';
 const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    console.log('Arena montada');
+  }, []);
   const [timeLeft, setTimeLeft] = useState('');
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState([]);
@@ -190,7 +194,7 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
   }
 
   return (
-    <div className="arena-view" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '2rem' }}>
+    <div className="arena-view" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '2rem', display: 'flex', flexDirection: 'column', width: '100%', position: 'relative', zIndex: 100 }}>
       <div className="arena-header">
         <Swords size={48} style={{ color: 'var(--accent)', marginBottom: '1rem' }} />
         <h1 style={{ fontSize: '2.5rem', margin: 0, fontFamily: 'var(--font-display)' }}>Liga de Anime</h1>

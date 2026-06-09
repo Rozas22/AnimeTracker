@@ -3089,6 +3089,14 @@ case 'mylist': {
             <Users size={20} />
           </button>
 
+          <button 
+            className={`bottom-nav-item ${activeTab === 'arena' ? 'active' : ''}`}
+            onClick={() => handleTabClick('arena')}
+          >
+            <Swords size={20} />
+            <span>Arena</span>
+          </button>
+
           <button
             className={`bottom-nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
             onClick={() => handleTabClick('analytics')}

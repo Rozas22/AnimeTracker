@@ -1117,7 +1117,7 @@ export default function App() {
       }
     `;
     
-    const variables = { userId };
+    const variables = { userId: parseInt(userId, 10) };
     
     console.log('Query que se está enviando:', JSON.stringify(query));
     console.log('Variables que se están enviando:', JSON.stringify(variables));
@@ -2239,6 +2239,7 @@ case 'mylist': {
           />
         );
       case 'arena':
+        if (!userData) return <div style={{ textAlign: 'center', padding: '4rem' }}><div className="loader"></div><p style={{ color: 'var(--color-text-secondary)', marginTop: '1rem' }}>Cargando Arena...</p></div>;
         return <ArenaView user={userData} anilistFriends={anilistFriends} quizPoints={quizPoints} setQuizPoints={setQuizPoints} />;
 
       case 'settings':

@@ -137,7 +137,7 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
         let players = [];
         
         // Add current user
-        const userEps = user.statistics?.anime?.episodesWatched || 0;
+        const userEps = user?.statistics?.anime?.episodesWatched || 0;
         players.push({
             id: user.id,
             name: user.name,

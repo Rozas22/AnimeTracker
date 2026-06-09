@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { Trophy, Clock, TrendingUp, TrendingDown, Swords } from 'lucide-react';
-import { calculatePL, getLeagueInfo } from '../leagueUtils';
+import { calculatePL, getLeagueInfo, calculateLevel } from '../leagueUtils';
 import { supabase } from '../supabase';
 
 const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
@@ -147,6 +147,7 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
             name: user.name,
             avatar: user.avatar?.large || user.avatar,
             isMe: true,
+            level: calculateLevel(userEps).computedLevel,
             pl: calculatePL(userEps, quizPointsMap[user.id] || 0)
         });
 
@@ -167,6 +168,7 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
                 name: friend.name,
                 avatar: friend.avatar?.large,
                 isMe: false,
+                level: calculateLevel(friend.statistics?.anime?.episodesWatched || 0).computedLevel,
                 pl: calculatePL(simulatedEps, quizPointsMap[friend.id] || 0)
             });
         });

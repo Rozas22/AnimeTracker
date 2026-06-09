@@ -344,8 +344,7 @@ export default function App() {
         .from('users')
         .upsert({ 
           anilist_id: viewer.id.toString(), 
-          username: viewer.name,
-          level: Math.max(1, calculateLevel(viewer.statistics?.anime?.episodesWatched || 0).computedLevel)
+          username: viewer.name 
         }, { onConflict: 'anilist_id' })
         .select('quiz_points')
         .single();
@@ -610,20 +609,7 @@ export default function App() {
 
         const user = result.data.User;
         
-        // Fetch level from Supabase
-        try {
-          const { data: supaData, error: supaErr } = await supabase
-            .from('users')
-            .select('level')
-            .eq('anilist_id', user.id.toString())
-            .single();
-            
-          if (!supaErr && supaData && supaData.level) {
-            user.supabaseLevel = supaData.level;
-          }
-        } catch (e) {
-          console.error("Error fetching friend level from Supabase", e);
-        }
+
 
         setFriendData(user);
 

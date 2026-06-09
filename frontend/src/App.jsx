@@ -84,7 +84,7 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
   return (
     <>
       <div className="profile-header">
-        <div className="profile-avatar-container" style={{ position: 'relative', display: 'inline-block' }}>
+        <div className="profile-avatar-container" style={{ display: 'inline-block' }}>
           <img 
             src={user.avatar?.large || user.avatar || 'https://anilist.co/img/icons/icon.svg'} 
             alt={user.name} 
@@ -94,16 +94,7 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
             <img 
               src={framePath} 
               alt="Marco" 
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '135%',
-                height: '135%',
-                pointerEvents: 'none',
-                zIndex: 10
-              }}
+              className="profile-frame"
             />
           )}
         </div>

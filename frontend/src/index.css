@@ -3578,3 +3578,21 @@ textarea {
 @keyframes chroma-pulse { 0% { border-color: #ff0000; box-shadow: 0 0 15px rgba(255, 0, 0, 0.8); } 33% { border-color: #00ff00; box-shadow: 0 0 15px rgba(0, 255, 0, 0.8); } 66% { border-color: #0000ff; box-shadow: 0 0 15px rgba(0, 0, 255, 0.8); } 100% { border-color: #ff0000; box-shadow: 0 0 15px rgba(255, 0, 0, 0.8); } }
 .frame-chroma { border: 3px solid #ff0000; animation: chroma-pulse 3s linear infinite; }
 
+
+/* Estilos dinámicos para los marcos de perfil */
+.profile-avatar-container {
+  position: relative;
+  overflow: visible;
+}
+
+.profile-frame {
+   position: absolute;
+   top: -5%;
+   left: -5%;
+   width: 110%;
+   height: 110%;
+   object-fit: contain;
+   pointer-events: none;
+   z-index: 10;
+   border-radius: 50%;
+}

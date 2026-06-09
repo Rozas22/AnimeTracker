@@ -64,6 +64,12 @@ const getHighestFrame = (level) => {
   return 'none';
 };
 
+const getFramePath = (level) => {
+  let normalizedLevel = Math.floor(level / 10) * 10;
+  if (normalizedLevel > 100) normalizedLevel = 100;
+  return normalizedLevel >= 20 ? `/frames/${normalizedLevel}.png` : null;
+};
+
 const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, children }) => {
   if (!user?.id) return null;
   
@@ -73,17 +79,33 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
   const totalEps = user.statistics?.anime?.episodesWatched || 0;
   const stats = calculateLevelStats(totalEps);
   
-  const frameToRender = isPublic ? getHighestFrame(stats.computedLevel) : selectedFrame;
+  const framePath = getFramePath(stats.computedLevel);
 
   return (
     <>
       <div className="profile-header">
-        <div className="profile-avatar-container">
+        <div className="profile-avatar-container" style={{ position: 'relative', display: 'inline-block' }}>
           <img 
             src={user.avatar?.large || user.avatar || 'https://anilist.co/img/icons/icon.svg'} 
             alt={user.name} 
-            className={`avatar ${frameToRender !== 'none' ? `frame-${frameToRender}` : ''}`} 
+            className="avatar" 
           />
+          {framePath && (
+            <img 
+              src={framePath} 
+              alt="Marco" 
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '135%',
+                height: '135%',
+                pointerEvents: 'none',
+                zIndex: 10
+              }}
+            />
+          )}
         </div>
         <div className="profile-meta">
           <h2 className={stats.computedLevel >= 61 ? 'epic-name' : ''}>

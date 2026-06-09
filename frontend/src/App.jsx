@@ -2239,7 +2239,7 @@ case 'mylist': {
           />
         );
       case 'arena':
-        return <ArenaView user={userData} anilistFriends={anilistFriends} />;
+        return <ArenaView user={userData} anilistFriends={anilistFriends} quizPoints={quizPoints} setQuizPoints={setQuizPoints} />;
 
       case 'settings':
         return (

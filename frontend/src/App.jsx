@@ -931,8 +931,8 @@ export default function App() {
     const query = `
       query {
         Page(page: 1, perPage: 5) {
-          activities(type: FOLLOWING, sort: ID_DESC) {
-            ... on FollowingActivity {
+          activities(isFollowing: true, sort: ID_DESC) {
+            ... on ListActivity {
               id
               createdAt
               user { id name avatar { large } }
@@ -2949,6 +2949,14 @@ case 'mylist': {
             <span>El Grupo</span>
           </button>
 
+          <button 
+            className={`sidebar-nav-item ${activeTab === 'arena' ? 'active' : ''}`}
+            onClick={() => handleTabClick('arena')}
+          >
+            <Swords size={18} />
+            <span>Arena</span>
+          </button>
+          
           <button 
             className={`sidebar-nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
             onClick={() => handleTabClick('analytics')}

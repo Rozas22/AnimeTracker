@@ -70,7 +70,7 @@ const getFramePath = (level) => {
   return normalizedLevel >= 20 ? `/frames/${normalizedLevel}.png` : null;
 };
 
-const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, children }) => {
+const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, children, userLeague }) => {
   if (!user?.id) return null;
   
   // LOG requested by user for debugging API data
@@ -131,9 +131,14 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
 
       {/* LEVEL SYSTEM */}
       <div className="profile-level-container">
-        <div className="level-header">
+        <div className="level-header" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <span className="level-number">Nivel {stats.computedLevel}</span>
           <span className="level-title" style={{ color: 'var(--accent)' }}>{stats.userTitle}</span>
+          {userLeague && (
+            <span className={`league-badge ${userLeague.class}`} style={{ marginLeft: 'auto' }}>
+              {userLeague.icon} {userLeague.name}
+            </span>
+          )}
         </div>
         <div className="level-bar-track">
           <div className="level-bar-fill" style={{ width: `${stats.progresoPorcentaje}%`, background: 'var(--accent)', boxShadow: '0 0 10px var(--accent-glow)' }} />
@@ -2835,7 +2840,14 @@ case 'settings':
                       <img src={notif.user?.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} alt="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: notif.isRead ? 'none' : '2px solid var(--accent)' }} />
                       <div style={{ flex: 1 }}>
                         <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', lineHeight: 1.2 }}>
-                          <span style={{ fontWeight: 'bold' }}>{notif.user?.name}</span> te ha empezado a seguir.
+                          <span style={{ fontWeight: 'bold' }}>{notif.user?.name}</span> 
+                          {(() => {
+                            if (!notif.user) return null;
+                            const simulatedEps = (notif.user.id % 5000) + 1000;
+                            const league = getLeagueInfo(calculatePL(simulatedEps, 0));
+                            return <span className={`league-badge ${league.class}`} style={{ fontSize: '0.6rem', padding: '0.1rem 0.3rem', marginLeft: '4px', verticalAlign: 'middle' }}>{league.icon} {league.name}</span>;
+                          })()}
+                          te ha empezado a seguir.
                         </p>
                         <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
                           {new Date(notif.createdAt * 1000).toLocaleDateString()}

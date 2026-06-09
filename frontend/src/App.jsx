@@ -201,7 +201,8 @@ const ProfileDisplay = ({
   onTestAnimation, 
   children,
   onTabClick,
-  onSubTabClick
+  onSubTabClick,
+  userLeague
 }) => {
   if (!user?.id) return null;
 
@@ -1071,7 +1072,7 @@ export default function App() {
       
       if (viewer.id) {
         await fetchUserAnimeList(viewer.id);
-        await fetchAnilistFollowing();
+        await fetchAnilistFollowing(viewer.id);
         await fetchSocialActivity();
       }
     } catch (err) {
@@ -1086,14 +1087,14 @@ export default function App() {
     window.history.pushState(null, '', '/');
   };
 
-  const fetchAnilistFollowing = async () => {
+  const fetchAnilistFollowing = async (overrideUserId = null) => {
     if (!token) {
       console.log('Token presente:', false);
       return;
     }
     console.log('Token presente:', true);
 
-    const userId = userData?.id;
+    const userId = overrideUserId || userData?.id;
     if (!userId) {
       console.log('Esperando a que userData.id esté disponible...');
       return;
@@ -1425,6 +1426,8 @@ export default function App() {
         setUserData(viewer);
         await syncSupabaseUser(viewer);
         await fetchUserAnimeList(viewer.id);
+        await fetchAnilistFollowing(viewer.id);
+        await fetchSocialActivity();
       } catch (err) {
         console.error('Error fetching AniList profile:', err);
         setError('No se pudo cargar el perfil. Puede que el token haya expirado o sea inválido.');

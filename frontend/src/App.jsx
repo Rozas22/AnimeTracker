@@ -79,7 +79,14 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
   const totalEps = user.statistics?.anime?.episodesWatched || 0;
   const stats = calculateLevelStats(totalEps);
   
-  const framePath = getFramePath(stats.computedLevel);
+  let framePath = null;
+  if (!isPublic && selectedFrame && selectedFrame !== 'auto' && selectedFrame !== 'none') {
+    framePath = `/frames/${selectedFrame}.png`;
+  } else if (!isPublic && selectedFrame === 'none') {
+    framePath = null;
+  } else {
+    framePath = getFramePath(stats.computedLevel);
+  }
 
   return (
     <>
@@ -375,7 +382,7 @@ export default function App() {
 
   // Mobile Settings Modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [selectedFrame, setSelectedFrame] = useState(localStorage.getItem('animeTrackerSelectedFrame') || 'none');
+  const [selectedFrame, setSelectedFrame] = useState(localStorage.getItem('animeTrackerSelectedFrame') || 'auto');
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
   const [levelUpData, setLevelUpData] = useState(null);
   const [selectedTrophy, setSelectedTrophy] = useState(null);
@@ -2183,13 +2190,17 @@ case 'settings':
               <div className="aesthetics-section">
                 <span className="aesthetics-label">Marco del Perfil</span>
                 <div className="style-mode-toggle">
+                  <button className={`style-mode-btn ${selectedFrame === 'auto' ? 'active' : ''}`} onClick={() => handleFrameSelect('auto')}>Auto</button>
                   <button className={`style-mode-btn ${selectedFrame === 'none' ? 'active' : ''}`} onClick={() => handleFrameSelect('none')}>Ninguno</button>
-                  <button className={`style-mode-btn ${selectedFrame === 'bronze' ? 'active' : ''}`} disabled={computedLevel < 10} onClick={() => handleFrameSelect('bronze')}>Bronce</button>
-                  <button className={`style-mode-btn ${selectedFrame === 'silver' ? 'active' : ''}`} disabled={computedLevel < 30} onClick={() => handleFrameSelect('silver')}>Plata</button>
-                  <button className={`style-mode-btn ${selectedFrame === 'gold' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('gold')}>Oro</button>
-                  <button className={`style-mode-btn ${selectedFrame === 'ruby' ? 'active' : ''}`} disabled={computedLevel < 60} onClick={() => handleFrameSelect('ruby')}>Rubí</button>
-                  <button className={`style-mode-btn ${selectedFrame === 'diamond' ? 'active' : ''}`} disabled={computedLevel < 80} onClick={() => handleFrameSelect('diamond')}>Diamante</button>
-                  <button className={`style-mode-btn ${selectedFrame === 'chroma' ? 'active' : ''}`} disabled={computedLevel < 100} onClick={() => handleFrameSelect('chroma')}>Croma</button>
+                  <button className={`style-mode-btn ${selectedFrame === '20' ? 'active' : ''}`} disabled={computedLevel < 20} onClick={() => handleFrameSelect('20')}>Niv 20</button>
+                  <button className={`style-mode-btn ${selectedFrame === '30' ? 'active' : ''}`} disabled={computedLevel < 30} onClick={() => handleFrameSelect('30')}>Niv 30</button>
+                  <button className={`style-mode-btn ${selectedFrame === '40' ? 'active' : ''}`} disabled={computedLevel < 40} onClick={() => handleFrameSelect('40')}>Niv 40</button>
+                  <button className={`style-mode-btn ${selectedFrame === '50' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('50')}>Niv 50</button>
+                  <button className={`style-mode-btn ${selectedFrame === '60' ? 'active' : ''}`} disabled={computedLevel < 60} onClick={() => handleFrameSelect('60')}>Niv 60</button>
+                  <button className={`style-mode-btn ${selectedFrame === '70' ? 'active' : ''}`} disabled={computedLevel < 70} onClick={() => handleFrameSelect('70')}>Niv 70</button>
+                  <button className={`style-mode-btn ${selectedFrame === '80' ? 'active' : ''}`} disabled={computedLevel < 80} onClick={() => handleFrameSelect('80')}>Niv 80</button>
+                  <button className={`style-mode-btn ${selectedFrame === '90' ? 'active' : ''}`} disabled={computedLevel < 90} onClick={() => handleFrameSelect('90')}>Niv 90</button>
+                  <button className={`style-mode-btn ${selectedFrame === '100' ? 'active' : ''}`} disabled={computedLevel < 100} onClick={() => handleFrameSelect('100')}>Niv 100</button>
                 </div>
               </div>
             </div>

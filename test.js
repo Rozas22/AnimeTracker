@@ -1,0 +1,1 @@
+const q = {query: '{ Page(page: 1, perPage: 2) { following(userId: 6605052) { id name statistics { anime { episodesWatched } } } } }'}; fetch('https://graphql.anilist.co', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(q)}).then(r=>r.json()).then(d=>console.log(JSON.stringify(d, null, 2)));

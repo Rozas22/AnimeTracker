@@ -336,16 +336,18 @@ export default function App() {
   const [userData, setUserData] = useState(null);
   const [quizPoints, setQuizPoints] = useState(0);
 
-  const syncSupabaseUser = async (viewer) => {
+  const syncSupabaseUser = async (viewer, realEpisodes) => {
     try {
-      console.log('Synchronizing user with Supabase:', viewer.id, viewer.name);
+      console.log('Synchronizing user with Supabase:', viewer.id, viewer.name, 'Real Episodes:', realEpisodes);
       
+      const epsToUse = realEpisodes !== undefined ? realEpisodes : (viewer.statistics?.anime?.episodesWatched || 0);
+
       const { data, error } = await supabase
         .from('users')
         .upsert({ 
           anilist_id: viewer.id.toString(), 
           username: viewer.name,
-          anime_points: (viewer.statistics?.anime?.episodesWatched || 0) * 10
+          anime_points: epsToUse * 10
         }, { onConflict: 'anilist_id' })
         .select('quiz_points')
         .single();
@@ -611,6 +613,24 @@ export default function App() {
         const user = result.data.User;
         
 
+
+        // Fetch anime_points from Supabase as Source of Truth
+        try {
+          const { data: supaData, error: supaErr } = await supabase
+            .from('users')
+            .select('anime_points')
+            .eq('anilist_id', user.id.toString())
+            .single();
+            
+          if (!supaErr && supaData && supaData.anime_points > 0) {
+            // Override with precise value from Supabase
+            if (!user.statistics) user.statistics = { anime: {} };
+            if (!user.statistics.anime) user.statistics.anime = {};
+            user.statistics.anime.episodesWatched = Math.floor(supaData.anime_points / 10);
+          }
+        } catch (e) {
+          console.error("Error fetching friend points from Supabase", e);
+        }
 
         setFriendData(user);
 
@@ -900,6 +920,7 @@ export default function App() {
           }
         });
         setCompletedAnime(allEntries);
+        return allEntries;
       }
     } catch (err) {
       console.error('Error fetching user anime list:', err);
@@ -1047,11 +1068,27 @@ export default function App() {
 
       const viewer = result.data.Viewer;
       
-      setUserData(viewer);
-      await syncSupabaseUser(viewer);
       
       if (viewer.id) {
-        await fetchUserAnimeList(viewer.id);
+        const animeEntries = await fetchUserAnimeList(viewer.id);
+        let totalEpisodes = 0;
+        if (animeEntries) {
+          totalEpisodes = animeEntries.reduce((sum, entry) => {
+            if (entry.status === 'COMPLETED' || entry.status === 'CURRENT') {
+              return sum + (entry.progress || 0);
+            }
+            return sum;
+          }, 0);
+        }
+        
+        // Patch viewer data with real episodes for ProfileHeader
+        if (!viewer.statistics) viewer.statistics = { anime: {} };
+        if (!viewer.statistics.anime) viewer.statistics.anime = {};
+        viewer.statistics.anime.episodesWatched = totalEpisodes;
+        
+        setUserData(viewer);
+        await syncSupabaseUser(viewer, totalEpisodes);
+
         await fetchAnilistFollowing(viewer.id);
         await fetchSocialActivity();
       }
@@ -1418,9 +1455,24 @@ export default function App() {
         }
 
         const viewer = result.data.Viewer;
+        const animeEntries = await fetchUserAnimeList(viewer.id);
+        let totalEpisodes = 0;
+        if (animeEntries) {
+          totalEpisodes = animeEntries.reduce((sum, entry) => {
+            if (entry.status === 'COMPLETED' || entry.status === 'CURRENT') {
+              return sum + (entry.progress || 0);
+            }
+            return sum;
+          }, 0);
+        }
+        
+        // Patch viewer data with real episodes
+        if (!viewer.statistics) viewer.statistics = { anime: {} };
+        if (!viewer.statistics.anime) viewer.statistics.anime = {};
+        viewer.statistics.anime.episodesWatched = totalEpisodes;
+        
         setUserData(viewer);
-        await syncSupabaseUser(viewer);
-        await fetchUserAnimeList(viewer.id);
+        await syncSupabaseUser(viewer, totalEpisodes);
         await fetchAnilistFollowing(viewer.id);
         await fetchSocialActivity();
       } catch (err) {

@@ -3,7 +3,7 @@ import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert,
 import { motion, AnimatePresence } from 'framer-motion';
 import ArenaView from './components/ArenaView';
 import { supabase } from './supabase';
-import { calculatePL, getLeagueInfo } from './leagueUtils';
+import { calculatePL, getLeagueInfo, calculateLevel } from './leagueUtils';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
 import confetti from 'canvas-confetti';
@@ -23,39 +23,6 @@ const TROPHY_CONFIG = [
   { level: 90, title: 'Titán', frameName: null, frameLabel: 'Sin Marco' },
   { level: 100, title: 'Completista', frameName: 'chroma', frameLabel: 'Marco Croma' }
 ];
-
-const getEpsForNextLevel = (level) => {
-  if (level <= 10) return 25;
-  if (level <= 30) return 50;
-  if (level <= 60) return 100;
-  
-  // Escala exponencial para los rangos de 'Leyenda' y superiores (61-100)
-  // Base 200, crece un 8% cada nivel. 
-  // Nivel 61 = 200, Nivel 80 = ~862, Nivel 100 = ~4022
-  const growthRate = 1.08;
-  return Math.floor(200 * Math.pow(growthRate, level - 61));
-};
-
-const calculateLevelStats = (totalEpisodes) => {
-  let computedLevel = 1;
-  let episodiosRestantes = totalEpisodes || 0;
-  let episodiosParaSiguienteNivel = getEpsForNextLevel(computedLevel);
-
-  while (episodiosRestantes >= episodiosParaSiguienteNivel) {
-    episodiosRestantes -= episodiosParaSiguienteNivel;
-    computedLevel++;
-    episodiosParaSiguienteNivel = getEpsForNextLevel(computedLevel);
-  }
-  
-  const progresoPorcentaje = (episodiosRestantes / episodiosParaSiguienteNivel) * 100;
-  
-  let userTitle = 'Novato';
-  if (computedLevel >= 61) userTitle = 'Leyenda';
-  else if (computedLevel >= 31) userTitle = 'Veterano';
-  else if (computedLevel >= 11) userTitle = 'Aprendiz';
-
-  return { computedLevel, userTitle, episodiosRestantes, episodiosParaSiguienteNivel, progresoPorcentaje };
-};
 
 const getHighestFrame = (level) => {
   if (level >= 100) return 'chroma';
@@ -80,7 +47,16 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
   console.log('ProfileHeader received user data:', user.name, 'Episodes Watched:', user.statistics?.anime?.episodesWatched);
 
   const totalEps = user.statistics?.anime?.episodesWatched || 0;
-  const stats = calculateLevelStats(totalEps);
+  const stats = calculateLevel(totalEps);
+  
+  if (user.supabaseLevel) {
+    stats.computedLevel = Math.max(1, user.supabaseLevel);
+    // Keep userTitle relative to episodes or recalculate title based on level
+    if (stats.computedLevel >= 61) stats.userTitle = 'Leyenda';
+    else if (stats.computedLevel >= 31) stats.userTitle = 'Veterano';
+    else if (stats.computedLevel >= 11) stats.userTitle = 'Aprendiz';
+    else stats.userTitle = 'Novato';
+  }
   
   let framePath = null;
   if (!isPublic && selectedFrame && selectedFrame !== 'auto' && selectedFrame !== 'none') {
@@ -209,7 +185,7 @@ const ProfileDisplay = ({
   try {
     const isDesktop = window.innerWidth >= 768;
     const totalEpsForLevel = user.statistics?.anime?.episodesWatched || animeList.reduce((s, e) => s + (e.progress || 0), 0);
-    const { computedLevel } = calculateLevelStats(totalEpsForLevel);
+    const { computedLevel } = calculateLevel(totalEpsForLevel);
 
     return (
       <div className="card profile-card" style={{ position: 'relative' }}>
@@ -368,7 +344,8 @@ export default function App() {
         .from('users')
         .upsert({ 
           anilist_id: viewer.id.toString(), 
-          username: viewer.name 
+          username: viewer.name,
+          level: Math.max(1, calculateLevel(viewer.statistics?.anime?.episodesWatched || 0).computedLevel)
         }, { onConflict: 'anilist_id' })
         .select('quiz_points')
         .single();
@@ -632,6 +609,22 @@ export default function App() {
         }
 
         const user = result.data.User;
+        
+        // Fetch level from Supabase
+        try {
+          const { data: supaData, error: supaErr } = await supabase
+            .from('users')
+            .select('level')
+            .eq('anilist_id', user.id.toString())
+            .single();
+            
+          if (!supaErr && supaData && supaData.level) {
+            user.supabaseLevel = supaData.level;
+          }
+        } catch (e) {
+          console.error("Error fetching friend level from Supabase", e);
+        }
+
         setFriendData(user);
 
         // Now fetch their anime list
@@ -754,7 +747,7 @@ export default function App() {
 
   // Compute global level based on tiered progression
   const totalEpsForLevel = userData?.statistics?.anime?.episodesWatched || completedAnime.reduce((s, e) => s + (e.progress || 0), 0);
-  const { computedLevel, userTitle, episodiosRestantes, episodiosParaSiguienteNivel, progresoPorcentaje } = calculateLevelStats(totalEpsForLevel);
+  const { computedLevel, userTitle, episodiosRestantes, episodiosParaSiguienteNivel, progresoPorcentaje } = calculateLevel(totalEpsForLevel);
 
 
   // Check for level up
@@ -2450,7 +2443,7 @@ case 'mylist': {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '1rem' }}>
                     {anilistFriends.map(friend => {
                       const eps = friend.statistics?.anime?.episodesWatched || 0;
-                      const stats = calculateLevelStats(eps);
+                      const stats = calculateLevel(eps);
                       const highestFrame = getHighestFrame(stats.computedLevel);
                       const isClose = (stats.episodiosParaSiguienteNivel - stats.episodiosRestantes) <= 10;
                       

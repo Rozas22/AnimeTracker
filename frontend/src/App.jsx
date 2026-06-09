@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart, Lock, ChevronUp, ChevronDown, UserPlus } from 'lucide-react';
+import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart, Lock, ChevronUp, ChevronDown, UserPlus , Swords } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ArenaView from './components/ArenaView';
+import { supabase } from './supabase';
+import { calculatePL, getLeagueInfo } from './leagueUtils';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
 import confetti from 'canvas-confetti';
@@ -216,7 +219,8 @@ const ProfileDisplay = ({
           <ProfileHeader 
             user={user} 
             isPublic={!isOwnProfile} 
-            selectedFrame={selectedFrame} 
+            selectedFrame={selectedFrame}
+            userLeague={userLeague} 
             onTestAnimation={onTestAnimation}
           />
 
@@ -2221,6 +2225,7 @@ case 'mylist': {
             isOwnProfile={true}
             animeList={completedAnime}
             selectedFrame={selectedFrame}
+            userLeague={userLeague}
             onTestAnimation={(stats) => {
               setLevelUpData({ level: stats.computedLevel, title: stats.userTitle, totalEps: stats.totalEpsForLevel });
               setShowLevelUpModal(true);
@@ -2230,7 +2235,10 @@ case 'mylist': {
             onSubTabClick={setMylistSubTab}
           />
         );
-case 'settings':
+      case 'arena':
+        return <ArenaView user={userData} anilistFriends={anilistFriends} />;
+
+      case 'settings':
         return (
           <div className="settings-card card" style={{ maxWidth: '700px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>

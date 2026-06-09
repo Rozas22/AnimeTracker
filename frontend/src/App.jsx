@@ -344,7 +344,8 @@ export default function App() {
         .from('users')
         .upsert({ 
           anilist_id: viewer.id.toString(), 
-          username: viewer.name 
+          username: viewer.name,
+          anime_points: (viewer.statistics?.anime?.episodesWatched || 0) * 10
         }, { onConflict: 'anilist_id' })
         .select('quiz_points')
         .single();

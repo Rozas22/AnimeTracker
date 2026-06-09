@@ -36,6 +36,11 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
           const res = await fetch('/api/generate-quiz');
           if (!res.ok) throw new Error('Error al generar quiz');
           const data = await res.json();
+          if (data.error) {
+              alert(data.error);
+              setShowQuizModal(false);
+              return;
+          }
           setQuizQuestions(data);
           setCurrentQuestionIndex(0);
           setQuizScore(0);

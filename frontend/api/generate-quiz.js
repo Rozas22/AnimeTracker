@@ -33,7 +33,8 @@ export default async function handler(req, res) {
             if (cachedQuizzes && cachedQuizzes.length > 0) {
                  return res.status(200).json(cachedQuizzes.sort(() => 0.5 - Math.random()).slice(0, 5));
             }
-            return res.status(500).json({ error: 'GEMINI_API_KEY is missing and DB is empty' });
+            console.error('Error detallado en API: GEMINI_API_KEY is missing and DB is empty');
+            return res.status(200).json({ error: 'No se pudo generar el quiz en este momento' });
         }
 
         // Obtener animes populares de AniList para dar contexto a la IA
@@ -99,7 +100,7 @@ Formato de cada objeto en el array:
         return res.status(200).json(generatedQuizzes);
 
     } catch (err) {
-        console.error('API Error:', err);
-        return res.status(500).json({ error: 'Internal Server Error', details: err.message });
+        console.error('Error detallado en API:', err.message || err);
+        return res.status(200).json({ error: 'No se pudo generar el quiz en este momento' });
     }
 }

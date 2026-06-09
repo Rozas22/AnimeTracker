@@ -1847,6 +1847,73 @@ export default function App() {
   };
 
   // Render active tab content
+  const renderSettingsContent = () => (
+            <div className="aesthetics-panel" style={{ padding: 0 }}>
+              <div className="aesthetics-section">
+                <span className="aesthetics-label">Color de Acento</span>
+                <div className="color-swatches">
+                  {ACCENT_COLORS.map(({ key, color, label }) => (
+                    <button
+                      key={key}
+                      className={`swatch ${accentColor === key ? 'active' : ''}`}
+                      style={{ background: color }}
+                      onClick={() => setAccentColor(key)}
+                      title={label}
+                      aria-label={`Color de acento: ${label}`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="aesthetics-section">
+                <span className="aesthetics-label">Estilo de Interfaz</span>
+                <div className="style-mode-toggle">
+                  <button
+                    className={`style-mode-btn ${styleMode === 'classic' ? 'active' : ''}`}
+                    onClick={() => setStyleMode('classic')}
+                  >
+                    Clásico
+                  </button>
+                  <button
+                    className={`style-mode-btn ${styleMode === 'modern' ? 'active' : ''}`}
+                    onClick={() => setStyleMode('modern')}
+                  >
+                    Moderno
+                  </button>
+                  <button
+                    className={`style-mode-btn ${styleMode === 'modern2' ? 'active' : ''}`}
+                    onClick={() => setStyleMode('modern2')}
+                  >
+                    Moderno 2
+                  </button>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '0.8rem' }}>
+                  {styleMode === 'modern'
+                    ? '✔️ Modo moderno: glassmorphism + avatar hexagonal.'
+                    : styleMode === 'modern2'
+                    ? '✔️ Moderno 2: layout 2 columnas, fondos sólidos, sombras neumorfóficas.'
+                    : 'Modo clásico: diseño plano y limpio.'}
+                </p>
+              </div>
+              <div className="aesthetics-section">
+                <span className="aesthetics-label">Marco del Perfil</span>
+                <div className="style-mode-toggle">
+                  <button className={`style-mode-btn ${selectedFrame === 'auto' ? 'active' : ''}`} onClick={() => handleFrameSelect('auto')}>Auto</button>
+                  <button className={`style-mode-btn ${selectedFrame === 'none' ? 'active' : ''}`} onClick={() => handleFrameSelect('none')}>Ninguno</button>
+                  <button className={`style-mode-btn ${selectedFrame === '20' ? 'active' : ''}`} disabled={computedLevel < 20} onClick={() => handleFrameSelect('20')}>Niv 20</button>
+                  <button className={`style-mode-btn ${selectedFrame === '30' ? 'active' : ''}`} disabled={computedLevel < 30} onClick={() => handleFrameSelect('30')}>Niv 30</button>
+                  <button className={`style-mode-btn ${selectedFrame === '40' ? 'active' : ''}`} disabled={computedLevel < 40} onClick={() => handleFrameSelect('40')}>Niv 40</button>
+                  <button className={`style-mode-btn ${selectedFrame === '50' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('50')}>Niv 50</button>
+                  <button className={`style-mode-btn ${selectedFrame === '60' ? 'active' : ''}`} disabled={computedLevel < 60} onClick={() => handleFrameSelect('60')}>Niv 60</button>
+                  <button className={`style-mode-btn ${selectedFrame === '70' ? 'active' : ''}`} disabled={computedLevel < 70} onClick={() => handleFrameSelect('70')}>Niv 70</button>
+                  <button className={`style-mode-btn ${selectedFrame === '80' ? 'active' : ''}`} disabled={computedLevel < 80} onClick={() => handleFrameSelect('80')}>Niv 80</button>
+                  <button className={`style-mode-btn ${selectedFrame === '90' ? 'active' : ''}`} disabled={computedLevel < 90} onClick={() => handleFrameSelect('90')}>Niv 90</button>
+                  <button className={`style-mode-btn ${selectedFrame === '100' ? 'active' : ''}`} disabled={computedLevel < 100} onClick={() => handleFrameSelect('100')}>Niv 100</button>
+                </div>
+              </div>
+            </div>
+  );
+
   const renderContent = () => {
     switch (activeTab) {
             case 'friend-profile': {
@@ -2140,70 +2207,8 @@ case 'settings':
               </h2>
             </div>
             
-            <div className="aesthetics-panel" style={{ padding: 0 }}>
-              <div className="aesthetics-section">
-                <span className="aesthetics-label">Color de Acento</span>
-                <div className="color-swatches">
-                  {ACCENT_COLORS.map(({ key, color, label }) => (
-                    <button
-                      key={key}
-                      className={`swatch ${accentColor === key ? 'active' : ''}`}
-                      style={{ background: color }}
-                      onClick={() => setAccentColor(key)}
-                      title={label}
-                      aria-label={`Color de acento: ${label}`}
-                    />
-                  ))}
-                </div>
-              </div>
+              {renderSettingsContent()}
 
-              <div className="aesthetics-section">
-                <span className="aesthetics-label">Estilo de Interfaz</span>
-                <div className="style-mode-toggle">
-                  <button
-                    className={`style-mode-btn ${styleMode === 'classic' ? 'active' : ''}`}
-                    onClick={() => setStyleMode('classic')}
-                  >
-                    Clásico
-                  </button>
-                  <button
-                    className={`style-mode-btn ${styleMode === 'modern' ? 'active' : ''}`}
-                    onClick={() => setStyleMode('modern')}
-                  >
-                    Moderno
-                  </button>
-                  <button
-                    className={`style-mode-btn ${styleMode === 'modern2' ? 'active' : ''}`}
-                    onClick={() => setStyleMode('modern2')}
-                  >
-                    Moderno 2
-                  </button>
-                </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '0.8rem' }}>
-                  {styleMode === 'modern'
-                    ? '✔️ Modo moderno: glassmorphism + avatar hexagonal.'
-                    : styleMode === 'modern2'
-                    ? '✔️ Moderno 2: layout 2 columnas, fondos sólidos, sombras neumorfóficas.'
-                    : 'Modo clásico: diseño plano y limpio.'}
-                </p>
-              </div>
-              <div className="aesthetics-section">
-                <span className="aesthetics-label">Marco del Perfil</span>
-                <div className="style-mode-toggle">
-                  <button className={`style-mode-btn ${selectedFrame === 'auto' ? 'active' : ''}`} onClick={() => handleFrameSelect('auto')}>Auto</button>
-                  <button className={`style-mode-btn ${selectedFrame === 'none' ? 'active' : ''}`} onClick={() => handleFrameSelect('none')}>Ninguno</button>
-                  <button className={`style-mode-btn ${selectedFrame === '20' ? 'active' : ''}`} disabled={computedLevel < 20} onClick={() => handleFrameSelect('20')}>Niv 20</button>
-                  <button className={`style-mode-btn ${selectedFrame === '30' ? 'active' : ''}`} disabled={computedLevel < 30} onClick={() => handleFrameSelect('30')}>Niv 30</button>
-                  <button className={`style-mode-btn ${selectedFrame === '40' ? 'active' : ''}`} disabled={computedLevel < 40} onClick={() => handleFrameSelect('40')}>Niv 40</button>
-                  <button className={`style-mode-btn ${selectedFrame === '50' ? 'active' : ''}`} disabled={computedLevel < 50} onClick={() => handleFrameSelect('50')}>Niv 50</button>
-                  <button className={`style-mode-btn ${selectedFrame === '60' ? 'active' : ''}`} disabled={computedLevel < 60} onClick={() => handleFrameSelect('60')}>Niv 60</button>
-                  <button className={`style-mode-btn ${selectedFrame === '70' ? 'active' : ''}`} disabled={computedLevel < 70} onClick={() => handleFrameSelect('70')}>Niv 70</button>
-                  <button className={`style-mode-btn ${selectedFrame === '80' ? 'active' : ''}`} disabled={computedLevel < 80} onClick={() => handleFrameSelect('80')}>Niv 80</button>
-                  <button className={`style-mode-btn ${selectedFrame === '90' ? 'active' : ''}`} disabled={computedLevel < 90} onClick={() => handleFrameSelect('90')}>Niv 90</button>
-                  <button className={`style-mode-btn ${selectedFrame === '100' ? 'active' : ''}`} disabled={computedLevel < 100} onClick={() => handleFrameSelect('100')}>Niv 100</button>
-                </div>
-              </div>
-            </div>
           </div>
         );
       case 'search':
@@ -3350,7 +3355,39 @@ case 'settings':
             </motion.div>
           </motion.div>
         )}
+            {/* Mobile Settings Modal */}
+      <AnimatePresence>
+        {showSettingsModal && (
+          <motion.div 
+            className="settings-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowSettingsModal(false)}
+            style={{ zIndex: 9999 }}
+          >
+            <motion.div 
+              className="settings-card card" 
+              style={{ width: '95%', maxWidth: '500px', maxHeight: '85vh', overflowY: 'auto' }}
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>
+                <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Settings size={22} style={{ color: 'var(--accent)' }} /> Ajustes de Estética
+                </h2>
+                <button onClick={() => setShowSettingsModal(false)} className="btn-secondary" style={{ padding: '0.4rem' }}>
+                  <X size={18} />
+                </button>
+              </div>
+              {renderSettingsContent()}
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
+</AnimatePresence>
     </div>
   );
 }

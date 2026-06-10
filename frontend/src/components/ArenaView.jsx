@@ -69,18 +69,17 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
       let isCorrect = (answer === currentQ.correct_answer);
       let newScore = quizScore;
       
-      // Update in-memory DB stats for this question
       let currentStats = { ...userDbStats };
       if (isCorrect) {
           newScore += 100;
           setQuizScore(newScore);
           currentStats.quiz += 100;
           currentStats.monthly += 100;
-          currentStats.streak += 1;
+          currentStats.sessionCorrect = (currentStats.sessionCorrect || 0) + 1;
       } else {
-          currentStats.streak = 0; // Reset racha on fail
+          currentStats.sessionFailed = true;
       }
-      setUserDbStats(currentStats); // Guardamos la racha y los puntos paso a paso en memoria
+      setUserDbStats(currentStats);
 
       if (currentQuestionIndex + 1 < quizQuestions.length) {
           setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -89,9 +88,16 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
           localStorage.setItem('lastQuizDate', new Date().toDateString());
           
           if (user) {
+              if (currentStats.sessionCorrect === quizQuestions.length && !currentStats.sessionFailed) {
+                  // Acierto perfecto de las 3 preguntas
+                  currentStats.streak = (currentStats.streak || 0) + 1;
+              } else {
+                  // Si falló alguna, racha vuelve a 0
+                  currentStats.streak = 0;
+              }
+
               if (setQuizPoints) setQuizPoints(currentStats.quiz);
               try {
-                  // Guardamos todos los resultados finales (incluyendo racha final) de una sola vez
                   await supabase.from('users').update({ 
                       quiz_points: currentStats.quiz,
                       monthly_quiz_points: currentStats.monthly,

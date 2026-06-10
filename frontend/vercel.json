@@ -4,5 +4,11 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron-generate-quizzes",
+      "schedule": "0 0 * * *"
+    }
   ]
 }

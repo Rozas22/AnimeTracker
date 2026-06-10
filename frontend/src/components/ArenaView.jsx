@@ -63,13 +63,14 @@ const ArenaView = ({ user, friendList, token, supabase, setQuizPoints }) => {
         let quizPointsMap = {};
         
         try {
+            // DEBUG: Consulta sin filtros para verificar datos y tipos
             const { data, error } = await supabase
               .from('users')
-              .select('anilist_id, quiz_points, anime_points, monthly_quiz_points, current_streak')
-              .in('anilist_id', ids);
+              .select('*');
               
             if (!error && data) {
-                console.log('Supabase connection test - Data returned:', data);
+                console.log('Tabla de usuarios completa:', data);
+                console.log('IDs que estamos buscando:', ids);
                 data.forEach(row => {
                     quizPointsMap[row.anilist_id] = {
                       quiz: row.quiz_points || 0,

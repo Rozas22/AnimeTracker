@@ -9,6 +9,10 @@
     {
       "path": "/api/cron-generate-quizzes",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron-reset-monthly",
+      "schedule": "0 0 1 * *"
     }
   ]
 }

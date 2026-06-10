@@ -13,7 +13,9 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
     console.log('Arena montada');
   }, []);
   const [timeLeft, setTimeLeft] = useState('');
+  const [activeLeague, setActiveLeague] = useState('global'); // 'global' or 'monthly'
   const [showQuizModal, setShowQuizModal] = useState(false);
+  const [userDbStats, setUserDbStats] = useState({ quiz: 0, monthly: 0, streak: 0 });
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [quizScore, setQuizScore] = useState(0);
@@ -33,6 +35,14 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
       setShowQuizModal(true);
 
       try {
+          // Fetch current DB stats before playing
+          if (user) {
+              const { data: dbData } = await supabase.from('users').select('quiz_points, monthly_quiz_points, current_streak').eq('anilist_id', user.id).single();
+              if (dbData) {
+                  setUserDbStats({ quiz: dbData.quiz_points || 0, monthly: dbData.monthly_quiz_points || 0, streak: dbData.current_streak || 0 });
+              }
+          }
+
           const res = await fetch('/api/generate-quiz');
           if (!res.ok) throw new Error('Error al generar quiz');
           const data = await res.json();
@@ -55,25 +65,46 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
 
   const handleAnswer = async (answer) => {
       const currentQ = quizQuestions[currentQuestionIndex];
+      
+      let isCorrect = (answer === currentQ.correct_answer);
       let newScore = quizScore;
-      if (answer === currentQ.correct_answer) {
-          newScore += 100; // 100 PL per correct answer
+      
+      // Update in-memory DB stats for this question
+      let currentStats = { ...userDbStats };
+      if (isCorrect) {
+          newScore += 100;
           setQuizScore(newScore);
+          currentStats.quiz += 100;
+          currentStats.monthly += 100;
+          currentStats.streak += 1;
+      } else {
+          currentStats.streak = 0; // Reset racha on fail
       }
+      setUserDbStats(currentStats); // Guardamos la racha y los puntos paso a paso en memoria
 
       if (currentQuestionIndex + 1 < quizQuestions.length) {
           setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
           setQuizStatus('finished');
-          // Save quiz result
           localStorage.setItem('lastQuizDate', new Date().toDateString());
-          if (newScore > 0 && user && setQuizPoints) {
-              const totalPoints = (quizPoints || 0) + newScore;
-              setQuizPoints(totalPoints);
+          
+          if (user) {
+              if (setQuizPoints) setQuizPoints(currentStats.quiz);
               try {
-                  await supabase.from('users').update({ quiz_points: totalPoints }).eq('anilist_id', user.id);
-                  // Trigger a refresh of the leaderboard locally
-                  setLeaderboard(prev => prev.map(p => p.id === user.id ? { ...p, pl: p.pl + newScore } : p).sort((a,b)=>b.pl - a.pl));
+                  // Guardamos todos los resultados finales (incluyendo racha final) de una sola vez
+                  await supabase.from('users').update({ 
+                      quiz_points: currentStats.quiz,
+                      monthly_quiz_points: currentStats.monthly,
+                      current_streak: currentStats.streak
+                  }).eq('anilist_id', user.id);
+                  
+                  // Refrescar el leaderboard
+                  setLeaderboard(prev => prev.map(p => p.id === user.id ? { 
+                      ...p, 
+                      pl: p.animePoints + currentStats.quiz,
+                      monthlyPl: currentStats.monthly,
+                      streak: currentStats.streak
+                  } : p));
               } catch (e) {
                   console.error('Error saving new score to Supabase', e);
               }
@@ -127,7 +158,7 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
         try {
             const { data, error } = await supabase
               .from('users')
-              .select('anilist_id, quiz_points, anime_points')
+              .select('anilist_id, quiz_points, anime_points, monthly_quiz_points, current_streak')
               .in('anilist_id', ids);
               
             if (!error && data) {
@@ -135,7 +166,9 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
                 data.forEach(row => {
                     quizPointsMap[row.anilist_id] = {
                       quiz: row.quiz_points || 0,
-                      anime: row.anime_points || 0
+                      anime: row.anime_points || 0,
+                      monthly: row.monthly_quiz_points || 0,
+                      streak: row.current_streak || 0
                     };
                 });
             } else if (error) {
@@ -160,7 +193,10 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
             avatar: user.avatar?.large || user.avatar,
             isMe: true,
             level: calculateLevel(userEps).computedLevel,
-            pl: userAnimePoints + userPoints.quiz
+            animePoints: userAnimePoints,
+            pl: userAnimePoints + userPoints.quiz,
+            monthlyPl: userPoints.monthly,
+            streak: userPoints.streak
         });
 
         // Add friends using points from Supabase as Source of Truth
@@ -185,8 +221,7 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
             });
         });
 
-        // Sort descending
-        players.sort((a, b) => b.pl - a.pl);
+        // We sort dynamically in the render depending on activeLeague
         setLeaderboard(players);
 
       } catch (error) {
@@ -288,8 +323,11 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
       </AnimatePresence>
       <div className="ranking-list">
 
-        {leaderboard.map((player, index) => {
-            const league = getLeagueInfo(player.pl);
+        {[...leaderboard]
+          .sort((a, b) => activeLeague === 'global' ? b.pl - a.pl : b.monthlyPl - a.monthlyPl)
+          .map((player, index) => {
+            const league = activeLeague === 'global' ? getLeagueInfo(player.pl) : getLeagueInfo(player.monthlyPl);
+            const scoreToDisplay = activeLeague === 'global' ? player.pl : player.monthlyPl;
             const rank = index + 1;
             
             // Lógica de zonas (Ascenso Top 3, Descenso Bottom 2)

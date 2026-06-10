@@ -304,10 +304,12 @@ const ProfileDisplay = ({
                 );
               })}
             </div>
-          </CollapsibleSection>
+            </CollapsibleSection>
+
+            <ListaDesplegable userId={user.id} />
+          </div>
         </div>
       </div>
-    </div>
     );
   } catch (err) {
     console.error('Error rendering ProfileDisplay:', err);

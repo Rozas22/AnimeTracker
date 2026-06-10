@@ -67,15 +67,27 @@ export default async function handler(req, res) {
         const selectedAnime = animeTitles[Math.floor(Math.random() * animeTitles.length)];
 
         const prompt = `Genera exactamente 5 preguntas trivia de dificultad media o dificil sobre el anime "${selectedAnime}" o animes populares en general. 
-Devuelve estrictamente un array JSON válido sin texto adicional. 
-Formato de cada objeto en el array:
+Responde ÚNICAMENTE con un array de objetos JSON válido, sin texto adicional, explicaciones ni formato Markdown.
+
+Estructura de cada objeto:
 {
   "anime_title": "Nombre del anime",
   "question": "Pregunta detallada",
   "options": ["Opcion A", "Opcion B", "Opcion C", "Opcion D"],
   "correct_answer": "Respuesta correcta (debe ser exacta a una de las opciones)",
   "difficulty": "medium" o "hard"
-}`;
+}
+
+Ejemplo de respuesta esperada:
+[
+  {
+    "anime_title": "Naruto",
+    "question": "¿Quién fue el Cuarto Hokage?",
+    "options": ["Hiruzen Sarutobi", "Minato Namikaze", "Tobirama Senju", "Kakashi Hatake"],
+    "correct_answer": "Minato Namikaze",
+    "difficulty": "medium"
+  }
+]`;
 
         const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
@@ -92,7 +104,9 @@ Formato de cada objeto en el array:
              throw new Error('Gemini API returned empty response');
         }
 
-        const generatedText = geminiData.candidates[0].content.parts[0].text;
+        let generatedText = geminiData.candidates[0].content.parts[0].text;
+        // Limpieza de formato Markdown
+        generatedText = generatedText.replace(/```json/g, '').replace(/```/g, '').trim();
         const generatedQuizzes = JSON.parse(generatedText);
 
         // 3. Guardar en Supabase para el futuro

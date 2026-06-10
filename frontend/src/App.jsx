@@ -1273,6 +1273,38 @@ export default function App() {
       const isNowFollowing = result.data.ToggleFollow.isFollowing;
       showToast(isNowFollowing ? 'Siguiendo al usuario' : 'Has dejado de seguir al usuario');
       
+      // Lógica de Idempotencia: Check de Unicidad antes de insertar en Supabase
+      if (isNowFollowing && userData?.id) {
+        try {
+          const { data: existing } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('type', 'FOLLOW')
+            .eq('sender_id', userData.id.toString())
+            .eq('receiver_id', parsedUserId.toString())
+            .single();
+            
+          if (!existing) {
+            await supabase.from('notifications').insert({
+              type: 'FOLLOW',
+              sender_id: userData.id.toString(),
+              receiver_id: parsedUserId.toString()
+            });
+          }
+        } catch (supaErr) {
+          if (supaErr.code !== 'PGRST116') { // Ignoramos el error si simplemente no hay resultados (single throw)
+             console.error('Error insertando notificación:', supaErr);
+          } else if (supaErr.code === 'PGRST116') {
+             // Es seguro insertar
+             await supabase.from('notifications').insert({
+              type: 'FOLLOW',
+              sender_id: userData.id.toString(),
+              receiver_id: parsedUserId.toString()
+            });
+          }
+        }
+      }
+      
       await fetchAnilistFollowing();
     } catch (err) {
       console.error('Error toggling follow:', err);
@@ -2960,7 +2992,11 @@ case 'mylist': {
                     <p style={{ margin: 0, fontSize: '0.9rem' }}>No hay actividad social reciente</p>
                   </div>
                 ) : (
-                  socialNotifications.map(notif => (
+                  socialNotifications.filter((notif, index, self) => 
+                    index === self.findIndex((t) => (
+                      t.user?.id === notif.user?.id && t.type === notif.type && t.status === notif.status
+                    ))
+                  ).map(notif => (
                     <div key={notif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center', position: 'relative' }}>
                       <img src={notif.user?.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} alt="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: notif.isRead ? 'none' : '2px solid var(--accent)' }} />
                       <div style={{ flex: 1 }}>

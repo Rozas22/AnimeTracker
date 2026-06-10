@@ -266,6 +266,17 @@ const ArenaView = ({ user, anilistFriends, quizPoints, setQuizPoints }) => {
         >
            ✨ Jugar Quiz Diario (+PL)
         </button>
+        {user?.name === 'Rozas22' && (
+           <button
+             onClick={() => {
+                localStorage.removeItem('lastQuizDate');
+                alert('Modo Dev: Restricción de fecha eliminada. Puedes jugar de nuevo.');
+             }}
+             style={{ display: 'block', margin: '1rem auto 0 auto', background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.8rem', cursor: 'pointer' }}
+           >
+             🛠️ Reset Quiz (Modo Dev)
+           </button>
+        )}
       </div>
 
 

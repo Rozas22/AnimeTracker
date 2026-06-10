@@ -10,34 +10,42 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    let cachedQuizzes = [];
+
     try {
         // 1. Intentar obtener quizzes de la base de datos
-        const { data: cachedQuizzes, error: cacheError } = await supabase
+        const { data, error: cacheError } = await supabase
             .from('quizzes')
             .select('*')
             .limit(50); // Get up to 50
 
-        if (!cacheError && cachedQuizzes && cachedQuizzes.length >= 5) {
-            // Shuffle and return 5 random ones
-            const shuffled = cachedQuizzes.sort(() => 0.5 - Math.random());
+        if (!cacheError && data) {
+            cachedQuizzes = data;
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        // Modo Offline: Si no hay llave de Gemini, servimos desde la BD local.
+        if (!apiKey) {
+            if (cachedQuizzes.length > 0) {
+                const shuffled = [...cachedQuizzes].sort(() => 0.5 - Math.random());
+                return res.status(200).json(shuffled.slice(0, 5));
+            } else {
+                console.error('Error detallado en API: GEMINI_API_KEY is missing and DB is empty');
+                return res.status(200).json({ error: 'Aún no hay quizzes disponibles. ¡Prueba más tarde!' });
+            }
+        }
+
+        // Si hay suficientes en caché, devolver 5 aleatorios (con 1 en 5 chances de generar nuevos)
+        if (cachedQuizzes.length >= 5) {
+            const shuffled = [...cachedQuizzes].sort(() => 0.5 - Math.random());
             const selected = shuffled.slice(0, 5);
-            // Return with a 1 in 5 chance of generating new ones to keep the database growing
             if (Math.random() > 0.2) {
                 return res.status(200).json(selected);
             }
         }
 
-        // 2. Si no hay suficientes (o tocó generar), generamos nuevos con Gemini
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            if (cachedQuizzes && cachedQuizzes.length > 0) {
-                 return res.status(200).json(cachedQuizzes.sort(() => 0.5 - Math.random()).slice(0, 5));
-            }
-            console.error('Error detallado en API: GEMINI_API_KEY is missing and DB is empty');
-            return res.status(200).json({ error: 'No se pudo generar el quiz en este momento' });
-        }
-
-        // Obtener animes populares de AniList para dar contexto a la IA
+        // 2. Generar nuevos con Gemini (si tocó probabilidad o si no hay suficientes)
         const anilistQuery = `
             query {
                 Page(page: ${Math.floor(Math.random() * 10) + 1}, perPage: 10) {
@@ -55,10 +63,9 @@ export default async function handler(req, res) {
         });
         
         const anilistData = await anilistRes.json();
-        const animeTitles = anilistData.data.Page.media.map(m => m.title.english || m.title.romaji);
+        const animeTitles = anilistData.data?.Page?.media?.map(m => m.title.english || m.title.romaji) || ["Naruto", "One Piece", "Bleach"];
         const selectedAnime = animeTitles[Math.floor(Math.random() * animeTitles.length)];
 
-        // Llamar a Gemini API
         const prompt = `Genera exactamente 5 preguntas trivia de dificultad media o dificil sobre el anime "${selectedAnime}" o animes populares en general. 
 Devuelve estrictamente un array JSON válido sin texto adicional. 
 Formato de cada objeto en el array:
@@ -101,6 +108,13 @@ Formato de cada objeto en el array:
 
     } catch (err) {
         console.error('Error detallado en API:', err.message || err);
-        return res.status(200).json({ error: 'No se pudo generar el quiz en este momento' });
+        
+        // A prueba de fallos: Si Gemini falla por cuota o timeout, salvamos la situación con la BD
+        if (cachedQuizzes && cachedQuizzes.length > 0) {
+            const shuffled = [...cachedQuizzes].sort(() => 0.5 - Math.random());
+            return res.status(200).json(shuffled.slice(0, 5));
+        }
+        
+        return res.status(200).json({ error: 'Aún no hay quizzes disponibles. ¡Prueba más tarde!' });
     }
 }

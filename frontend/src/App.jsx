@@ -745,6 +745,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedAnime, setSelectedAnime] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -2416,9 +2417,33 @@ case 'mylist': {
                   <Search size={18} />
                   {searching ? 'Buscando...' : 'Buscar'}
                 </button>
+                <button 
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="btn-secondary" 
+                  style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.2rem', background: showFilters ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'var(--color-text-primary)', cursor: 'pointer', transition: 'var(--transition-smooth)' }}
+                >
+                  <Settings size={18} />
+                  Filtros
+                  {((filterFormat !== 'Todos' ? 1 : 0) + (filterGenre !== 'Todos' ? 1 : 0)) > 0 && (
+                    <span style={{ position: 'absolute', top: '-6px', right: '-6px', background: 'var(--accent)', color: 'white', width: '22px', height: '22px', borderRadius: '50%', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', border: '2px solid var(--color-bg)' }}>
+                      {(filterFormat !== 'Todos' ? 1 : 0) + (filterGenre !== 'Todos' ? 1 : 0)}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              <div className="search-filters-row">
+              <div 
+                style={{ 
+                  maxHeight: showFilters ? '200px' : '0', 
+                  opacity: showFilters ? 1 : 0, 
+                  overflow: 'hidden', 
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  visibility: showFilters ? 'visible' : 'hidden',
+                  marginTop: showFilters ? '1rem' : '0'
+                }}
+              >
+                <div className="search-filters-row" style={{ marginTop: 0 }}>
                 <div className="filter-group">
                   <label htmlFor="filter-format" className="filter-label">Formato</label>
                   <select 
@@ -2461,6 +2486,7 @@ case 'mylist': {
                   </select>
                 </div>
               </div>
+            </div>
             </form>
 
             <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', marginTop: '2.5rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>

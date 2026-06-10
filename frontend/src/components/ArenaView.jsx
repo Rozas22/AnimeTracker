@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Swords, Shield, Star, Crown, Tv, Target, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../supabase';
 
-const ArenaView = ({ user, friendList, token, supabase, setQuizPoints }) => {
+const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
+  const friendList = anilistFriends || [];
   const [leaderboard, setLeaderboard] = useState([]);
   const [activeLeague, setActiveLeague] = useState('global');
   const [timeLeft, setTimeLeft] = useState('23:59:59');

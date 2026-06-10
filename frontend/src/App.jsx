@@ -962,14 +962,26 @@ export default function App() {
       const data = await response.json();
       if (!data.errors && data.data?.Page?.activities) {
         const activities = data.data.Page.activities.filter(a => a && a.user);
+        
+        // Filtro de Unicidad estricto por ID
+        const uniqueActivities = [];
+        const seenIds = new Set();
+        for (const act of activities) {
+          if (!seenIds.has(act.id)) {
+            seenIds.add(act.id);
+            uniqueActivities.push(act);
+          }
+        }
+
         setSocialNotifications(prev => {
           let newNotifs = [...prev];
-          activities.forEach(act => {
+          uniqueActivities.forEach(act => {
+            // Comparación: No re-añadir si ya está en la lista
             if (!newNotifs.some(n => n.id === act.id)) {
               newNotifs.unshift({ ...act, isRead: false });
             }
           });
-          newNotifs = newNotifs.slice(0, 20);
+          newNotifs = newNotifs.slice(0, 50);
           localStorage.setItem('animeTrackerSocialNotifs', JSON.stringify(newNotifs));
           return newNotifs;
         });
@@ -1097,7 +1109,7 @@ export default function App() {
         await syncSupabaseUser(viewer, totalEpisodes);
 
         await fetchAnilistFollowing(viewer.id);
-        await fetchSocialActivity();
+        const savedNotifs = localStorage.getItem('animeTrackerSocialNotifs'); if (!savedNotifs || JSON.parse(savedNotifs).length === 0) { await fetchSocialActivity(); }
       }
     } catch (err) {
       console.error('Error refreshing user data:', err);
@@ -1544,7 +1556,7 @@ export default function App() {
         setUserData(viewer);
         await syncSupabaseUser(viewer, totalEpisodes);
         await fetchAnilistFollowing(viewer.id);
-        await fetchSocialActivity();
+        const savedNotifs = localStorage.getItem('animeTrackerSocialNotifs'); if (!savedNotifs || JSON.parse(savedNotifs).length === 0) { await fetchSocialActivity(); }
       } catch (err) {
         console.error('Error fetching AniList profile:', err);
         setError('No se pudo cargar el perfil. Puede que el token haya expirado o sea inválido.');
@@ -2992,11 +3004,7 @@ case 'mylist': {
                     <p style={{ margin: 0, fontSize: '0.9rem' }}>No hay actividad social reciente</p>
                   </div>
                 ) : (
-                  socialNotifications.filter((notif, index, self) => 
-                    index === self.findIndex((t) => (
-                      t.user?.id === notif.user?.id && t.type === notif.type && t.status === notif.status
-                    ))
-                  ).map(notif => (
+                  socialNotifications.filter((v, i, a) => a.findIndex(t => t.id === v.id) === i).map(notif => (
                     <div key={notif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center', position: 'relative' }}>
                       <img src={notif.user?.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} alt="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: notif.isRead ? 'none' : '2px solid var(--accent)' }} />
                       <div style={{ flex: 1 }}>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart, Lock, ChevronUp, ChevronDown, UserPlus , Swords } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ArenaView from './components/ArenaView';
+import ListaDesplegable from './components/ListaDesplegable';
 import { supabase } from './supabase';
 import { calculatePL, getLeagueInfo, calculateLevel } from './leagueUtils';
 import Callback from './components/Callback';

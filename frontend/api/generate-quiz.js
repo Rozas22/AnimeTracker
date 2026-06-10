@@ -10,61 +10,51 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    let cachedQuizzes = [];
-
     try {
-        // 1. Intentar obtener quizzes de la base de datos
-        const { data, error: cacheError } = await supabase
+        // 1. PRIORIDAD ABSOLUTA: Intentar obtener quizzes de la base de datos
+        const { data: cachedQuizzes, error: cacheError } = await supabase
             .from('quizzes')
-            .select('*')
-            .limit(50); // Get up to 50
+            .select('*');
 
-        if (!cacheError && data) {
-            cachedQuizzes = data;
-        }
-
-        const apiKey = process.env.GEMINI_API_KEY;
-
-        // Modo Offline: Si no hay llave de Gemini, servimos desde la BD local.
-        if (!apiKey) {
-            if (cachedQuizzes.length > 0) {
-                const shuffled = [...cachedQuizzes].sort(() => 0.5 - Math.random());
-                return res.status(200).json(shuffled.slice(0, 5));
-            } else {
-                console.error('Error detallado en API: GEMINI_API_KEY is missing and DB is empty');
-                return res.status(200).json({ error: 'Aún no hay quizzes disponibles. ¡Prueba más tarde!' });
-            }
-        }
-
-        // Si hay suficientes en caché, devolver 5 aleatorios (con 1 en 5 chances de generar nuevos)
-        if (cachedQuizzes.length >= 5) {
+        // Si hay preguntas en Supabase (incluso si es solo 1), las usamos INMEDIATAMENTE
+        if (!cacheError && cachedQuizzes && cachedQuizzes.length > 0) {
+            // Mezclar y devolver (si hay menos de 5, devolverá las que haya)
             const shuffled = [...cachedQuizzes].sort(() => 0.5 - Math.random());
-            const selected = shuffled.slice(0, 5);
-            if (Math.random() > 0.2) {
-                return res.status(200).json(selected);
-            }
+            return res.status(200).json(shuffled.slice(0, 5));
         }
 
-        // 2. Generar nuevos con Gemini (si tocó probabilidad o si no hay suficientes)
-        const anilistQuery = `
-            query {
-                Page(page: ${Math.floor(Math.random() * 10) + 1}, perPage: 10) {
-                    media(type: ANIME, sort: POPULARITY_DESC) {
-                        title { romaji english }
+        // 2. FALLBACK A IA: Solo llegamos aquí si la tabla quizzes está COMPLETAMENTE VACÍA
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            console.error('Error: GEMINI_API_KEY no configurada y la tabla quizzes está vacía.');
+            return res.status(200).json({ error: 'No hay quizzes disponibles' });
+        }
+
+        // Obtener un anime aleatorio para el contexto (opcional)
+        let selectedAnime = "One Piece";
+        try {
+            const anilistQuery = `
+                query {
+                    Page(page: ${Math.floor(Math.random() * 10) + 1}, perPage: 10) {
+                        media(type: ANIME, sort: POPULARITY_DESC) {
+                            title { romaji english }
+                        }
                     }
                 }
+            `;
+            const anilistRes = await fetch('https://graphql.anilist.co', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: anilistQuery })
+            });
+            const anilistData = await anilistRes.json();
+            const animeTitles = anilistData.data?.Page?.media?.map(m => m.title.english || m.title.romaji);
+            if (animeTitles && animeTitles.length > 0) {
+                selectedAnime = animeTitles[Math.floor(Math.random() * animeTitles.length)];
             }
-        `;
-        
-        const anilistRes = await fetch('https://graphql.anilist.co', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: anilistQuery })
-        });
-        
-        const anilistData = await anilistRes.json();
-        const animeTitles = anilistData.data?.Page?.media?.map(m => m.title.english || m.title.romaji) || ["Naruto", "One Piece", "Bleach"];
-        const selectedAnime = animeTitles[Math.floor(Math.random() * animeTitles.length)];
+        } catch (e) {
+            console.error('Fallo al obtener animes populares, usando default');
+        }
 
         const prompt = `Genera exactamente 5 preguntas trivia de dificultad media o dificil sobre el anime "${selectedAnime}" o animes populares en general. 
 Responde ÚNICAMENTE con un array de objetos JSON válido, sin texto adicional, explicaciones ni formato Markdown.
@@ -105,11 +95,12 @@ Ejemplo de respuesta esperada:
         }
 
         let generatedText = geminiData.candidates[0].content.parts[0].text;
-        // Limpieza de formato Markdown
+        // Limpieza anti-markdown
         generatedText = generatedText.replace(/```json/g, '').replace(/```/g, '').trim();
+
         const generatedQuizzes = JSON.parse(generatedText);
 
-        // 3. Guardar en Supabase para el futuro
+        // 3. Guardar en Supabase para el futuro (la próxima vez entrará por la regla 1)
         const { error: insertError } = await supabase
             .from('quizzes')
             .insert(generatedQuizzes);
@@ -122,13 +113,6 @@ Ejemplo de respuesta esperada:
 
     } catch (err) {
         console.error('Error detallado en API:', err.message || err);
-        
-        // A prueba de fallos: Si Gemini falla por cuota o timeout, salvamos la situación con la BD
-        if (cachedQuizzes && cachedQuizzes.length > 0) {
-            const shuffled = [...cachedQuizzes].sort(() => 0.5 - Math.random());
-            return res.status(200).json(shuffled.slice(0, 5));
-        }
-        
-        return res.status(200).json({ error: 'Aún no hay quizzes disponibles. ¡Prueba más tarde!' });
+        return res.status(200).json({ error: 'No hay quizzes disponibles' });
     }
 }

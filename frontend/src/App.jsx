@@ -327,6 +327,10 @@ export default function App() {
       const username = path.substring('/profile/'.length);
       return { tab: 'friend-profile', username };
     }
+    if (path.startsWith('/lista/')) {
+      const identifier = path.substring('/lista/'.length);
+      return { tab: 'mylist', username: identifier }; // We use username field to store either id or username
+    }
     return { tab: 'profile', username: null };
   };
 
@@ -1106,7 +1110,7 @@ export default function App() {
     }
     
     if (tabName === 'mylist') {
-        window.history.pushState(null, '', username ? `/lista/${username}` : '/lista');
+        window.history.pushState(null, '', username ? `/lista/${username}` : '/mi-lista');
     } else if (tabName === 'friend-profile' && username) {
         window.history.pushState(null, '', `/profile/${username}`);
     } else {

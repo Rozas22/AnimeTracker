@@ -231,7 +231,7 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
   };
 
   return (
-    <div className="tab-content fade-in" style={{ padding: '0 1rem' }}>
+    <div className="tab-content fade-in arena-container">
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '2.5rem', margin: 0, fontFamily: 'var(--font-display)' }}>Liga de Anime</h1>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem', marginTop: '0.5rem' }}>Compite con tus amigos. Gana Puntos de Liga (PL) viendo anime y completando quizzes.</p>
@@ -260,7 +260,7 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', margin: '2rem 0 1rem 0' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center', margin: '2rem 0 1rem 0', width: '100%', boxSizing: 'border-box' }}>
         <button 
           onClick={() => setActiveLeague('global')}
           style={{ 
@@ -380,22 +380,20 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                     
                     <div className="ranking-info">
                         <div className="ranking-name">
-                            {player.name}
-                            {player.isMe && <span style={{ fontSize: '0.7rem', background: 'var(--accent)', color: 'white', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>TÚ</span>}
+                            <span className="truncate-text">{player.name}</span>
+                            {player.isMe && <span className="badge-me">TÚ</span>}
                             {activeLeague === 'monthly' && player.streak > 0 && (
-                                <span style={{ fontSize: '0.8rem', color: '#FF9800', marginLeft: '6px', fontWeight: 'bold' }}>
-                                    🔥 Racha: {player.streak}
-                                </span>
+                                <span className="badge-streak">🔥 Racha: {player.streak}</span>
                             )}
                             {player.isPrivate ? (
-                                <span className="league-badge" style={{ background: 'transparent', color: '#888', border: '1px solid #444' }}>🔒 Privado</span>
+                                <span className="league-badge badge-private">🔒 Privado</span>
                             ) : (
                                 <span className={`league-badge ${league.class}`}>{league.icon} {league.name}</span>
                             )}
                         </div>
                     </div>
 
-                    <div style={{ textAlign: 'right' }}>
+                    <div className="ranking-score-container">
                         <div className="ranking-score">{scoreToDisplay.toLocaleString()} PL</div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                             {zoneClass === 'promotion-zone' ? <><TrendingUp size={12} color="#4CAF50"/> Ascenso</> : ''}

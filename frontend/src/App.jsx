@@ -3030,7 +3030,8 @@ case 'mylist': {
                     <p style={{ margin: 0, fontSize: '0.9rem' }}>No hay actividad social reciente</p>
                   </div>
                 ) : (
-                  socialNotifications.filter((notif, index, self) => notif.user?.id !== userData?.id && index === self.findIndex((t) => t.id === notif.id)).map(notif => (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {socialNotifications.filter((notif, index, self) => notif.user?.id !== userData?.id && index === self.findIndex((t) => t.id === notif.id)).map(notif => (
                     <div key={notif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'var(--color-bg-light)', borderRadius: '12px', alignItems: 'center', position: 'relative' }}>
                       <img src={notif.user?.avatar?.large || 'https://anilist.co/img/icons/icon.svg'} alt="avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: notif.isRead ? 'none' : '2px solid var(--accent)' }} />
                       <div style={{ flex: 1 }}>
@@ -3052,7 +3053,8 @@ case 'mylist': {
                         <X size={16} />
                       </button>
                     </div>
-                  ))
+                  ))}
+                  </div>
                 )}
               </>
             )}

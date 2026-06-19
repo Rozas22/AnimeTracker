@@ -6,7 +6,8 @@ import { supabase } from '../supabase';
 const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
   const friendList = anilistFriends || [];
   const [leaderboard, setLeaderboard] = useState([]);
-  const [activeLeague, setActiveLeague] = useState('global');
+  const [activeLeague, setActiveLeague] = useState('monthly');
+  const [achievementsMap, setAchievementsMap] = useState({});
   const [timeLeft, setTimeLeft] = useState('23:59:59');
   
   // Quiz State
@@ -90,6 +91,21 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                 }
             } else {
                 console.error("Supabase fetch failed in Arena:", error);
+            }
+
+            // Fetch achievements
+            const { data: achData, error: achError } = await supabase
+              .from('user_achievements')
+              .select('*');
+            
+            if (!achError && achData) {
+                let achMap = {};
+                achData.forEach(ach => {
+                    if (ach.achievement_type === 'monthly_winner') {
+                        achMap[ach.anilist_id] = (achMap[ach.anilist_id] || 0) + 1;
+                    }
+                });
+                setAchievementsMap(achMap);
             }
         } catch (err) {
             console.error("Error fetching arena stats:", err);
@@ -300,37 +316,50 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
            ✨ Jugar Quiz Diario (+PL)
         </button>
 
-      </div>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center', margin: '2rem 0 1rem 0', width: '100%', boxSizing: 'border-box' }}>
-        <button 
-          onClick={() => setActiveLeague('global')}
-          style={{ 
-              padding: '0.6rem 1.5rem', 
-              borderRadius: '20px', 
-              border: 'none', 
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              background: activeLeague === 'global' ? 'var(--color-anilist-blue)' : 'rgba(255,255,255,0.1)',
-              color: 'white',
-              transition: '0.3s'
-          }}>
-          🌍 Liga Global
-        </button>
-        <button 
-          onClick={() => setActiveLeague('monthly')}
-          style={{ 
-              padding: '0.6rem 1.5rem', 
-              borderRadius: '20px', 
-              border: 'none', 
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              background: activeLeague === 'monthly' ? '#FF9800' : 'rgba(255,255,255,0.1)',
-              color: 'white',
-              transition: '0.3s'
-          }}>
-          📚 Conocimiento (Mensual)
-        </button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'center', margin: '2rem 0 1rem 0', width: '100%', boxSizing: 'border-box' }}>
+          <button 
+            onClick={() => setActiveLeague('monthly')}
+            style={{ 
+                padding: '0.6rem 1.5rem', 
+                borderRadius: '20px', 
+                border: 'none', 
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                background: activeLeague === 'monthly' ? '#FF9800' : 'rgba(255,255,255,0.1)',
+                color: 'white',
+                transition: '0.3s'
+            }}>
+            ⏱️ Liga Mensual
+          </button>
+          <button 
+            onClick={() => setActiveLeague('global')}
+            style={{ 
+                padding: '0.6rem 1.5rem', 
+                borderRadius: '20px', 
+                border: 'none', 
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                background: activeLeague === 'global' ? 'var(--color-anilist-blue)' : 'rgba(255,255,255,0.1)',
+                color: 'white',
+                transition: '0.3s'
+            }}>
+            🌍 Liga Global
+          </button>
+          <button 
+            onClick={() => setActiveLeague('legends')}
+            style={{ 
+                padding: '0.6rem 1.5rem', 
+                borderRadius: '20px', 
+                border: 'none', 
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                background: activeLeague === 'legends' ? '#f59e0b' : 'rgba(255,255,255,0.1)',
+                color: 'white',
+                transition: '0.3s'
+            }}>
+            👑 Leyendas del Mes
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -440,10 +469,14 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
       
       <div className="ranking-list">
         {[...leaderboard]
-          .sort((a, b) => activeLeague === 'global' ? b.pl - a.pl : b.monthlyPl - a.monthlyPl)
+          .filter(player => activeLeague !== 'legends' || (achievementsMap[player.id] && achievementsMap[player.id] > 0))
+          .sort((a, b) => {
+             if (activeLeague === 'legends') return (achievementsMap[b.id] || 0) - (achievementsMap[a.id] || 0);
+             return activeLeague === 'global' ? b.pl - a.pl : b.monthlyPl - a.monthlyPl;
+          })
           .map((player, index) => {
-            const league = activeLeague === 'global' ? getLeagueInfo(player.pl) : getLeagueInfo(player.monthlyPl);
-            const scoreToDisplay = activeLeague === 'global' ? player.pl : player.monthlyPl;
+            const league = activeLeague === 'global' || activeLeague === 'legends' ? getLeagueInfo(player.pl) : getLeagueInfo(player.monthlyPl);
+            const scoreToDisplay = activeLeague === 'global' || activeLeague === 'legends' ? player.pl : player.monthlyPl;
             const rank = index + 1;
             
             // Lógica de zonas (Ascenso Top 3, Descenso Bottom 2)
@@ -469,6 +502,9 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                     <div className="ranking-info">
                         <div className="ranking-name">
                             <span className="truncate-text">{player.name}</span>
+                            {achievementsMap[player.id] > 0 && (
+                                <span style={{ marginLeft: '4px', color: '#f59e0b', display: 'inline-flex', alignItems: 'center' }} title={`Ganador Mensual x${achievementsMap[player.id]}`}>👑<span style={{fontSize: '0.7rem', marginLeft: '2px'}}>x{achievementsMap[player.id]}</span></span>
+                            )}
                             {player.isMe && <span className="badge-me">TÚ</span>}
                             {activeLeague === 'monthly' && player.streak > 0 && (
                                 <span className="badge-streak">🔥 Racha: {player.streak}</span>
@@ -482,7 +518,11 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                     </div>
 
                     <div className="ranking-score-container">
-                        <div className="ranking-score">{scoreToDisplay.toLocaleString()} PL</div>
+                        {activeLeague === 'legends' ? (
+                            <div className="ranking-score" style={{color: '#f59e0b'}}>👑 {achievementsMap[player.id]} Victorias</div>
+                        ) : (
+                            <div className="ranking-score">{scoreToDisplay.toLocaleString()} PL</div>
+                        )}
                         <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
                             {zoneClass === 'promotion-zone' ? <><TrendingUp size={12} color="#4CAF50"/> Ascenso</> : ''}
                             {zoneClass === 'relegation-zone' ? <><TrendingDown size={12} color="#F44336"/> Descenso</> : ''}

@@ -15,7 +15,37 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Reset all users' monthly_quiz_points to 0
+        // 1. Obtener al top usuario del mes con puntos > 0
+        const { data: topUsers, error: topError } = await supabase
+            .from('users')
+            .select('anilist_id, monthly_quiz_points')
+            .gt('monthly_quiz_points', 0)
+            .order('monthly_quiz_points', { ascending: false })
+            .limit(1);
+
+        if (topError) {
+            console.error('Error fetching top users:', topError);
+            throw new Error(topError.message);
+        }
+
+        // 2. Si hay un ganador, insertarlo en user_achievements
+        if (topUsers && topUsers.length > 0) {
+            // Podrías manejar empates aquí quitando el .limit(1) y filtrando por los que tengan la misma puntuación que el primero.
+            // Por simplicidad, tomamos el top 1 absoluto.
+            const winner = topUsers[0];
+            const { error: achieveError } = await supabase
+                .from('user_achievements')
+                .insert([{
+                    anilist_id: winner.anilist_id,
+                    achievement_type: 'monthly_winner'
+                }]);
+                
+            if (achieveError) {
+                console.error('Error inserting achievement:', achieveError);
+            }
+        }
+
+        // 3. Reset all users' monthly_quiz_points to 0
         const { error } = await supabase
             .from('users')
             .update({ monthly_quiz_points: 0 })

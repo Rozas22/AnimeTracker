@@ -184,9 +184,9 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
       
       let currentStats = { ...userDbStats };
       if (isCorrect) {
-          newScore += 100;
-          currentStats.quiz += 100;
-          currentStats.monthly += 100;
+          newScore += 60;
+          currentStats.quiz += 60;
+          currentStats.monthly += 60;
           currentStats.sessionCorrect = (currentStats.sessionCorrect || 0) + 1;
       } else {
           currentStats.sessionFailed = true;

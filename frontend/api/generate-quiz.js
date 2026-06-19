@@ -58,8 +58,8 @@ export default async function handler(req, res) {
                 shuffled[i] = t;
             }
             
-            // Devuelve 3 preguntas usando la semilla de hoy
-            return res.status(200).json(shuffled.slice(0, 3)); 
+            // Devuelve 5 preguntas usando la semilla de hoy
+            return res.status(200).json(shuffled.slice(0, 5)); 
         }
 
         // 2. FALLBACK A IA: Solo llegamos aquí si data.length es 0
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
             console.error('Fallo al obtener animes populares, usando default');
         }
 
-        const prompt = `Genera exactamente 3 preguntas trivia (1 fcil, 1 media, 1 difcil) sobre el anime "${selectedAnime}" o animes populares en general. 
+        const prompt = `Genera exactamente 5 preguntas trivia (2 fciles, 2 medias, 1 difcil) sobre el anime "${selectedAnime}" o animes populares en general. 
 Responde ÚNICAMENTE con un array de objetos JSON válido, sin texto adicional, explicaciones ni formato Markdown.
 
 Estructura de cada objeto:

@@ -151,7 +151,7 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
       setQuizStatus('loading');
       
       try {
-          const res = await fetch('/api/generate-quiz');
+          const res = await fetch('/api/generate-quiz' + (user ? '?userId=' + user.id : ''));
           const data = await res.json();
           if (data.error) {
               alert(data.error);
@@ -205,6 +205,27 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
 
               if (setQuizPoints) setQuizPoints(currentStats.quiz);
               try {
+                  // Guardar historial del quiz
+                  if (quizQuestions && quizQuestions.length > 0) {
+                      const historyInserts = quizQuestions.map(q => ({
+                          user_id: String(user.id),
+                          question_id: q.id
+                      }));
+                      await supabase.from('quiz_history').insert(historyInserts);
+                      
+                      // Limpieza (mantener mǭximo 30)
+                      const { data: userHistory } = await supabase
+                          .from('quiz_history')
+                          .select('id')
+                          .eq('user_id', String(user.id))
+                          .order('created_at', { ascending: false });
+                          
+                      if (userHistory && userHistory.length > 30) {
+                          const idsToDelete = userHistory.slice(30).map(h => h.id);
+                          await supabase.from('quiz_history').delete().in('id', idsToDelete);
+                      }
+                  }
+
                   await supabase.from('users').update({ 
                       quiz_points: currentStats.quiz,
                       monthly_quiz_points: currentStats.monthly,

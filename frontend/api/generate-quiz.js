@@ -17,8 +17,27 @@ export default async function handler(req, res) {
     }
 
     try {
+        const userId = req.query?.userId || req.body?.userId;
+        
+        // Obtener historial del usuario
+        let historyIds = [];
+        if (userId) {
+            const { data: historyData } = await supabase
+                .from('quiz_history')
+                .select('question_id')
+                .eq('user_id', String(userId));
+            if (historyData) {
+                historyIds = historyData.map(h => h.question_id);
+            }
+        }
+
         // 1. PRIORIDAD ABSOLUTA: Intentar obtener quizzes de la base de datos
-        const { data, error } = await supabase.from('quizzes').select('*');
+        let { data, error } = await supabase.from('quizzes').select('*');
+        
+        // Filtrar preguntas ya respondidas
+        if (data && historyIds.length > 0) {
+            data = data.filter(q => !historyIds.includes(q.id));
+        }
         console.log("Supabase fetch attempt:", { dataLength: data ? data.length : 0, error });
 
         // Lógica de Daily Challenge (Seed diario)

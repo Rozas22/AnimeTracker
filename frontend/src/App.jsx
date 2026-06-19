@@ -7,6 +7,7 @@ import { supabase } from './supabase';
 import { calculatePL, getLeagueInfo, calculateLevel } from './leagueUtils';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
+import InstallPWA from './components/InstallPWA';
 import confetti from 'canvas-confetti';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -2171,6 +2172,9 @@ export default function App() {
                   <button className={`style-mode-btn ${selectedFrame === '100' ? 'active' : ''}`} disabled={computedLevel < 100} onClick={() => handleFrameSelect('100')}>Niv 100</button>
                 </div>
               </div>
+              <div style={{ padding: '0 1rem 1rem' }}>
+                <InstallPWA />
+              </div>
             </div>
   );
 
@@ -3245,6 +3249,7 @@ case 'mylist': {
               <Settings size={18} />
             </button>
           </div>
+          <InstallPWA />
           <button onClick={handleLogout} className="btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
             <LogOut size={16} />
             Cerrar Sesión

@@ -44,6 +44,8 @@ const AiringCalendar = ({ animeList }) => {
     return buckets;
   }, [animeList]);
 
+  const [isOpen, setIsOpen] = useState(false); // Collapsed by default
+
   const totalAiring = Object.values(airingData).flat().length;
 
   if (totalAiring === 0 && (!animeList || animeList.length === 0)) {
@@ -51,13 +53,27 @@ const AiringCalendar = ({ animeList }) => {
   }
 
   return (
-    <div className="card" style={{ marginBottom: '1.5rem', padding: '1.25rem' }}>
-      <h2 style={{ fontSize: '1.25rem', fontFamily: 'var(--font-display)', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', marginTop: 0 }}>
-        <Calendar size={20} style={{ color: 'var(--accent)' }} />
-        Calendario de Emisión
-      </h2>
+    <div style={{ marginTop: '2rem', width: '100%' }}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '1rem' }}
+      >
+        <h3 style={{ fontSize: '1.2rem', margin: 0, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Calendar size={20} style={{ color: 'var(--accent)' }} /> Calendario de Emisión
+        </h3>
+        {isOpen ? <ChevronUp size={20} color="var(--color-text-secondary)" /> : <ChevronDown size={20} color="var(--color-text-secondary)" />}
+      </div>
       
-      <div className="airing-calendar-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div className="airing-calendar-container" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
         {DAYS_OF_WEEK.map((day) => {
           const isExpanded = expandedDay === day.id;
           const items = airingData[day.id] || [];
@@ -189,7 +205,10 @@ const AiringCalendar = ({ animeList }) => {
             </div>
           );
         })}
-      </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

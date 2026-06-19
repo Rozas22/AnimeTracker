@@ -18,6 +18,8 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
   const [userDbStats, setUserDbStats] = useState({ quiz: 0, monthly: 0, streak: 0 });
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [isAnswering, setIsAnswering] = useState(false);
+  const [streakCount, setStreakCount] = useState(0);
+  const [bonusPoints, setBonusPoints] = useState(0);
 
   // Calculate league badges
   const getLeagueInfo = (points) => {
@@ -163,6 +165,8 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
           setQuizQuestions(data);
           setCurrentQuestionIndex(0);
           setQuizScore(0);
+          setStreakCount(0);
+          setBonusPoints(0);
           setQuizStatus('playing');
       } catch (err) {
           console.error(err);
@@ -183,14 +187,29 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
       let newScore = quizScore;
       
       let currentStats = { ...userDbStats };
+      let newStreak = streakCount;
+
       if (isCorrect) {
           newScore += 60;
           currentStats.quiz += 60;
           currentStats.monthly += 60;
           currentStats.sessionCorrect = (currentStats.sessionCorrect || 0) + 1;
+          newStreak += 1;
       } else {
           currentStats.sessionFailed = true;
+          newStreak = 0;
       }
+
+      let appliedBonus = 0;
+      if (currentQuestionIndex + 1 === quizQuestions.length && newStreak === 5) {
+          appliedBonus = 500;
+          newScore += appliedBonus;
+          currentStats.quiz += appliedBonus;
+          currentStats.monthly += appliedBonus;
+      }
+
+      setBonusPoints(appliedBonus);
+      setStreakCount(newStreak);
 
       // Wait 1.5s to show color feedback
       await new Promise(r => setTimeout(r, 1500));
@@ -334,9 +353,16 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
 
                     {quizStatus === 'playing' && quizQuestions[currentQuestionIndex] && (
                         <div style={{ padding: '1rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                                 <span>Pregunta {currentQuestionIndex + 1} de {quizQuestions.length}</span>
-                                <span style={{ color: 'var(--color-accent-gold)', fontWeight: 'bold' }}>{quizQuestions[currentQuestionIndex].difficulty.toUpperCase()}</span>
+                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                  {streakCount > 0 && (
+                                    <span style={{ color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }} className="pulse-anim">
+                                      🔥 Racha x{streakCount}
+                                    </span>
+                                  )}
+                                  <span style={{ color: 'var(--color-accent-gold)', fontWeight: 'bold' }}>{quizQuestions[currentQuestionIndex].difficulty.toUpperCase()}</span>
+                                </div>
                             </div>
                             
                             <h3 style={{ fontSize: '1.3rem', marginBottom: '2rem', lineHeight: '1.5' }}>
@@ -382,8 +408,27 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                         <div style={{ padding: '2rem 1rem' }}>
                             <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
                             <h2 style={{ fontFamily: 'var(--font-display)', marginBottom: '1rem', color: 'var(--color-accent-gold)' }}>¡Quiz Completado!</h2>
-                            <p style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>Has ganado <strong style={{ color: 'var(--accent)' }}>+{quizScore} PL</strong> para tu liga.</p>
-                            <button className="btn-primary" onClick={() => setShowQuizModal(false)}>
+                            
+                            <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+                              Puntuación Base: <strong style={{ color: 'var(--accent)' }}>+{quizScore - bonusPoints} PL</strong>
+                            </p>
+                            
+                            {bonusPoints > 0 && (
+                              <motion.p 
+                                initial={{ scale: 0.8, opacity: 0 }} 
+                                animate={{ scale: 1, opacity: 1 }} 
+                                transition={{ delay: 0.3 }}
+                                style={{ fontSize: '1.3rem', marginBottom: '1.5rem', color: '#f59e0b', fontWeight: 'bold' }}
+                              >
+                                🔥 Bonus de Perfección: +{bonusPoints} PL
+                              </motion.p>
+                            )}
+                            
+                            {bonusPoints === 0 && (
+                              <p style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>Has ganado <strong style={{ color: 'var(--accent)' }}>+{quizScore} PL</strong> para tu liga.</p>
+                            )}
+
+                            <button className="btn-primary" style={{ marginTop: '1rem' }} onClick={() => setShowQuizModal(false)}>
                                 Volver a la Arena
                             </button>
                         </div>

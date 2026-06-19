@@ -358,7 +358,6 @@ export default function App() {
         }, { onConflict: 'anilist_id' })
         .select('quiz_points')
         .single();
-
       if (error) {
         console.error('Error al sincronizar con Supabase:', error);
       } else {
@@ -369,6 +368,42 @@ export default function App() {
       console.error('Error in syncSupabaseUser:', e);
     }
   };
+
+  const updateUserStats = async (userId, username) => {
+    if (!userId) return;
+    try {
+      const query = `
+        query ($id: Int) {
+          User(id: $id) {
+            statistics {
+              anime {
+                episodesWatched
+              }
+            }
+          }
+        }
+      `;
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables: { id: parseInt(userId) } })
+      });
+      const data = await res.json();
+      const eps = data.data?.User?.statistics?.anime?.episodesWatched;
+      if (eps !== undefined && eps !== null) {
+        await supabase.from('users').upsert({
+          anilist_id: userId.toString(),
+          username: username,
+          anime_points: eps * 10,
+          last_updated_at: new Date().toISOString()
+        }, { onConflict: 'anilist_id' });
+        console.log(`Background sync completed for ${username}`);
+      }
+    } catch(e) {
+      console.error('Background sync failed:', e);
+    }
+  };
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isCallback, setIsCallback] = useState(window.location.pathname === '/callback');
@@ -625,15 +660,31 @@ export default function App() {
         try {
           const { data: supaData, error: supaErr } = await supabase
             .from('users')
-            .select('anime_points')
+            .select('anime_points, last_updated_at')
             .eq('anilist_id', user.id.toString())
             .single();
             
-          if (!supaErr && supaData && supaData.anime_points > 0) {
-            // Override with precise value from Supabase
-            if (!user.statistics) user.statistics = { anime: {} };
-            if (!user.statistics.anime) user.statistics.anime = {};
-            user.statistics.anime.episodesWatched = Math.floor(supaData.anime_points / 10);
+          if (!supaErr && supaData) {
+            if (supaData.anime_points > 0) {
+              // Override with precise value from Supabase
+              if (!user.statistics) user.statistics = { anime: {} };
+              if (!user.statistics.anime) user.statistics.anime = {};
+              user.statistics.anime.episodesWatched = Math.floor(supaData.anime_points / 10);
+            }
+            
+            // Recálculo inteligente en background si es mayor a 24 horas
+            if (supaData.last_updated_at) {
+               const lastUpdate = new Date(supaData.last_updated_at);
+               const now = new Date();
+               if ((now - lastUpdate) > 24 * 60 * 60 * 1000) {
+                   updateUserStats(user.id, user.name);
+               }
+            } else {
+               updateUserStats(user.id, user.name);
+            }
+          } else if (supaErr || !supaData) {
+             // Si el usuario no existe en la BD, lo sincronizamos en background
+             updateUserStats(user.id, user.name);
           }
         } catch (e) {
           console.error("Error fetching friend points from Supabase", e);

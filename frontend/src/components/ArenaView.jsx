@@ -16,6 +16,8 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [quizScore, setQuizScore] = useState(0);
   const [userDbStats, setUserDbStats] = useState({ quiz: 0, monthly: 0, streak: 0 });
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [isAnswering, setIsAnswering] = useState(false);
 
   // Calculate league badges
   const getLeagueInfo = (points) => {
@@ -171,6 +173,10 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
   };
 
   const handleAnswer = async (answer) => {
+      if (isAnswering) return;
+      setIsAnswering(true);
+      setSelectedAnswer(answer);
+
       const currentQ = quizQuestions[currentQuestionIndex];
       
       let isCorrect = (answer === currentQ.correct_answer);
@@ -179,14 +185,20 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
       let currentStats = { ...userDbStats };
       if (isCorrect) {
           newScore += 100;
-          setQuizScore(newScore);
           currentStats.quiz += 100;
           currentStats.monthly += 100;
           currentStats.sessionCorrect = (currentStats.sessionCorrect || 0) + 1;
       } else {
           currentStats.sessionFailed = true;
       }
+
+      // Wait 1.5s to show color feedback
+      await new Promise(r => setTimeout(r, 1500));
+
+      setQuizScore(newScore);
       setUserDbStats(currentStats);
+      setSelectedAnswer(null);
+      setIsAnswering(false);
 
       if (currentQuestionIndex + 1 < quizQuestions.length) {
           setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -332,16 +344,36 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                             </h3>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {quizQuestions[currentQuestionIndex].options.map((opt, i) => (
-                                    <button 
-                                        key={i} 
-                                        className="btn-secondary"
-                                        style={{ padding: '1rem', fontSize: '1rem', textAlign: 'left', whiteSpace: 'normal', height: 'auto', background: 'rgba(255,255,255,0.05)' }}
-                                        onClick={() => handleAnswer(opt)}
-                                    >
-                                        {opt}
-                                    </button>
-                                ))}
+                                {quizQuestions[currentQuestionIndex].options.map((opt, i) => {
+                                    let bg = 'rgba(255,255,255,0.05)';
+                                    if (isAnswering) {
+                                        if (opt === quizQuestions[currentQuestionIndex].correct_answer) {
+                                            bg = '#22c55e'; // Green
+                                        } else if (opt === selectedAnswer) {
+                                            bg = '#ef4444'; // Red
+                                        }
+                                    }
+                                    return (
+                                      <button 
+                                          key={i} 
+                                          className="btn-secondary"
+                                          style={{ 
+                                            padding: '1rem', 
+                                            fontSize: '1rem', 
+                                            textAlign: 'left', 
+                                            whiteSpace: 'normal', 
+                                            height: 'auto', 
+                                            background: bg,
+                                            transition: 'background-color 0.3s ease',
+                                            cursor: isAnswering ? 'default' : 'pointer'
+                                          }}
+                                          onClick={() => handleAnswer(opt)}
+                                          disabled={isAnswering}
+                                      >
+                                          {opt}
+                                      </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     )}

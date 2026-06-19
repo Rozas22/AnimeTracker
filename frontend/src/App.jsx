@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LogIn, LogOut, User, Users, Tv, BookOpen, Clock, Settings, ShieldAlert, Search, X, Star, Plus, List, Grid, Download, BarChart2, TrendingUp, Award, Palette, Play, Zap, Bell, Check, PieChart, Lock, ChevronUp, ChevronDown, UserPlus , Swords } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ArenaView from './components/ArenaView';
+import AiringCalendar from './components/AiringCalendar';
 import ListaDesplegable from './components/ListaDesplegable';
 import { supabase } from './supabase';
 import { calculatePL, getLeagueInfo, calculateLevel } from './leagueUtils';
@@ -286,6 +287,8 @@ const ProfileDisplay = ({
               )}
             </div>
           </CollapsibleSection>
+
+          <AiringCalendar animeList={animeList} />
 
           <CollapsibleSection title="Galería de Trofeos" defaultOpen={isDesktop}>
             <div className="trophy-grid">
@@ -967,6 +970,7 @@ export default function App() {
                 nextAiringEpisode {
                   episode
                   timeUntilAiring
+                  airingAt
                 }
                 startDate {
                   year

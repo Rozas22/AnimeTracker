@@ -3873,3 +3873,7 @@ textarea {
     max-width: 80px; /* Forzamos un límite estricto para dejar espacio al score */
   }
 }
+
+@keyframes pulse-dot { 0% { box-shadow: 0 0 0 0 var(--accent); } 70% { box-shadow: 0 0 0 6px rgba(0,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } }
+.pulse-anim { animation: pulse-dot 2s infinite; }
+

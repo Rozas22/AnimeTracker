@@ -3351,6 +3351,7 @@ case 'mylist': {
             style={{ position: 'relative' }}
           >
             <Users size={20} />
+            <span>Grupo</span>
           </button>
 
           <button 

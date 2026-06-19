@@ -413,10 +413,11 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                                           key={i} 
                                           className="btn-secondary"
                                           style={{ 
-                                            padding: '1rem', 
-                                            fontSize: '1rem', 
+                                            padding: '1.2rem 1rem', 
+                                            fontSize: '1.05rem', 
                                             textAlign: 'left', 
-                                            whiteSpace: 'normal', 
+                                            whiteSpace: 'normal',
+                                            wordBreak: 'break-word', 
                                             height: 'auto', 
                                             background: bg,
                                             transition: 'background-color 0.3s ease',

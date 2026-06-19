@@ -3877,3 +3877,17 @@ textarea {
 @keyframes pulse-dot { 0% { box-shadow: 0 0 0 0 var(--accent); } 70% { box-shadow: 0 0 0 6px rgba(0,0,0,0); } 100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); } }
 .pulse-anim { animation: pulse-dot 2s infinite; }
 
+
+@media (max-width: 600px) {
+  .ranking-item { display: grid !important; grid-template-columns: auto auto 1fr !important; grid-template-rows: auto auto !important; grid-template-areas: 'rank avatar info' 'rank avatar score' !important; padding: 0.75rem 0.5rem !important; gap: 0.25rem 0.5rem !important; align-items: center !important; }
+  .ranking-rank { grid-area: rank; font-size: 1.1rem !important; min-width: 25px !important; }
+  .ranking-avatar { grid-area: avatar; width: 35px !important; height: 35px !important; margin: 0 !important; }
+  .ranking-info { grid-area: info; min-width: 0 !important; }
+  .ranking-name { flex-wrap: nowrap !important; }
+  .truncate-text { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; max-width: 140px !important; }
+  .ranking-score-container { grid-area: score; text-align: left !important; display: flex !important; align-items: center !important; justify-content: flex-start !important; gap: 10px !important; }
+}
+@media (max-width: 400px) {
+  .truncate-text { max-width: 100px !important; }
+}
+

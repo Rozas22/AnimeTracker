@@ -348,25 +348,62 @@ export default function App() {
       console.log('Synchronizing user with Supabase:', viewer.id, viewer.name, 'Real Episodes:', realEpisodes);
       
       const epsToUse = realEpisodes !== undefined ? realEpisodes : (viewer.statistics?.anime?.episodesWatched || 0);
+      const { computedLevel: calculatedLevel, userTitle } = calculateLevel(epsToUse);
 
+      const { data: existingData, error: readError } = await supabase
+        .from('users')
+        .select('anime_points, level, quiz_points')
+        .eq('anilist_id', viewer.id.toString())
+        .single();
+        
+      const nuevosPuntos = epsToUse * 10;
+      let finalQuizPoints = 0;
+      let existingLevel = 1;
+      
+      if (!readError && existingData) {
+         finalQuizPoints = existingData.quiz_points || 0;
+         existingLevel = existingData.level || 1;
+         
+         // If fully in sync, return early but update local quiz points
+         if (existingData.anime_points === nuevosPuntos && existingData.level === calculatedLevel) {
+            console.log('User data is up to date in Supabase');
+            setQuizPoints(finalQuizPoints);
+            return { level: existingData.level };
+         }
+      }
+
+      // If out of sync, perform the UPSERT as the absolute source of truth
       const { data, error } = await supabase
         .from('users')
         .upsert({ 
           anilist_id: viewer.id.toString(), 
           username: viewer.name,
-          anime_points: epsToUse * 10
+          anime_points: nuevosPuntos,
+          level: calculatedLevel,
+          last_updated_at: new Date().toISOString()
         }, { onConflict: 'anilist_id' })
-        .select('quiz_points')
+        .select('quiz_points, level')
         .single();
+
       if (error) {
         console.error('Error al sincronizar con Supabase:', error);
       } else {
         console.log('Usuario sincronizado correctamente', data);
-        if (data) setQuizPoints(data.quiz_points || 0);
+        if (data) {
+           setQuizPoints(data.quiz_points || 0);
+           // Handle Level Up based on Source of Truth
+           if (calculatedLevel > existingLevel) {
+             setLevelUpData({ level: calculatedLevel, title: userTitle, totalEps: epsToUse });
+             setShowLevelUpModal(true);
+             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, zIndex: 9999 });
+           }
+           return data;
+        }
       }
     } catch (e) {
       console.error('Error in syncSupabaseUser:', e);
     }
+    return null;
   };
 
   const updateUserStats = async (userId, username) => {
@@ -391,13 +428,30 @@ export default function App() {
       const data = await res.json();
       const eps = data.data?.User?.statistics?.anime?.episodesWatched;
       if (eps !== undefined && eps !== null) {
+        const nuevosPuntos = eps * 10;
+        const { computedLevel: nuevoNivel } = calculateLevel(eps);
+        
+        // 1. Leer de Supabase
+        const { data: existingData } = await supabase
+          .from('users')
+          .select('anime_points, level')
+          .eq('anilist_id', userId.toString())
+          .single();
+          
+        // 2. Si son idénticos, no hacer nada
+        if (existingData && existingData.anime_points === nuevosPuntos && existingData.level === nuevoNivel) {
+           return;
+        }
+
+        // 3. Guardar el resultado en Supabase
         await supabase.from('users').upsert({
           anilist_id: userId.toString(),
           username: username,
-          anime_points: eps * 10,
+          anime_points: nuevosPuntos,
+          level: nuevoNivel,
           last_updated_at: new Date().toISOString()
         }, { onConflict: 'anilist_id' });
-        console.log(`Background sync completed for ${username}`);
+        console.log(`Background sync completed for ${username} (Level: ${nuevoNivel})`);
       }
     } catch(e) {
       console.error('Background sync failed:', e);
@@ -816,28 +870,6 @@ export default function App() {
   const { computedLevel, userTitle, episodiosRestantes, episodiosParaSiguienteNivel, progresoPorcentaje } = calculateLevel(totalEpsForLevel);
 
 
-  // Check for level up
-  useEffect(() => {
-    if (completedAnime.length > 0 && computedLevel > 1) {
-      const savedLevel = parseInt(localStorage.getItem('animeTrackerSavedLevel') || '1', 10);
-      console.log('Nivel guardado:', savedLevel, 'Nivel actual:', computedLevel); // DEBUG
-      if (computedLevel > savedLevel) {
-        // Trigger Level Up
-        setLevelUpData({ level: computedLevel, title: userTitle, totalEps: totalEpsForLevel });
-        setShowLevelUpModal(true);
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 },
-          zIndex: 9999
-        });
-        localStorage.setItem('animeTrackerSavedLevel', computedLevel.toString());
-      } else if (computedLevel < savedLevel) {
-        // Fallback sync
-        localStorage.setItem('animeTrackerSavedLevel', computedLevel.toString());
-      }
-    }
-  }, [computedLevel, completedAnime.length, userTitle, totalEpsForLevel]);
 
   // Compute Episode Notifications
   useEffect(() => {
@@ -1157,8 +1189,12 @@ export default function App() {
         if (!viewer.statistics.anime) viewer.statistics.anime = {};
         viewer.statistics.anime.episodesWatched = totalEpisodes;
         
+        const supaData = await syncSupabaseUser(viewer, totalEpisodes);
+        if (supaData && supaData.level) {
+           viewer.supabaseLevel = supaData.level;
+        }
+        
         setUserData(viewer);
-        await syncSupabaseUser(viewer, totalEpisodes);
 
         await fetchAnilistFollowing(viewer.id);
         await fetchSocialActivity(viewer.id);
@@ -1605,8 +1641,12 @@ export default function App() {
         if (!viewer.statistics.anime) viewer.statistics.anime = {};
         viewer.statistics.anime.episodesWatched = totalEpisodes;
         
+        const supaData = await syncSupabaseUser(viewer, totalEpisodes);
+        if (supaData && supaData.level) {
+           viewer.supabaseLevel = supaData.level;
+        }
+        
         setUserData(viewer);
-        await syncSupabaseUser(viewer, totalEpisodes);
         await fetchAnilistFollowing(viewer.id);
         await fetchSocialActivity(viewer.id);
       } catch (err) {

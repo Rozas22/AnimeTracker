@@ -712,8 +712,6 @@ export default function App() {
 
         const user = result.data.User;
         
-
-
         // Fetch anime_points from Supabase as Source of Truth
         try {
           const { data: supaData, error: supaErr } = await supabase
@@ -722,6 +720,8 @@ export default function App() {
             .eq('anilist_id', user.id.toString())
             .single();
             
+          const isTracked = (userData && user.id === userData.id) || (anilistFriends && anilistFriends.some(f => f.id === user.id));
+
           if (!supaErr && supaData) {
             if (supaData.anime_points > 0) {
               // Override with precise value from Supabase
@@ -730,19 +730,23 @@ export default function App() {
               user.statistics.anime.episodesWatched = Math.floor(supaData.anime_points / 10);
             }
             
-            // Recálculo inteligente en background si es mayor a 24 horas
+            // Recálculo inteligente en background si es mayor a 24 horas y el usuario es seguido/amigo
             if (supaData.last_updated_at) {
                const lastUpdate = new Date(supaData.last_updated_at);
                const now = new Date();
-               if ((now - lastUpdate) > 24 * 60 * 60 * 1000) {
+               if ((now - lastUpdate) > 24 * 60 * 60 * 1000 && isTracked) {
                    updateUserStats(user.id, user.name);
                }
-            } else {
+            } else if (isTracked) {
                updateUserStats(user.id, user.name);
             }
           } else if (supaErr || !supaData) {
-             // Si el usuario no existe en la BD, lo sincronizamos en background
-             updateUserStats(user.id, user.name);
+             // Si el usuario no existe en la BD, lo sincronizamos en background SOLO si es amigo/propio
+             if (isTracked) {
+               updateUserStats(user.id, user.name);
+             } else {
+               user.notInArena = true;
+             }
           }
         } catch (e) {
           console.error("Error fetching friend points from Supabase", e);
@@ -2219,6 +2223,29 @@ export default function App() {
             <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>Perfil de Miembro del Grupo</span>
               <div style={{ display: 'flex', gap: '1rem' }}>
+                {friendData.notInArena && userData && (
+                  <button 
+                    className="btn-primary"
+                    onClick={async () => {
+                      await updateUserStats(friendData.id, friendData.name);
+                      const updatedData = { ...friendData };
+                      delete updatedData.notInArena;
+                      setFriendData(updatedData);
+                      showToast('Usuario añadido a la base de datos de la Arena.');
+                    }}
+                    style={{ 
+                      padding: '0.5rem 1.25rem', 
+                      fontSize: '0.9rem',
+                      background: '#f59e0b',
+                      color: '#000',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <Swords size={16} /> Añadir a la Arena
+                  </button>
+                )}
                 <button className="btn-secondary" onClick={() => handleTabClick('group')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
                   Volver al Grupo
                 </button>

@@ -7,6 +7,7 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
   const friendList = anilistFriends || [];
   const [leaderboard, setLeaderboard] = useState([]);
   const [activeLeague, setActiveLeague] = useState('monthly');
+  const [arenaScope, setArenaScope] = useState(() => localStorage.getItem('arenaScope') || 'friends');
   const [achievementsMap, setAchievementsMap] = useState({});
   const [timeLeft, setTimeLeft] = useState('23:59:59');
   
@@ -62,32 +63,98 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
         if (!user) return;
         
         let players = [];
-        let ids = [user.id];
-        
         const validFriends = friendList.filter(f => f.name && f.id);
-        validFriends.forEach(f => ids.push(f.id));
 
-        let quizPointsMap = {};
-        
         try {
-            // DEBUG: Consulta sin filtros para verificar datos y tipos
             const { data, error } = await supabase
               .from('users')
               .select('*');
               
             if (!error && data) {
-                console.log('Tabla de usuarios completa:', data);
-                console.log('IDs que estamos buscando:', ids);
+                let dbIds = new Set(data.map(r => r.anilist_id));
                 data.forEach(row => {
-                    quizPointsMap[row.anilist_id] = {
-                      quiz: row.quiz_points || 0,
-                      anime: row.anime_points || 0,
-                      monthly: row.monthly_quiz_points || 0,
-                      streak: row.current_streak || 0
-                    };
+                    if (row.anilist_id === user.id) {
+                        setUserDbStats({
+                          quiz: row.quiz_points || 0,
+                          anime: row.anime_points || 0,
+                          monthly: row.monthly_quiz_points || 0,
+                          streak: row.current_streak || 0
+                        });
+                    }
+
+                    const isMe = row.anilist_id === user.id;
+                    const friendMatch = validFriends.find(f => f.id === row.anilist_id);
+                    const isFriend = !!friendMatch;
+
+                    let avatar = isMe ? (user.avatar?.large || user.avatar) : (friendMatch?.avatar?.large || 'https://anilist.co/img/icons/icon.svg');
+                    let isPrivate = false;
+                    if (friendMatch) {
+                        const statsStr = localStorage.getItem(`friend_stats_${friendMatch.name}`);
+                        if (statsStr) {
+                            isPrivate = JSON.parse(statsStr).isPrivate;
+                        }
+                    }
+
+                    const rowAnimePoints = row.anime_points || 0;
+                    let computedLevel = 1;
+                    let computedEps = Math.floor(rowAnimePoints / 10);
+                    while (computedEps >= computedLevel * 10) {
+                        computedEps -= computedLevel * 10;
+                        computedLevel++;
+                    }
+
+                    players.push({
+                        id: row.anilist_id,
+                        name: row.username,
+                        avatar: avatar,
+                        isMe: isMe,
+                        isFriend: isFriend,
+                        isPrivate: isPrivate,
+                        level: computedLevel,
+                        animePoints: rowAnimePoints,
+                        pl: rowAnimePoints + (row.quiz_points || 0),
+                        monthlyPl: row.monthly_quiz_points || 0,
+                        streak: row.current_streak || 0
+                    });
                 });
-                if (quizPointsMap[user.id]) {
-                    setUserDbStats(quizPointsMap[user.id]);
+
+                // Add validFriends that are not in DB yet
+                validFriends.forEach(friend => {
+                    if (!dbIds.has(friend.id)) {
+                        const statsStr = localStorage.getItem(`friend_stats_${friend.name}`);
+                        let stats = { computedLevel: 1, totalEps: 0, isPrivate: false };
+                        if (statsStr) stats = JSON.parse(statsStr);
+                        const friendAnimePoints = stats.totalEps * 10;
+                        players.push({
+                            id: friend.id,
+                            name: friend.name,
+                            avatar: friend.avatar?.large,
+                            isMe: false,
+                            isFriend: true,
+                            isPrivate: stats.isPrivate,
+                            level: stats.computedLevel,
+                            animePoints: friendAnimePoints,
+                            pl: friendAnimePoints,
+                            monthlyPl: 0,
+                            streak: 0
+                        });
+                    }
+                });
+
+                if (!dbIds.has(user.id)) {
+                    players.push({
+                        id: user.id,
+                        name: user.name,
+                        avatar: user.avatar?.large || user.avatar,
+                        isMe: true,
+                        isFriend: false,
+                        isPrivate: false,
+                        level: 1,
+                        animePoints: 0,
+                        pl: 0,
+                        monthlyPl: 0,
+                        streak: 0
+                    });
                 }
             } else {
                 console.error("Supabase fetch failed in Arena:", error);
@@ -110,46 +177,6 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
         } catch (err) {
             console.error("Error fetching arena stats:", err);
         }
-
-        const userPoints = quizPointsMap[user.id] || { quiz: 0, anime: 0, monthly: 0, streak: 0 };
-        const userAnimePoints = userPoints.anime;
-        const userEps = Math.floor(userAnimePoints / 10);
-        
-        players.push({
-            id: user.id,
-            name: user.name,
-            avatar: user.avatar?.large || user.avatar,
-            isMe: true,
-            level: calculateLevel(userEps).computedLevel,
-            animePoints: userAnimePoints,
-            pl: userAnimePoints + userPoints.quiz,
-            monthlyPl: userPoints.monthly,
-            streak: userPoints.streak
-        });
-
-        validFriends.forEach(friend => {
-            const statsStr = localStorage.getItem(`friend_stats_${friend.name}`);
-            let stats = { computedLevel: 1, totalEps: 0, isPrivate: false };
-            if (statsStr) {
-                stats = JSON.parse(statsStr);
-            }
-
-            const friendPoints = quizPointsMap[friend.id] || { quiz: 0, anime: 0, monthly: 0, streak: 0 };
-            const friendAnimePoints = friendPoints.anime || stats.totalEps * 10;
-
-            players.push({
-                id: friend.id,
-                name: friend.name,
-                avatar: friend.avatar?.large,
-                isMe: false,
-                isPrivate: stats.isPrivate,
-                level: stats.computedLevel,
-                animePoints: friendAnimePoints,
-                pl: friendAnimePoints + friendPoints.quiz,
-                monthlyPl: friendPoints.monthly,
-                streak: friendPoints.streak
-            });
-        });
 
         // We sort dynamically in the render depending on activeLeague
         setLeaderboard(players);
@@ -467,9 +494,45 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
             </motion.div>
         )}
       </AnimatePresence>
+      {/* Scope Toggle (Mis Amigos vs Liga Global) */}
+      <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: '12px', padding: '4px' }}>
+          <button
+            onClick={() => { setArenaScope('friends'); localStorage.setItem('arenaScope', 'friends'); }}
+            style={{
+              padding: '0.5rem 1.5rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              background: arenaScope === 'friends' ? 'rgba(255,255,255,0.1)' : 'transparent',
+              color: arenaScope === 'friends' ? '#fff' : 'var(--color-text-secondary)',
+              transition: '0.2s'
+            }}
+          >
+            👥 Mis Amigos
+          </button>
+          <button
+            onClick={() => { setArenaScope('global'); localStorage.setItem('arenaScope', 'global'); }}
+            style={{
+              padding: '0.5rem 1.5rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              background: arenaScope === 'global' ? 'rgba(255,255,255,0.1)' : 'transparent',
+              color: arenaScope === 'global' ? '#fff' : 'var(--color-text-secondary)',
+              transition: '0.2s'
+            }}
+          >
+            🌍 Toda la Arena
+          </button>
+        </div>
+      </div>
       
       <div className="ranking-list">
         {[...leaderboard]
+          .filter(player => arenaScope === 'global' || player.isMe || player.isFriend)
           .filter(player => activeLeague !== 'legends' || (achievementsMap[player.id] && achievementsMap[player.id] > 0))
           .sort((a, b) => {
              if (activeLeague === 'legends') return (achievementsMap[b.id] || 0) - (achievementsMap[a.id] || 0);
@@ -503,6 +566,9 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                     <div className="ranking-info">
                         <div className="ranking-name">
                             <span className="truncate-text">{player.name}</span>
+                            {arenaScope === 'global' && player.isFriend && !player.isMe && (
+                                <span style={{ marginLeft: '6px', color: '#10b981' }} title="Es tu amigo">👥</span>
+                            )}
                             {achievementsMap[player.id] > 0 && (
                                 <span style={{ marginLeft: '4px', color: '#f59e0b', display: 'inline-flex', alignItems: 'center' }} title={`Ganador Mensual x${achievementsMap[player.id]}`}>👑<span style={{fontSize: '0.7rem', marginLeft: '2px'}}>x{achievementsMap[player.id]}</span></span>
                             )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Swords, Shield, Star, Crown, Tv, Target, TrendingUp, TrendingDown } from 'lucide-react';
+import { Trophy, Swords, Shield, Star, Crown, Tv, Target, TrendingUp, TrendingDown, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabase';
 
@@ -78,7 +78,8 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                           quiz: row.quiz_points || 0,
                           anime: row.anime_points || 0,
                           monthly: row.monthly_quiz_points || 0,
-                          streak: row.current_streak || 0
+                          streak: row.current_streak || 0,
+                          isPrivate: row.profile_visibility === 'private'
                         });
                     }
 
@@ -87,13 +88,7 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                     const isFriend = !!friendMatch;
 
                     let avatar = isMe ? (user.avatar?.large || user.avatar) : (friendMatch?.avatar?.large || 'https://anilist.co/img/icons/icon.svg');
-                    let isPrivate = false;
-                    if (friendMatch) {
-                        const statsStr = localStorage.getItem(`friend_stats_${friendMatch.name}`);
-                        if (statsStr) {
-                            isPrivate = JSON.parse(statsStr).isPrivate;
-                        }
-                    }
+                    let isPrivate = row.profile_visibility === 'private';
 
                     const rowAnimePoints = row.anime_points || 0;
                     let computedLevel = 1;
@@ -421,9 +416,28 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                                 </div>
                             </div>
                             
-                            <h3 style={{ fontSize: '1.3rem', marginBottom: '2rem', lineHeight: '1.5' }}>
-                                {quizQuestions[currentQuestionIndex].question}
-                            </h3>
+                            <div style={{ marginBottom: '2rem' }}>
+                                <span style={{ 
+                                    display: 'inline-block',
+                                    background: 'rgba(61, 180, 242, 0.15)',
+                                    color: 'var(--color-anilist-blue)',
+                                    border: '1px solid var(--color-anilist-blue)',
+                                    padding: '4px 12px',
+                                    borderRadius: '16px',
+                                    fontSize: '0.85rem',
+                                    fontWeight: 'bold',
+                                    marginBottom: '1rem',
+                                    maxWidth: '100%',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                }}>
+                                    {quizQuestions[currentQuestionIndex].anime_title}
+                                </span>
+                                <h3 style={{ fontSize: '1.3rem', margin: 0, lineHeight: '1.5' }}>
+                                    {quizQuestions[currentQuestionIndex].question}
+                                </h3>
+                            </div>
                             
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 {quizQuestions[currentQuestionIndex].options.map((opt, i) => {
@@ -530,9 +544,20 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
         </div>
       </div>
       
+      {arenaScope === 'global' && userDbStats?.isPrivate && (
+        <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', padding: '0.75rem', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Lock size={16} /> Tu perfil está en modo privado. Solo tus amigos pueden verte en sus rankings.
+        </div>
+      )}
       <div className="ranking-list">
         {[...leaderboard]
-          .filter(player => arenaScope === 'global' || player.isMe || player.isFriend)
+          .filter(player => {
+             if (arenaScope === 'global') {
+                if (player.isPrivate && !player.isMe) return false;
+                return true;
+             }
+             return player.isMe || player.isFriend;
+          })
           .filter(player => activeLeague !== 'legends' || (achievementsMap[player.id] && achievementsMap[player.id] > 0))
           .sort((a, b) => {
              if (activeLeague === 'legends') return (achievementsMap[b.id] || 0) - (achievementsMap[a.id] || 0);

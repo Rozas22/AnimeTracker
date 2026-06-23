@@ -346,6 +346,7 @@ export default function App() {
   const [token, setToken] = useState(localStorage.getItem('anilist_token') || '');
   const [userData, setUserData] = useState(null);
   const [quizPoints, setQuizPoints] = useState(0);
+  const [profileVisibility, setProfileVisibility] = useState('public');
 
   const syncSupabaseUser = async (viewer, realEpisodes) => {
     try {
@@ -356,7 +357,7 @@ export default function App() {
 
       const { data: existingData, error: readError } = await supabase
         .from('users')
-        .select('anime_points, level, quiz_points')
+        .select('anime_points, level, quiz_points, profile_visibility')
         .eq('anilist_id', viewer.id.toString())
         .single();
         
@@ -367,6 +368,7 @@ export default function App() {
       if (!readError && existingData) {
          finalQuizPoints = existingData.quiz_points || 0;
          existingLevel = existingData.level || 1;
+         setProfileVisibility(existingData.profile_visibility || 'public');
          
          // If fully in sync, return early but update local quiz points
          if (existingData.anime_points === nuevosPuntos && existingData.level === calculatedLevel) {
@@ -384,6 +386,7 @@ export default function App() {
           username: viewer.name,
           anime_points: nuevosPuntos,
           level: calculatedLevel,
+          profile_visibility: existingData?.profile_visibility || 'public',
           last_updated_at: new Date().toISOString()
         }, { onConflict: 'anilist_id' })
         .select('quiz_points, level')
@@ -2164,6 +2167,40 @@ export default function App() {
                     : 'Modo clásico: diseño plano y limpio.'}
                 </p>
               </div>
+
+              <div className="aesthetics-section">
+                <span className="aesthetics-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  Privacidad de la Arena
+                  {profileVisibility === 'private' && <Lock size={14} style={{ color: 'var(--color-accent-red)' }} />}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+                  <span style={{ color: 'var(--color-text-primary)', fontSize: '0.95rem' }}>Hacer mi perfil privado</span>
+                  <div 
+                    className={`toggle-switch ${profileVisibility === 'private' ? 'active' : ''}`}
+                    onClick={async () => {
+                      if (!userData) return;
+                      const newVis = profileVisibility === 'private' ? 'public' : 'private';
+                      setProfileVisibility(newVis);
+                      await supabase.from('users').update({ profile_visibility: newVis }).eq('anilist_id', userData.id.toString());
+                    }}
+                    style={{
+                      width: '40px', height: '22px', borderRadius: '12px', background: profileVisibility === 'private' ? 'var(--color-accent-red)' : 'rgba(255,255,255,0.2)',
+                      position: 'relative', cursor: 'pointer', transition: '0.3s'
+                    }}
+                  >
+                    <div style={{
+                      width: '18px', height: '18px', borderRadius: '50%', background: '#fff',
+                      position: 'absolute', top: '2px', left: profileVisibility === 'private' ? '20px' : '2px', transition: '0.3s'
+                    }} />
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
+                  {profileVisibility === 'private' 
+                    ? 'Tu perfil está oculto en la Liga Global. Solo tus amigos pueden verte.' 
+                    : 'Tu perfil es visible para todos en la Liga Global.'}
+                </p>
+              </div>
+
               <div className="aesthetics-section">
                 <span className="aesthetics-label">Marco del Perfil</span>
                 <div className="style-mode-toggle">

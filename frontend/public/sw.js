@@ -1,6 +1,6 @@
 // ─── VERSIÓN DEL CACHÉ ───────────────────────────────────────────────────────
 // Incrementa este número en cada despliegue para forzar limpieza completa.
-const CACHE_VERSION = "v6"; 
+const CACHE_VERSION = "v7"; 
 const CACHE_NAME    = `animatracker-${CACHE_VERSION}`;
 
 // Solo cacheamos el shell de la SPA — NO las imágenes de marca

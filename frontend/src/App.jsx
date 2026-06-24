@@ -1867,6 +1867,7 @@ export default function App() {
     } catch (err) {
       console.error('Anime search error:', err);
       setError('No se pudo completar la búsqueda. Inténtalo de nuevo.');
+      setHasNextPage(false);
     } finally {
       setSearching(false);
       setLoadingMore(false);
@@ -3844,3 +3845,4 @@ case 'mylist': {
     </div>
   );
 }
+

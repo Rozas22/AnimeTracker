@@ -223,7 +223,7 @@ header {
   border: 3px solid var(--color-anilist-blue);
   box-shadow: 0 0 15px rgba(61, 180, 242, 0.3);
   object-fit: cover;
-}
+ flex-shrink: 0; }
 
 .profile-meta h2 {
   font-size: 1.8rem;
@@ -2506,7 +2506,7 @@ header {
               0 8px 24px rgba(0,0,0,0.4);
   object-fit: cover;
   filter: drop-shadow(0 0 10px var(--accent-glow));
-}
+ flex-shrink: 0; }
 
 /* profile-header in modern2: stack vertically for better left-panel feel */
 [data-style="modern2"] .profile-col-left .profile-header {
@@ -3580,10 +3580,7 @@ textarea {
 
 
 /* Estilos dinmicos para los marcos de perfil */
-.profile-avatar-container {
-  position: relative;
-  overflow: visible;
-}
+.profile-avatar-container { position: relative; overflow: visible; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 
 .profile-frame {
    position: absolute;
@@ -3890,4 +3887,6 @@ textarea {
 @media (max-width: 400px) {
   .truncate-text { max-width: 100px !important; }
 }
+
+
 

@@ -3798,7 +3798,7 @@ textarea {
   font-size: 1rem;
   display: flex;
   align-items: center;
-  flex-wrap: wrap; /* Permitimos que las badges bajen de línea si no caben */
+  flex-wrap: wrap; /* Permitimos que las badges bajen de lï¿½nea si no caben */
   gap: 0.3rem;
   width: 100%;
 }
@@ -3864,10 +3864,10 @@ textarea {
 
 @media (max-width: 400px) {
   .ranking-name {
-    flex-wrap: nowrap; /* En pantallas muy pequeñas forzamos a una línea y que el truncate haga su trabajo */
+    flex-wrap: nowrap; /* En pantallas muy pequeï¿½as forzamos a una lï¿½nea y que el truncate haga su trabajo */
   }
   .truncate-text {
-    max-width: 80px; /* Forzamos un límite estricto para dejar espacio al score */
+    max-width: 80px; /* Forzamos un lï¿½mite estricto para dejar espacio al score */
   }
 }
 

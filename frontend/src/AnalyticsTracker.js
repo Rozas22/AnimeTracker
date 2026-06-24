@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { v4 as uuidv4 } from 'uuid'; // Fallback gen_random_uuid
 
 // Simple UUID generator fallback
 const generateUUID = () => {

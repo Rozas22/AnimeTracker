@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trophy, Swords, Shield, Star, Crown, Tv, Target, TrendingUp, TrendingDown, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabase';
+import { trackEvent } from '../AnalyticsTracker';
 
 const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
   const friendList = anilistFriends || [];
@@ -206,6 +207,7 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
           setStreakCount(0);
           setBonusPoints(0);
           setQuizStatus('playing');
+          trackEvent('quiz_start', { userId: user?.id });
       } catch (err) {
           console.error(err);
           alert('Hubo un error al preparar el quiz. Inténtalo de nuevo.');
@@ -261,6 +263,7 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
           setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
           setQuizStatus('finished');
+          trackEvent('quiz_finish', { score: newScore, userId: user?.id });
           localStorage.setItem('lastQuizDate', new Date().toDateString());
           
           if (user) {

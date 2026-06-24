@@ -5,6 +5,8 @@ import ArenaView from './components/ArenaView';
 import AiringCalendar from './components/AiringCalendar';
 import ListaDesplegable from './components/ListaDesplegable';
 import { supabase } from './supabase';
+import { trackEvent } from './AnalyticsTracker';
+import AdminAnalytics from './components/AdminAnalytics';
 import { calculatePL, getLeagueInfo, calculateLevel } from './leagueUtils';
 import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
@@ -347,6 +349,11 @@ export default function App() {
   const [userData, setUserData] = useState(null);
   const [quizPoints, setQuizPoints] = useState(0);
   const [profileVisibility, setProfileVisibility] = useState('public');
+  const [ignoreAnalytics, setIgnoreAnalytics] = useState(localStorage.getItem('ignore_analytics') === 'true');
+
+  useEffect(() => {
+    trackEvent('page_view');
+  }, []);
 
   const syncSupabaseUser = async (viewer, realEpisodes) => {
     try {
@@ -365,6 +372,10 @@ export default function App() {
       let finalQuizPoints = 0;
       let existingLevel = 1;
       
+      if (readError && !existingData) {
+        trackEvent('user_signup', { userId: viewer.id });
+      }
+
       if (!readError && existingData) {
          finalQuizPoints = existingData.quiz_points || 0;
          existingLevel = existingData.level || 1;
@@ -2168,6 +2179,35 @@ export default function App() {
                 </p>
               </div>
 
+              {userData?.id?.toString() === '7952169' && (
+                <div className="aesthetics-section">
+                  <span className="aesthetics-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    Modo Administrador
+                    <ShieldAlert size={14} style={{ color: 'var(--color-accent-purple)' }} />
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+                    <span style={{ color: 'var(--color-text-primary)', fontSize: '0.95rem' }}>Excluir mi tráfico (Analíticas)</span>
+                    <div 
+                      className={`toggle-switch ${ignoreAnalytics ? 'active' : ''}`}
+                      onClick={() => {
+                        const newVal = !ignoreAnalytics;
+                        setIgnoreAnalytics(newVal);
+                        localStorage.setItem('ignore_analytics', newVal ? 'true' : 'false');
+                      }}
+                      style={{
+                        width: '40px', height: '22px', borderRadius: '12px', background: ignoreAnalytics ? 'var(--color-accent-purple)' : 'rgba(255,255,255,0.2)',
+                        position: 'relative', cursor: 'pointer', transition: '0.3s'
+                      }}
+                    >
+                      <div style={{
+                        width: '18px', height: '18px', borderRadius: '50%', background: '#fff',
+                        position: 'absolute', top: '2px', left: ignoreAnalytics ? '20px' : '2px', transition: '0.3s'
+                      }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="aesthetics-section">
                 <span className="aesthetics-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   Privacidad de la Arena
@@ -2827,6 +2867,10 @@ case 'mylist': {
             </form>
           </div>
         );
+      case 'admin_analytics':
+        if (userData?.id?.toString() !== '7952169') return <div>Acceso denegado</div>;
+        return <AdminAnalytics />;
+
       case 'analytics': {
         const totalEntries = completedAnime.length;
         if (totalEntries === 0) {
@@ -3284,6 +3328,16 @@ case 'mylist': {
             <BarChart2 size={18} />
             <span>Análisis</span>
           </button>
+          
+          {userData?.id?.toString() === '7952169' && (
+            <button 
+              className={`sidebar-nav-item ${activeTab === 'admin_analytics' ? 'active' : ''}`}
+              onClick={() => handleTabClick('admin_analytics')}
+            >
+              <ShieldAlert size={18} />
+              <span>Admin Analíticas</span>
+            </button>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -3433,6 +3487,15 @@ case 'mylist': {
             <BarChart2 size={20} />
             <span>Análisis</span>
           </button>
+          {userData?.id?.toString() === '7952169' && (
+            <button
+              className={`bottom-nav-item ${activeTab === 'admin_analytics' ? 'active' : ''}`}
+              onClick={() => handleTabClick('admin_analytics')}
+            >
+              <ShieldAlert size={20} />
+              <span>Admin</span>
+            </button>
+          )}
         </nav>
       </div>
 

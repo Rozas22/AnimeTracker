@@ -22,10 +22,10 @@ const TROPHY_CONFIG = [
   { level: 30, title: 'Maestro de Plata', frameName: 'silver', frameLabel: 'Marco de Plata' },
   { level: 40, title: 'Veterano', frameName: null, frameLabel: 'Sin Marco' },
   { level: 50, title: 'Leyenda del Anime', frameName: 'gold', frameLabel: 'Marco de Oro' },
-  { level: 60, title: 'Mito', frameName: 'ruby', frameLabel: 'Marco de Rubí' },
+  { level: 60, title: 'Mito', frameName: 'ruby', frameLabel: 'Marco de RubÃ­' },
   { level: 70, title: 'Semi-Dios', frameName: null, frameLabel: 'Sin Marco' },
   { level: 80, title: 'Dios', frameName: 'diamond', frameLabel: 'Marco de Diamante' },
-  { level: 90, title: 'Titán', frameName: null, frameLabel: 'Sin Marco' },
+  { level: 90, title: 'TitÃ¡n', frameName: null, frameLabel: 'Sin Marco' },
   { level: 100, title: 'Completista', frameName: 'chroma', frameLabel: 'Marco Croma' }
 ];
 
@@ -95,7 +95,7 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
           </h2>
           <div 
             className="level-badge" 
-            title={`Faltan ${stats.episodiosParaSiguienteNivel - stats.episodiosRestantes} capítulos para el Nivel ${stats.computedLevel + 1}`}
+            title={`Faltan ${stats.episodiosParaSiguienteNivel - stats.episodiosRestantes} capÃ­tulos para el Nivel ${stats.computedLevel + 1}`}
           >
             <Star size={14} style={{ color: 'var(--accent)' }} />
             <span>Nivel <strong>{stats.computedLevel}</strong> - {stats.userTitle}</span>
@@ -107,7 +107,7 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
             rel="noopener noreferrer" 
             style={{ color: 'var(--color-anilist-blue)', textDecoration: 'none', fontSize: '0.9rem', marginTop: '0.5rem', display: 'inline-block' }}
           >
-            Ver perfil original en AniList.co →
+            Ver perfil original en AniList.co â†’
           </a>
           {children}
         </div>
@@ -138,7 +138,7 @@ const ProfileHeader = ({ user, isPublic, selectedFrame, onTestAnimation, childre
             style={{ marginTop: '1rem', width: '100%', border: '1px dashed var(--accent)', color: 'var(--accent)' }} 
             onClick={() => onTestAnimation(stats)}
           >
-            Probar Animación de Nivel
+            Probar AnimaciÃ³n de Nivel
           </button>
         )}
       </div>
@@ -256,7 +256,7 @@ const ProfileDisplay = ({
         </div>
 
         <div className="profile-col-right">
-          <CollapsibleSection title="Estadísticas en AniList" defaultOpen={isDesktop}>
+          <CollapsibleSection title="EstadÃ­sticas en AniList" defaultOpen={isDesktop}>
             <div className="stats-grid">
               <div className="stat-item clickable" onClick={() => { onTabClick('mylist', isOwnProfile ? null : user.name); onSubTabClick('COMPLETED'); }} style={{ cursor: 'pointer' }}>
                 <Tv size={24} style={{ color: 'var(--color-anilist-blue)', marginBottom: '0.5rem' }} />
@@ -283,7 +283,7 @@ const ProfileDisplay = ({
                   <div className="stat-item">
                     <BookOpen size={24} style={{ color: 'var(--color-accent-green)', marginBottom: '0.5rem' }} />
                     <div className="stat-value">{user.statistics.manga.chaptersRead || 0}</div>
-                    <div className="stat-label">Capítulos Leídos</div>
+                    <div className="stat-label">CapÃ­tulos LeÃ­dos</div>
                   </div>
                 </>
               )}
@@ -292,7 +292,7 @@ const ProfileDisplay = ({
 
           <AiringCalendar animeList={animeList} />
 
-          <CollapsibleSection title="Galería de Trofeos" defaultOpen={isDesktop}>
+          <CollapsibleSection title="GalerÃ­a de Trofeos" defaultOpen={isDesktop}>
             <div className="trophy-grid">
               {TROPHY_CONFIG.map(trophy => {
                 const isUnlocked = computedLevel >= trophy.level;
@@ -323,7 +323,7 @@ const ProfileDisplay = ({
       <div className="card" style={{ padding: '3rem 1rem', textAlign: 'center', marginTop: '1rem' }}>
         <ShieldAlert size={48} style={{ color: 'var(--color-accent-red)', marginBottom: '1rem', opacity: 0.8 }} />
         <h3>Error al renderizar el perfil</h3>
-        <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>Ha ocurrido un problema al procesar los datos de este perfil. Intenta recargar la página.</p>
+        <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>Ha ocurrido un problema al procesar los datos de este perfil. Intenta recargar la pÃ¡gina.</p>
       </div>
     );
   }
@@ -456,7 +456,7 @@ export default function App() {
           .eq('anilist_id', userId.toString())
           .single();
           
-        // 2. Si son idénticos, no hacer nada
+        // 2. Si son idÃ©nticos, no hacer nada
         if (existingData && existingData.anime_points === nuevosPuntos && existingData.level === nuevoNivel) {
            return;
         }
@@ -601,7 +601,7 @@ export default function App() {
       });
     });
 
-    // C. After skipWaiting fires and the new SW takes control —
+    // C. After skipWaiting fires and the new SW takes control â€”
     //    reload only if the user clicked the banner (refreshing flag).
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -715,7 +715,7 @@ export default function App() {
             setFriendError(null);
             return makeRequest(retries - 1);
           } else {
-            throw new Error('Demasiadas peticiones. Inténtalo más tarde.');
+            throw new Error('Demasiadas peticiones. IntÃ©ntalo mÃ¡s tarde.');
           }
         }
 
@@ -744,7 +744,7 @@ export default function App() {
               user.statistics.anime.episodesWatched = Math.floor(supaData.anime_points / 10);
             }
             
-            // Recálculo inteligente en background si es mayor a 24 horas y el usuario es seguido/amigo
+            // RecÃ¡lculo inteligente en background si es mayor a 24 horas y el usuario es seguido/amigo
             if (supaData.last_updated_at) {
                const lastUpdate = new Date(supaData.last_updated_at);
                const now = new Date();
@@ -840,7 +840,7 @@ export default function App() {
             setFriendError(null);
             return makeRequest(retries - 1);
           } else {
-            throw new Error('Demasiadas peticiones. Inténtalo más tarde.');
+            throw new Error('Demasiadas peticiones. IntÃ©ntalo mÃ¡s tarde.');
           }
         }
 
@@ -914,7 +914,7 @@ export default function App() {
         const daysAgo = Math.floor(hoursAgo / 24);
         let timeText = '';
         if (daysAgo > 0) {
-          timeText = `Hace ${daysAgo} ${daysAgo === 1 ? 'día' : 'días'}`;
+          timeText = `Hace ${daysAgo} ${daysAgo === 1 ? 'dÃ­a' : 'dÃ­as'}`;
         } else {
           timeText = `Hace ${Math.max(1, hoursAgo)} ${hoursAgo <= 1 ? 'hora' : 'horas'}`;
         }
@@ -1083,7 +1083,7 @@ export default function App() {
         setSocialNotifications(prev => {
           let newNotifs = [...prev];
           uniqueActivities.filter(a => a.user?.id !== viewerId).forEach(act => {
-            // Comparación: No re-añadir si ya está en la lista
+            // ComparaciÃ³n: No re-aÃ±adir si ya estÃ¡ en la lista
             if (!newNotifs.some(n => n.id === act.id)) {
               newNotifs.unshift({ ...act, isRead: false });
             }
@@ -1256,7 +1256,7 @@ export default function App() {
 
     const userId = overrideUserId || userData?.id;
     if (!userId) {
-      console.log('Esperando a que userData.id esté disponible...');
+      console.log('Esperando a que userData.id estÃ© disponible...');
       return;
     }
 
@@ -1279,8 +1279,8 @@ export default function App() {
     
     const variables = { userId: parseInt(userId, 10) };
     
-    console.log('Query que se está enviando:', JSON.stringify(query));
-    console.log('Variables que se están enviando:', JSON.stringify(variables));
+    console.log('Query que se estÃ¡ enviando:', JSON.stringify(query));
+    console.log('Variables que se estÃ¡n enviando:', JSON.stringify(variables));
 
     const makeRequest = async (retries = 1) => {
       try {
@@ -1360,12 +1360,12 @@ export default function App() {
 
   const handleFollowUser = async (userId) => {
     if (!token) {
-      showToast('Debes iniciar sesión para seguir a usuarios.');
+      showToast('Debes iniciar sesiÃ³n para seguir a usuarios.');
       return;
     }
     
     const parsedUserId = parseInt(userId, 10);
-    console.log('Enviando mutación con ID:', parsedUserId);
+    console.log('Enviando mutaciÃ³n con ID:', parsedUserId);
     
     setTogglingFollow(true);
     const query = `
@@ -1396,7 +1396,7 @@ export default function App() {
       const isNowFollowing = result.data.ToggleFollow.isFollowing;
       showToast(isNowFollowing ? 'Siguiendo al usuario' : 'Has dejado de seguir al usuario');
       
-      // Lógica de Idempotencia: Check de Unicidad antes de insertar en Supabase
+      // LÃ³gica de Idempotencia: Check de Unicidad antes de insertar en Supabase
       if (isNowFollowing && userData?.id) {
         try {
           const { data: existing } = await supabase
@@ -1416,7 +1416,7 @@ export default function App() {
           }
         } catch (supaErr) {
           if (supaErr.code !== 'PGRST116') { // Ignoramos el error si simplemente no hay resultados (single throw)
-             console.error('Error insertando notificación:', supaErr);
+             console.error('Error insertando notificaciÃ³n:', supaErr);
           } else if (supaErr.code === 'PGRST116') {
              // Es seguro insertar
              await supabase.from('notifications').insert({
@@ -1441,7 +1441,7 @@ export default function App() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    console.log(`Elección de instalación: ${outcome}`);
+    console.log(`ElecciÃ³n de instalaciÃ³n: ${outcome}`);
     setDeferredPrompt(null);
     setShowInstallBtn(false);
   };
@@ -1455,7 +1455,7 @@ export default function App() {
     const totalEpisodes = media.episodes || 9999;
     
     if (currentProgress >= totalEpisodes) {
-      showToast('¡Ya has completado este anime!');
+      showToast('Â¡Ya has completado este anime!');
       return;
     }
     
@@ -1478,12 +1478,12 @@ export default function App() {
           score: entry.score || 10
         })
       }).catch(error => {
-        console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
+        console.log('Error de conexiÃ³n:', error, 'al intentar conectar con:', targetUrl);
         throw error;
       });
 
       if (response.headers.get('content-type')?.includes('text/html')) {
-        throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
+        throw new Error(`El servidor devolviÃ³ HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
       }
 
       const result = await response.json();
@@ -1674,7 +1674,11 @@ export default function App() {
         await fetchSocialActivity(viewer.id);
       } catch (err) {
         console.error('Error fetching AniList profile:', err);
-        setError('No se pudo cargar el perfil. Puede que el token haya expirado o sea inválido.');
+        if (err.message && (err.message.includes('Too Many Requests') || err.message.includes('429'))) {
+          setError('AniList ha bloqueado tu conexión temporalmente (Demasiadas peticiones). Cambia tu IP (ej. reiniciar router o usar datos móviles) o espera 1 hora.');
+        } else {
+          setError('No se pudo cargar el perfil. Puede que el token haya expirado o sea inválido.');
+        }
         // If unauthorized, clear token
         if (err.message.includes('Unauthorized') || err.message.includes('token')) {
           handleLogout();
@@ -1695,22 +1699,22 @@ export default function App() {
     try {
       // Get OAuth config from backend to construct redirect URL
       const response = await fetch(targetUrl).catch(error => {
-        console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
+        console.log('Error de conexiÃ³n:', error, 'al intentar conectar con:', targetUrl);
         throw error;
       });
 
       if (response.headers.get('content-type')?.includes('text/html')) {
-        throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
+        throw new Error(`El servidor devolviÃ³ HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
       }
 
       if (!response.ok) {
-        throw new Error('No se pudo obtener la configuración de autenticación del backend.');
+        throw new Error('No se pudo obtener la configuraciÃ³n de autenticaciÃ³n del backend.');
       }
       
       const config = await response.json();
       
       if (!config.client_id || config.client_id === 'your_client_id_here') {
-        throw new Error('El backend no está configurado. Por favor, edita el archivo backend/.env con tus credenciales de AniList.');
+        throw new Error('El backend no estÃ¡ configurado. Por favor, edita el archivo backend/.env con tus credenciales de AniList.');
       }
 
       // Redirect user to AniList OAuth
@@ -1768,7 +1772,7 @@ export default function App() {
     if (selectedFormat && selectedFormat !== 'Todos') {
       const formatMap = {
         'Serie': 'TV',
-        'Película': 'MOVIE',
+        'PelÃ­cula': 'MOVIE',
         'OVA': 'OVA',
         'Especial': 'SPECIAL'
       };
@@ -1866,7 +1870,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('Anime search error:', err);
-      setError('No se pudo completar la búsqueda. Inténtalo de nuevo.');
+      setError('No se pudo completar la bÃºsqueda. IntÃ©ntalo de nuevo.');
       setHasNextPage(false);
     } finally {
       setSearching(false);
@@ -2101,12 +2105,12 @@ export default function App() {
           score: formScore
         })
       }).catch(error => {
-        console.log('Error de conexión:', error, 'al intentar conectar con:', targetUrl);
+        console.log('Error de conexiÃ³n:', error, 'al intentar conectar con:', targetUrl);
         throw error;
       });
 
       if (response.headers.get('content-type')?.includes('text/html')) {
-        throw new Error(`El servidor devolvió HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
+        throw new Error(`El servidor devolviÃ³ HTML en lugar de JSON al conectar con ${targetUrl}. Revisa que la variable de entorno VITE_API_URL sea correcta.`);
       }
 
       const result = await response.json();
@@ -2115,7 +2119,7 @@ export default function App() {
         throw new Error(result.error || 'Error al guardar el anime en AniList.');
       }
 
-      showToast('¡Guardado con éxito en AniList!');
+      showToast('Â¡Guardado con Ã©xito en AniList!');
       
       // Refresh user statistics and list info immediately
       await refreshUserData();
@@ -2156,7 +2160,7 @@ export default function App() {
                     className={`style-mode-btn ${styleMode === 'classic' ? 'active' : ''}`}
                     onClick={() => setStyleMode('classic')}
                   >
-                    Clásico
+                    ClÃ¡sico
                   </button>
                   <button
                     className={`style-mode-btn ${styleMode === 'modern' ? 'active' : ''}`}
@@ -2173,10 +2177,10 @@ export default function App() {
                 </div>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '0.8rem' }}>
                   {styleMode === 'modern'
-                    ? '✔️ Modo moderno: glassmorphism + avatar hexagonal.'
+                    ? 'âœ”ï¸ Modo moderno: glassmorphism + avatar hexagonal.'
                     : styleMode === 'modern2'
-                    ? '✔️ Moderno 2: layout 2 columnas, fondos sólidos, sombras neumorfóficas.'
-                    : 'Modo clásico: diseño plano y limpio.'}
+                    ? 'âœ”ï¸ Moderno 2: layout 2 columnas, fondos sÃ³lidos, sombras neumorfÃ³ficas.'
+                    : 'Modo clÃ¡sico: diseÃ±o plano y limpio.'}
                 </p>
               </div>
 
@@ -2187,7 +2191,7 @@ export default function App() {
                     <ShieldAlert size={14} style={{ color: 'var(--color-accent-purple)' }} />
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0' }}>
-                    <span style={{ color: 'var(--color-text-primary)', fontSize: '0.95rem' }}>Excluir mi tráfico (Analíticas)</span>
+                    <span style={{ color: 'var(--color-text-primary)', fontSize: '0.95rem' }}>Excluir mi trÃ¡fico (AnalÃ­ticas)</span>
                     <div 
                       className={`toggle-switch ${ignoreAnalytics ? 'active' : ''}`}
                       onClick={() => {
@@ -2237,7 +2241,7 @@ export default function App() {
                 </div>
                 <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
                   {profileVisibility === 'private' 
-                    ? 'Tu perfil está oculto en la Liga Global. Solo tus amigos pueden verte.' 
+                    ? 'Tu perfil estÃ¡ oculto en la Liga Global. Solo tus amigos pueden verte.' 
                     : 'Tu perfil es visible para todos en la Liga Global.'}
                 </p>
               </div>
@@ -2309,7 +2313,7 @@ export default function App() {
                       const updatedData = { ...friendData };
                       delete updatedData.notInArena;
                       setFriendData(updatedData);
-                      showToast('Usuario añadido a la base de datos de la Arena.');
+                      showToast('Usuario aÃ±adido a la base de datos de la Arena.');
                     }}
                     style={{ 
                       padding: '0.5rem 1.25rem', 
@@ -2321,7 +2325,7 @@ export default function App() {
                       gap: '0.5rem'
                     }}
                   >
-                    <Swords size={16} /> Añadir a la Arena
+                    <Swords size={16} /> AÃ±adir a la Arena
                   </button>
                 )}
                 <button className="btn-secondary" onClick={() => handleTabClick('group')} style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
@@ -2368,7 +2372,7 @@ case 'mylist': {
               <div>
                 <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', marginBottom: '0.25rem' }}>Mi Lista de Anime</h2>
                 <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem' }}>
-                  Administra tus series en emisión, completadas y planeadas.
+                  Administra tus series en emisiÃ³n, completadas y planeadas.
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -2425,13 +2429,13 @@ case 'mylist': {
             {filteredList.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '4rem 1rem', color: 'var(--color-text-secondary)' }}>
                 <Tv size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-                <p>No tienes ningún anime en esta sección de tu lista.</p>
+                <p>No tienes ningÃºn anime en esta secciÃ³n de tu lista.</p>
                 <button 
                   className="btn-primary" 
                   onClick={() => handleTabClick('search')}
                   style={{ marginTop: '1.25rem' }}
                 >
-                  Buscar Animes para Añadir
+                  Buscar Animes para AÃ±adir
                 </button>
               </div>
             ) : (
@@ -2450,7 +2454,7 @@ case 'mylist': {
                     >
                       {/* Live status indicator */}
                       {anime.status && (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') && (
-                        <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En Emisión' : 'Próximamente'} />
+                        <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En EmisiÃ³n' : 'PrÃ³ximamente'} />
                       )}
                       
                       {/* Main card cover */}
@@ -2498,7 +2502,7 @@ case 'mylist': {
                       {group.items.length > 1 && (
                         <div className="franchise-expand-header">
                           <span>{isExpanded ? 'Ocultar temporadas' : 'Ver temporadas'}</span>
-                          <span className={`arrow-icon ${isExpanded ? 'rotated' : ''}`}>▼</span>
+                          <span className={`arrow-icon ${isExpanded ? 'rotated' : ''}`}>â–¼</span>
                         </div>
                       )}
 
@@ -2542,7 +2546,7 @@ case 'mylist': {
                                   </button>
                                 )}
 
-                                <span className="view-details-arrow">→</span>
+                                <span className="view-details-arrow">â†’</span>
                               </div>
                             );
                           })}
@@ -2582,7 +2586,7 @@ case 'mylist': {
           <div className="settings-card card" style={{ maxWidth: '700px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>
               <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Settings size={22} style={{ color: 'var(--accent)' }} /> Ajustes de Estética
+                <Settings size={22} style={{ color: 'var(--accent)' }} /> Ajustes de EstÃ©tica
               </h2>
             </div>
             
@@ -2605,7 +2609,7 @@ case 'mylist': {
               </button>
             </div>
             <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-              Busca series o películas de anime para agregarlas a tu lista o actualizar tu progreso.
+              Busca series o pelÃ­culas de anime para agregarlas a tu lista o actualizar tu progreso.
             </p>
             
             <form onSubmit={handleSearchSubmit} className="search-form">
@@ -2658,31 +2662,31 @@ case 'mylist': {
                   >
                     <option value="Todos">Todos los formatos</option>
                     <option value="Serie">Serie (TV)</option>
-                    <option value="Película">Película (Movie)</option>
+                    <option value="PelÃ­cula">PelÃ­cula (Movie)</option>
                     <option value="OVA">OVA</option>
                     <option value="Especial">Especial</option>
                   </select>
                 </div>
 
                 <div className="filter-group">
-                  <label htmlFor="filter-genre" className="filter-label">Género</label>
+                  <label htmlFor="filter-genre" className="filter-label">GÃ©nero</label>
                   <select 
                     id="filter-genre"
                     value={filterGenre} 
                     onChange={handleGenreChange}
                     className="filter-select"
                   >
-                    <option value="Todos">Todos los géneros</option>
-                    <option value="Action">Acción</option>
+                    <option value="Todos">Todos los gÃ©neros</option>
+                    <option value="Action">AcciÃ³n</option>
                     <option value="Adventure">Aventura</option>
                     <option value="Comedy">Comedia</option>
                     <option value="Drama">Drama</option>
-                    <option value="Fantasy">Fantasía</option>
+                    <option value="Fantasy">FantasÃ­a</option>
                     <option value="Horror">Terror</option>
                     <option value="Mystery">Misterio</option>
-                    <option value="Psychological">Psicológico</option>
+                    <option value="Psychological">PsicolÃ³gico</option>
                     <option value="Romance">Romance</option>
-                    <option value="Sci-Fi">Ciencia Ficción</option>
+                    <option value="Sci-Fi">Ciencia FicciÃ³n</option>
                     <option value="Slice of Life">Recuentos de la vida</option>
                     <option value="Sports">Deportes</option>
                     <option value="Supernatural">Sobrenatural</option>
@@ -2694,7 +2698,7 @@ case 'mylist': {
             </form>
 
             <h3 style={{ fontSize: '1.2rem', fontFamily: 'var(--font-display)', marginTop: '2.5rem', marginBottom: '1.25rem', color: 'var(--color-text-primary)', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '0.5rem' }}>
-              {searchQuery.trim() ? 'Resultados de Búsqueda' : 'Animes del Momento (Tendencias)'}
+              {searchQuery.trim() ? 'Resultados de BÃºsqueda' : 'Animes del Momento (Tendencias)'}
             </h3>
 
             {/* SEARCH RESULTS */}
@@ -2704,7 +2708,7 @@ case 'mylist': {
                   {searchResults.map((anime) => (
                     <div key={anime.id} className="anime-card" onClick={() => fetchAnimeDetails(anime.id)}>
                       {anime.status && (anime.status === 'RELEASING' || anime.status === 'NOT_YET_RELEASED') && (
-                        <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En Emisión' : 'Próximamente'} />
+                        <div className={`status-indicator ${anime.status.toLowerCase()}`} title={anime.status === 'RELEASING' ? 'En EmisiÃ³n' : 'PrÃ³ximamente'} />
                       )}
                       <div className="cover-wrapper" style={{ position: 'relative' }}>
                         <img 
@@ -2747,7 +2751,7 @@ case 'mylist': {
                   <div style={{ textAlign: 'center', padding: '2rem 0' }}>
                     <div className="loader" style={{ width: '30px', height: '30px', margin: '0 auto' }}></div>
                     <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem', fontSize: '0.85rem' }}>
-                      Cargando más animes...
+                      Cargando mÃ¡s animes...
                     </p>
                   </div>
                 )}
@@ -2767,7 +2771,7 @@ case 'mylist': {
                 className="btn-secondary" 
                 style={{ marginTop: '2rem', width: '100%' }}
               >
-                Limpiar Filtros y Búsqueda
+                Limpiar Filtros y BÃºsqueda
               </button>
             )}
           </div>
@@ -2799,7 +2803,7 @@ case 'mylist': {
                   return (
                     <div style={{ background: 'var(--color-bg-light)', padding: '2rem', borderRadius: '12px', textAlign: 'center' }}>
                       <Users size={40} style={{ color: 'var(--color-text-secondary)', opacity: 0.5, marginBottom: '1rem' }} />
-                      <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>Aún no sigues a nadie en AniList.</p>
+                      <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>AÃºn no sigues a nadie en AniList.</p>
                       <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>Usa el buscador de abajo para encontrar usuarios y ver sus perfiles.</p>
                     </div>
                   );
@@ -2835,7 +2839,7 @@ case 'mylist': {
                           </div>
                           {isClose && (
                             <div style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 'bold', animation: 'pulse 2s infinite' }}>
-                              ¡A {stats.episodiosParaSiguienteNivel - stats.episodiosRestantes} eps del Nivel {stats.computedLevel + 1}!
+                              Â¡A {stats.episodiosParaSiguienteNivel - stats.episodiosRestantes} eps del Nivel {stats.computedLevel + 1}!
                             </div>
                           )}
                         </div>
@@ -2878,9 +2882,9 @@ case 'mylist': {
           return (
             <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
               <BarChart2 size={48} style={{ color: 'var(--color-anilist-blue)', opacity: 0.5, marginBottom: '1rem' }} />
-              <h3>Sin datos todavía</h3>
+              <h3>Sin datos todavÃ­a</h3>
               <p style={{ color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
-                Añade animes a tu lista para ver tu análisis.
+                AÃ±ade animes a tu lista para ver tu anÃ¡lisis.
               </p>
             </div>
           );
@@ -2919,7 +2923,7 @@ case 'mylist': {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
               <BarChart2 size={24} style={{ color: 'var(--color-anilist-blue)' }} />
-              <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>Análisis de tu Lista</h2>
+              <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)' }}>AnÃ¡lisis de tu Lista</h2>
             </div>
 
             <div className="stats-grid analytics-stats-grid">
@@ -2956,7 +2960,7 @@ case 'mylist': {
                 </div>
                 <div className="analytics-stat-body">
                   <div className="stat-value">{avgScore}</div>
-                  <div className="stat-label">Puntuación Media</div>
+                  <div className="stat-label">PuntuaciÃ³n Media</div>
                 </div>
               </div>
             </div>
@@ -2966,7 +2970,7 @@ case 'mylist': {
               {topGenres.length > 0 && (
                 <div className="card" style={{ padding: '1.5rem' }}>
                   <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Award size={16} style={{ color: 'var(--color-accent-purple)' }} /> Géneros Favoritos
+                    <Award size={16} style={{ color: 'var(--color-accent-purple)' }} /> GÃ©neros Favoritos
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {topGenres.map(([genre, count], i) => (
@@ -2987,7 +2991,7 @@ case 'mylist': {
               {topStudios.length > 0 && (
                 <div className="card" style={{ padding: '1.5rem' }}>
                   <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <Award size={16} style={{ color: 'var(--color-accent-green)' }} /> Estudios Más Vistos
+                    <Award size={16} style={{ color: 'var(--color-accent-green)' }} /> Estudios MÃ¡s Vistos
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {topStudios.map(([studio, count], i) => (
@@ -3052,7 +3056,7 @@ case 'mylist': {
     }
   };
 
-  // ── Analytics helper: compute top-N from a flat list of values ──
+  // â”€â”€ Analytics helper: compute top-N from a flat list of values â”€â”€
   const topN = (items, n = 5) => {
     const freq = {};
     items.forEach(v => { if (v) freq[v] = (freq[v] || 0) + 1; });
@@ -3093,7 +3097,7 @@ case 'mylist': {
             <div className="alert alert-error">
               <ShieldAlert size={20} style={{ flexShrink: 0 }} />
               <div>
-                <strong>¡Atención! </strong>
+                <strong>Â¡AtenciÃ³n! </strong>
                 {error}
               </div>
             </div>
@@ -3110,7 +3114,7 @@ case 'mylist': {
                 Descubre y comparte tu anime con amigos
               </h1>
               <p style={{ color: 'var(--color-text-secondary)', fontSize: '1.1rem', marginBottom: '2.5rem', lineHeight: '1.6' }}>
-                Inicia sesión con tu cuenta de AniList para sincronizar tu perfil, ver tus estadísticas de anime/manga y compartir tu progreso en tiempo real.
+                Inicia sesiÃ³n con tu cuenta de AniList para sincronizar tu perfil, ver tus estadÃ­sticas de anime/manga y compartir tu progreso en tiempo real.
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center', marginTop: '1.5rem' }}>
@@ -3121,7 +3125,7 @@ case 'mylist': {
                   style={{ padding: '1rem 2rem', fontSize: '1.1rem', width: '100%', maxWidth: '320px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
                 >
                   <LogIn size={20} />
-                  {loading ? 'Redirigiendo...' : 'Iniciar Sesión con AniList'}
+                  {loading ? 'Redirigiendo...' : 'Iniciar SesiÃ³n con AniList'}
                 </button>
                 
                 {showInstallBtn && (
@@ -3131,7 +3135,7 @@ case 'mylist': {
                     style={{ padding: '0.8rem 1.5rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(255,255,255,0.15)', width: '100%', maxWidth: '320px', justifyContent: 'center' }}
                   >
                     <Download size={18} />
-                    Instalar Aplicación
+                    Instalar AplicaciÃ³n
                   </button>
                 )}
               </div>
@@ -3192,7 +3196,7 @@ case 'mylist': {
                 {episodeNotifications.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
                     <Bell size={32} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
-                    <p style={{ margin: 0, fontSize: '0.9rem' }}>Todo al día en tus animes</p>
+                    <p style={{ margin: 0, fontSize: '0.9rem' }}>Todo al dÃ­a en tus animes</p>
                   </div>
                 ) : (
                   episodeNotifications.map(notif => (
@@ -3327,7 +3331,7 @@ case 'mylist': {
             onClick={() => handleTabClick('analytics')}
           >
             <BarChart2 size={18} />
-            <span>Análisis</span>
+            <span>AnÃ¡lisis</span>
           </button>
           
           {userData?.id?.toString() === '7952169' && (
@@ -3336,7 +3340,7 @@ case 'mylist': {
               onClick={() => handleTabClick('admin_analytics')}
             >
               <ShieldAlert size={18} />
-              <span>Admin Analíticas</span>
+              <span>Admin AnalÃ­ticas</span>
             </button>
           )}
         </nav>
@@ -3367,7 +3371,7 @@ case 'mylist': {
             <button
               onClick={() => handleTabClick('settings')}
               className="settings-gear-btn"
-              title="Ajustes de Estética"
+              title="Ajustes de EstÃ©tica"
             >
               <Settings size={18} />
             </button>
@@ -3375,7 +3379,7 @@ case 'mylist': {
           <InstallPWA />
           <button onClick={handleLogout} className="btn-secondary" style={{ width: '100%', marginTop: '1rem' }}>
             <LogOut size={16} />
-            Cerrar Sesión
+            Cerrar SesiÃ³n
           </button>
         </div>
       </aside>
@@ -3390,7 +3394,7 @@ case 'mylist': {
             <button
               onClick={() => setShowSettingsModal(true)}
               className="settings-gear-btn"
-              title="Ajustes de Estética"
+              title="Ajustes de EstÃ©tica"
             >
               <Settings size={20} />
             </button>
@@ -3429,7 +3433,7 @@ case 'mylist': {
             <div className="alert alert-error">
               <ShieldAlert size={20} style={{ flexShrink: 0 }} />
               <div>
-                <strong>¡Atención! </strong>
+                <strong>Â¡AtenciÃ³n! </strong>
                 {error}
               </div>
             </div>
@@ -3486,7 +3490,7 @@ case 'mylist': {
             onClick={() => handleTabClick('analytics')}
           >
             <BarChart2 size={20} />
-            <span>Análisis</span>
+            <span>AnÃ¡lisis</span>
           </button>
           {userData?.id?.toString() === '7952169' && (
             <button
@@ -3527,8 +3531,8 @@ case 'mylist': {
                   {selectedAnime.status && (
                     <span className={`badge status-badge ${selectedAnime.status.toLowerCase()}`}>
                       {selectedAnime.status === 'FINISHED' ? 'Finalizado' :
-                       selectedAnime.status === 'RELEASING' ? 'En Emisión' :
-                       selectedAnime.status === 'NOT_YET_RELEASED' ? 'Próximamente' :
+                       selectedAnime.status === 'RELEASING' ? 'En EmisiÃ³n' :
+                       selectedAnime.status === 'NOT_YET_RELEASED' ? 'PrÃ³ximamente' :
                        selectedAnime.status === 'CANCELLED' ? 'Cancelado' : 'En Pausa'}
                     </span>
                   )}
@@ -3553,7 +3557,7 @@ case 'mylist': {
               {loadingDetails ? (
                 <div className="detail-loading">
                   <div className="loader"></div>
-                  <p>Cargando información detallada...</p>
+                  <p>Cargando informaciÃ³n detallada...</p>
                 </div>
               ) : (
                 <>
@@ -3614,8 +3618,8 @@ case 'mylist': {
                   {/* List progress editor */}
                   <div className="detail-section progress-section">
                     <div className="progress-section-header" onClick={() => setShowEditForm(!showEditForm)}>
-                      <h4>{selectedAnime.mediaListEntry ? '✓ En tu lista (Editar)' : '+ Añadir a tu lista'}</h4>
-                      {!token && <span className="login-alert-text">Inicia sesión para guardar</span>}
+                      <h4>{selectedAnime.mediaListEntry ? 'âœ“ En tu lista (Editar)' : '+ AÃ±adir a tu lista'}</h4>
+                      {!token && <span className="login-alert-text">Inicia sesiÃ³n para guardar</span>}
                     </div>
 
                     {token && (
@@ -3655,7 +3659,7 @@ case 'mylist': {
                                 type="button" 
                                 onClick={() => setFormProgress(prev => Math.min(selectedAnime.episodes || Infinity, prev + 1))}
                                 className="btn-episode-plus"
-                                title="Añadir un episodio"
+                                title="AÃ±adir un episodio"
                                 style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
                               >
                                 <Plus size={14} />
@@ -3665,7 +3669,7 @@ case 'mylist': {
                           </div>
 
                           <div className="form-group score-group">
-                            <label className="form-label">Puntuación</label>
+                            <label className="form-label">PuntuaciÃ³n</label>
                             <div className="score-slider-group">
                               <input 
                                 type="range" 
@@ -3710,7 +3714,7 @@ case 'mylist': {
       {showUpdateBanner && (
         <div className="update-banner">
           <span className="update-banner-text">
-            🚀 Nueva versión disponible
+            ðŸš€ Nueva versiÃ³n disponible
           </span>
           <button
             className="update-banner-btn"
@@ -3723,7 +3727,7 @@ case 'mylist': {
             onClick={() => setShowUpdateBanner(false)}
             aria-label="Cerrar"
           >
-            ×
+            Ã—
           </button>
         </div>
       )}
@@ -3732,10 +3736,10 @@ case 'mylist': {
       {showLevelUpModal && levelUpData && (
         <div className="modal-overlay" onClick={() => setShowLevelUpModal(false)} style={{ zIndex: 9998 }}>
           <div className="modal-content card" onClick={(e) => e.stopPropagation()} style={{ textAlign: 'center', maxWidth: '400px' }}>
-            <h2 style={{ color: 'var(--accent)', marginBottom: '1rem', fontSize: '2rem' }}>¡Nivel Alcanzado!</h2>
+            <h2 style={{ color: 'var(--accent)', marginBottom: '1rem', fontSize: '2rem' }}>Â¡Nivel Alcanzado!</h2>
             <Award size={64} style={{ color: 'var(--accent)', marginBottom: '1rem', margin: '0 auto' }} />
             <p style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>
-              ¡Felicidades <strong>{userData?.name}</strong>! Has alcanzado el Nivel {levelUpData.level}.
+              Â¡Felicidades <strong>{userData?.name}</strong>! Has alcanzado el Nivel {levelUpData.level}.
             </p>
             <p style={{ fontSize: '1.1rem', color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
               Rango actual: <strong style={{ color: 'var(--accent)' }}>{levelUpData.title}</strong>
@@ -3748,7 +3752,7 @@ case 'mylist': {
                 Ver Trofeos
               </button>
               <button className="btn-primary" onClick={() => setShowLevelUpModal(false)} style={{ flex: 1, fontSize: '1rem', padding: '0.8rem' }}>
-                ¡Increíble!
+                Â¡IncreÃ­ble!
               </button>
             </div>
           </div>
@@ -3783,7 +3787,7 @@ case 'mylist': {
               
               <div className="trophy-modal-status">
                 {selectedTrophy.isUnlocked ? (
-                  <span style={{ color: 'var(--accent)' }}>¡Desbloqueado!</span>
+                  <span style={{ color: 'var(--accent)' }}>Â¡Desbloqueado!</span>
                 ) : (
                   <span style={{ color: 'var(--color-text-secondary)' }}>Bloqueado: Alcanza el Nivel {selectedTrophy.level}</span>
                 )}
@@ -3830,7 +3834,7 @@ case 'mylist': {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '1rem' }}>
                 <h2 style={{ fontSize: '1.4rem', fontFamily: 'var(--font-display)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Settings size={22} style={{ color: 'var(--accent)' }} /> Ajustes de Estética
+                  <Settings size={22} style={{ color: 'var(--accent)' }} /> Ajustes de EstÃ©tica
                 </h2>
                 <button onClick={() => setShowSettingsModal(false)} className="btn-secondary" style={{ padding: '0.4rem' }}>
                   <X size={18} />
@@ -3845,4 +3849,5 @@ case 'mylist': {
     </div>
   );
 }
+
 

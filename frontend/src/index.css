@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   /* Background */
   --color-bg-dark: #0b1622;
   --color-bg-card: #151f2e;
@@ -53,7 +53,7 @@ img, video {
 body {
   background-color: var(--color-bg-dark);
   color: var(--color-text-primary);
-  /* Outfit as the global typeface — premium & modern */
+  /* Outfit as the global typeface â€” premium & modern */
   font-family: var(--font-display);
   min-height: 100vh;
   display: flex;
@@ -405,7 +405,7 @@ header {
   display: flex;
   align-items: center;
   gap: 1rem;
-  /* Solid background — no transparency */
+  /* Solid background â€” no transparency */
   background-color: var(--color-bg-card);
   border: 1px solid rgba(255, 255, 255, 0.05);
   padding: 0.75rem 1rem;
@@ -588,7 +588,7 @@ header {
 
 .anime-card {
   position: relative;
-  /* Solid background — no transparency */
+  /* Solid background â€” no transparency */
   background-color: var(--color-bg-card);
   background-clip: padding-box;
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -775,12 +775,12 @@ header {
 }
 
 /* Responsive Nav & App Layout Redesign */
-/* ═══════════════════════════════════════════════════════
-   CORE LAYOUT — Sidebar sticky + Content flex-grow
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   CORE LAYOUT â€” Sidebar sticky + Content flex-grow
    No position:fixed on sidebar. No margin-left hacks.
    The sidebar stays in the normal flex flow; sticky makes
    it scroll-proof without removing it from the document.
-═══════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .app-layout {
   display: flex;
@@ -791,10 +791,10 @@ header {
   overflow-x: hidden;          /* horizontal scroll on very small screens */
 }
 
-/* ─── Sidebar (Desktop) ─────────────────────────────── */
+/* â”€â”€â”€ Sidebar (Desktop) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .sidebar {
   width: 280px;
-  flex-shrink: 0;              /* NEVER shrink — sidebar width is sacred */
+  flex-shrink: 0;              /* NEVER shrink â€” sidebar width is sacred */
   background-color: var(--color-bg-card);
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
@@ -802,14 +802,14 @@ header {
   padding: 2rem 1.5rem;
 
   /* Sticky: stays on screen while content scrolls              */
-  /* No more position:fixed — sidebar is IN the flex flow       */
+  /* No more position:fixed â€” sidebar is IN the flex flow       */
   position: sticky;
   top: 0;
   height: 100vh;
   align-self: flex-start;
 
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
-  /* z-index removed — not needed when sidebar is in-flow */
+  /* z-index removed â€” not needed when sidebar is in-flow */
   overflow-y: auto;            /* scrollable if nav items overflow */
 }
 
@@ -892,7 +892,7 @@ header {
   font-size: 0.95rem;
 }
 
-/* ─── Main Content Pane ─────────────────────────────── */
+/* â”€â”€â”€ Main Content Pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .app-main-content {
   flex-grow: 1;                /* take all remaining space */
   flex-shrink: 1;
@@ -902,7 +902,7 @@ header {
   padding: 2.5rem 3rem;
   display: flex;
   flex-direction: column;
-  /* margin-left REMOVED — sidebar is in flex flow now */
+  /* margin-left REMOVED â€” sidebar is in flex flow now */
 }
 
 .dashboard-content-area {
@@ -920,7 +920,7 @@ header {
   display: none;
 }
 
-/* ── Tablet (900px–1200px) ── */
+/* â”€â”€ Tablet (900pxâ€“1200px) â”€â”€ */
 @media (max-width: 1200px) and (min-width: 901px) {
   .app-main-content {
     padding: 2rem 2rem;
@@ -930,7 +930,7 @@ header {
   }
 }
 
-/* ── Mobile (≤900px): hide sidebar, show bottom nav ── */
+/* â”€â”€ Mobile (â‰¤900px): hide sidebar, show bottom nav â”€â”€ */
 @media (max-width: 900px) {
   .app-layout {
     flex-direction: column;
@@ -942,7 +942,7 @@ header {
   }
 
   .app-main-content {
-    /* No margin-left needed — sidebar is hidden */
+    /* No margin-left needed â€” sidebar is hidden */
     min-height: 100vh;
     overflow-y: visible;       /* let the page scroll naturally on mobile */
     padding: 1rem 1rem 7rem 1rem;
@@ -1916,7 +1916,7 @@ header {
 }
 
 /* Ensure no cards or containers overflow horizontally on mobile */
-/* ── Small mobile (≤600px) ── */
+/* â”€â”€ Small mobile (â‰¤600px) â”€â”€ */
 @media (max-width: 600px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr); /* 2 columns even on small screens */
@@ -2082,9 +2082,9 @@ header {
   height: 12px;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ACCENT SYSTEM — used globally for active states & buttons
-═══════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   ACCENT SYSTEM â€” used globally for active states & buttons
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .sidebar-nav-item.active {
   color: var(--accent);
@@ -2100,9 +2100,9 @@ header {
   filter: drop-shadow(0 0 4px var(--accent));
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MODERN / NEUMORPHIC MODE  [data-style="modern"]
-═══════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 [data-style="modern"] {
   --color-bg-dark: #12181f;
@@ -2118,7 +2118,7 @@ header {
 
 [data-style="modern"] .sidebar {
   border-radius: 24px;
-  /* In modern mode sidebar still uses sticky — just add visual tweaks */
+  /* In modern mode sidebar still uses sticky â€” just add visual tweaks */
   margin: 0.75rem 0 0.75rem 0.75rem;
   height: calc(100vh - 1.5rem);
   background: var(--bg-glass);
@@ -2325,7 +2325,7 @@ header {
   border-top: 1px solid var(--border-glass);
 }
 
-/* Aesthetics panel ─ neumorphic swatches & toggles */
+/* Aesthetics panel â”€ neumorphic swatches & toggles */
 .aesthetics-panel {
   border-top: 1px solid rgba(255,255,255,0.05);
   padding-top: 1.75rem;
@@ -2422,12 +2422,12 @@ header {
   font-weight: 600;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   MODERN 2 — Solid backgrounds, 2-column profile, neumorphic shadows
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   MODERN 2 â€” Solid backgrounds, 2-column profile, neumorphic shadows
    [data-style="modern2"]
-═══════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ── Base overrides ── */
+/* â”€â”€ Base overrides â”€â”€ */
 [data-style="modern2"] {
   --color-bg-dark: #111827;
   --color-bg-card: #1c2333;
@@ -2452,7 +2452,7 @@ header {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card-m2);
   border: 1px solid var(--border-glass);
-  /* no opacity, no rgba backgrounds — fully opaque */
+  /* no opacity, no rgba backgrounds â€” fully opaque */
 }
 
 /* Sidebar: solid, not glassy */
@@ -2462,7 +2462,7 @@ header {
   box-shadow: 4px 0 24px rgba(0,0,0,0.4);
 }
 
-/* ── Profile 2-column grid layout ── */
+/* â”€â”€ Profile 2-column grid layout â”€â”€ */
 [data-style="modern2"] .profile-card {
   display: grid;
   grid-template-columns: 360px 1fr;
@@ -2496,7 +2496,7 @@ header {
   grid-column: 1 / -1;
 }
 
-/* Left-column avatar — larger and prominent */
+/* Left-column avatar â€” larger and prominent */
 [data-style="modern2"] .profile-col-left .avatar {
   width: 100px;
   height: 100px;
@@ -2543,7 +2543,7 @@ header {
   margin-bottom: 1.25rem;
 }
 
-/* Stats grid on right: 2×3 grid */
+/* Stats grid on right: 2Ã—3 grid */
 [data-style="modern2"] .profile-col-right .stats-grid {
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   gap: 1rem;
@@ -2619,7 +2619,7 @@ header {
               0 0 0 1px var(--accent-glow);
 }
 
-/* ── Mobile: collapse 2-col to 1-col ── */
+/* â”€â”€ Mobile: collapse 2-col to 1-col â”€â”€ */
 @media (max-width: 900px) {
   [data-style="modern2"] .profile-card {
     grid-template-columns: 1fr;
@@ -2638,11 +2638,11 @@ header {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    PREMIUM GLOBAL DESIGN SYSTEM
    Applied everywhere \u2014 safe for all three style modes.
    All rules are additive; nothing breaks mobile.
-═══════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* \u2500\u2500 Global Scrollbar \u2014 dark & minimal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 * {
@@ -2823,9 +2823,9 @@ textarea {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ANALYTICS STAT ITEMS — horizontal icon + text layout
-═══════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   ANALYTICS STAT ITEMS â€” horizontal icon + text layout
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Analytics stats: wider minmax to accommodate horizontal layout */
 .analytics-stats-grid {
@@ -2897,9 +2897,9 @@ textarea {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PROFILE SOCIAL SECTIONS — Viendo Ahora · Actividad · Logros
-═══════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   PROFILE SOCIAL SECTIONS â€” Viendo Ahora Â· Actividad Â· Logros
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* \u2500\u2500 Shared section title \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 .profile-section-title {
@@ -2913,9 +2913,9 @@ textarea {
   margin-bottom: 1rem;
 }
 
-/* ════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    VIENDO AHORA
-════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .profile-now-card {
   background: var(--color-bg-card);
   background-clip: padding-box;
@@ -3021,9 +3021,9 @@ textarea {
   font-weight: 600;
 }
 
-/* ════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ACTIVIDAD RECIENTE
-════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .profile-activity-card {
   background: var(--color-bg-card);
   background-clip: padding-box;
@@ -3108,9 +3108,9 @@ textarea {
   flex-shrink: 0;
 }
 
-/* ════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    LOGROS (Achievements)
-════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .profile-achievements-card {
   background: var(--color-bg-card);
   background-clip: padding-box;
@@ -3210,9 +3210,9 @@ textarea {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   FRIEND SEARCH FORM — clean, no competing borders
-═══════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   FRIEND SEARCH FORM â€” clean, no competing borders
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .friend-add-form {
   display: flex;
@@ -3220,7 +3220,7 @@ textarea {
   gap: 0.75rem;
   margin: 1.25rem 0 1.75rem;
   padding: 1.5rem;
-  /* Solid neumorphic card — no transparency */
+  /* Solid neumorphic card â€” no transparency */
   background: var(--color-bg-dark);
   background-clip: padding-box;
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -3245,7 +3245,7 @@ textarea {
 .friend-add-input {
   flex: 1 1 0;
   min-width: 0;
-  /* Solid bg, single border — no residual glow from container */
+  /* Solid bg, single border â€” no residual glow from container */
   background: var(--color-bg-card);
   background-clip: padding-box;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -3266,7 +3266,7 @@ textarea {
 
 .friend-add-input:focus {
   border-color: var(--accent);
-  /* Single clean glow — no double border */
+  /* Single clean glow â€” no double border */
   box-shadow: inset 1px 1px 4px rgba(0,0,0,0.3),
               0 0 0 3px var(--accent-glow);
 }
@@ -3311,9 +3311,9 @@ textarea {
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    PROFILE LEVEL SYSTEM
-═══════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .profile-level-container {
   background: var(--color-bg-card);
@@ -3373,9 +3373,9 @@ textarea {
   font-weight: 600;
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ACHIEVEMENTS GRID MODERN REFACTOR
-═══════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .achievements-grid.modern-4x2 {
   grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
@@ -3408,9 +3408,9 @@ textarea {
     0 8px 16px currentColor;
 }
 
-/* ═══════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MOBILE SETTINGS MODAL & FAB
-═══════════════════════════════════════════════════════════════ */
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .mobile-settings-fab {
   display: none;
@@ -3798,7 +3798,7 @@ textarea {
   font-size: 1rem;
   display: flex;
   align-items: center;
-  flex-wrap: wrap; /* Permitimos que las badges bajen de l�nea si no caben */
+  flex-wrap: wrap; /* Permitimos que las badges bajen de línea si no caben */
   gap: 0.3rem;
   width: 100%;
 }
@@ -3864,10 +3864,10 @@ textarea {
 
 @media (max-width: 400px) {
   .ranking-name {
-    flex-wrap: nowrap; /* En pantallas muy peque�as forzamos a una l�nea y que el truncate haga su trabajo */
+    flex-wrap: nowrap; /* En pantallas muy pequeñas forzamos a una línea y que el truncate haga su trabajo */
   }
   .truncate-text {
-    max-width: 80px; /* Forzamos un l�mite estricto para dejar espacio al score */
+    max-width: 80px; /* Forzamos un límite estricto para dejar espacio al score */
   }
 }
 
@@ -3887,6 +3887,7 @@ textarea {
 @media (max-width: 400px) {
   .truncate-text { max-width: 100px !important; }
 }
+
 
 
 

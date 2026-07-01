@@ -2006,6 +2006,13 @@ export default function App() {
               }
             }
           }
+          externalLinks {
+            url
+            site
+            type
+            icon
+            color
+          }
         }
       }
     `;
@@ -3614,6 +3621,37 @@ case 'mylist': {
                       </div>
                     </div>
                   )}
+                  {/* Streaming Platforms */}
+                  <div className="detail-section">
+                    <h4>Dónde verlo</h4>
+                    {(() => {
+                      const streamingLinks = selectedAnime.externalLinks?.filter(link => link.type === 'STREAMING') || [];
+                      if (streamingLinks.length === 0) {
+                        return <p className="streaming-fallback">No disponible en plataformas conocidas.</p>;
+                      }
+                      return (
+                        <div className="streaming-links-container">
+                          {streamingLinks.map((link, idx) => (
+                            <a 
+                              key={idx}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="streaming-link-item"
+                              style={{ '--brand-color': link.color || 'var(--accent)' }}
+                              title={`Ver en ${link.site}`}
+                            >
+                              {link.icon ? (
+                                <img src={link.icon} alt={link.site} className="streaming-icon" />
+                              ) : (
+                                <span className="streaming-site-name">{link.site}</span>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
 
                   {/* List progress editor */}
                   <div className="detail-section progress-section">

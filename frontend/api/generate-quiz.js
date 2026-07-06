@@ -1,15 +1,4 @@
-﻿import { createClient } from '@supabase/supabase-js';
-
-// Inicializar Supabase (usa las variables de entorno de Vercel)
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-console.log("Supabase Env Variables Debug:");
-console.log("URL exists:", !!supabaseUrl);
-console.log("Key exists:", !!supabaseKey);
-console.log("Key starts with:", supabaseKey ? supabaseKey.substring(0, 5) + "..." : "null");
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') {
@@ -17,6 +6,16 @@ export default async function handler(req, res) {
     }
 
     try {
+        // Inicializar Supabase dentro del try para capturar si faltan variables
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error("Faltan variables de entorno de Supabase en Vercel (SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY).");
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
         const userId = req.query?.userId || req.body?.userId;
         
         // Obtener historial del usuario
@@ -43,7 +42,6 @@ export default async function handler(req, res) {
         if (data && historyIds.length > 0) {
             data = data.filter(q => !historyIds.includes(q.id));
         }
-        console.log("Supabase fetch attempt:", { dataLength: data ? data.length : 0, error });
 
         // Lógica de Daily Challenge (Seed diario)
         if (data && data.length >= 5) {
@@ -69,4 +67,8 @@ export default async function handler(req, res) {
         // Si no hay suficientes preguntas de hoy (el cron falló o no se ha ejecutado aún)
         return res.status(200).json({ error: 'not_ready' });
 
-        } catch (err) {`n        console.error('Error detallado en API:', err.message || err);`n        return res.status(200).json({ error: 'No hay quizzes disponibles' });`n    }`n}
+    } catch (err) {
+        console.error('Error detallado en API /generate-quiz:', err.message || err);
+        return res.status(500).json({ error: 'Error interno en la API de quizzes: ' + err.message });
+    }
+}

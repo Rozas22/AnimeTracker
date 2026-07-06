@@ -1,17 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Helper de timeout
-const fetchWithTimeout = (promise, ms) => {
+const fetchWithTimeout = async (promise, ms) => {
     let timeoutId;
     const timeoutPromise = new Promise((_, reject) => {
         timeoutId = setTimeout(() => {
             reject(new Error('TIMEOUT'));
         }, ms);
     });
-    return Promise.race([
-        promise.finally(() => clearTimeout(timeoutId)),
-        timeoutPromise
-    ]);
+    try {
+        return await Promise.race([
+            Promise.resolve(promise),
+            timeoutPromise
+        ]);
+    } finally {
+        clearTimeout(timeoutId);
+    }
 };
 
 export default async function handler(req, res) {

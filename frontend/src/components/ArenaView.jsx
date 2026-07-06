@@ -197,11 +197,7 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
           const res = await fetch('/api/generate-quiz' + (user ? '?userId=' + user.id : ''));
           const data = await res.json();
           if (data.error) {
-              if (data.error === 'not_ready') {
-                  alert('Actualizando preguntas de hoy... Por favor, inténtalo de nuevo en unos minutos.');
-              } else {
-                  alert(data.error);
-              }
+              alert(data.error);
               setShowQuizModal(false);
               return;
           }

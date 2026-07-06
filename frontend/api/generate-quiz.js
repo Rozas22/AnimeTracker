@@ -1,50 +1,90 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Helper de timeout
+const fetchWithTimeout = (promise, ms) => {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+            reject(new Error('TIMEOUT'));
+        }, ms);
+    });
+    return Promise.race([
+        promise.finally(() => clearTimeout(timeoutId)),
+        timeoutPromise
+    ]);
+};
+
 export default async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        // Inicializar Supabase dentro del try para capturar si faltan variables
         const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
         const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
         if (!supabaseUrl || !supabaseKey) {
-            throw new Error("Faltan variables de entorno de Supabase en Vercel (SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY).");
+            throw new Error("Faltan variables de entorno de Supabase en Vercel.");
         }
 
         const supabase = createClient(supabaseUrl, supabaseKey);
-
         const userId = req.query?.userId || req.body?.userId;
         
-        // Obtener historial del usuario
         let historyIds = [];
         if (userId) {
-            const { data: historyData } = await supabase
-                .from('quiz_history')
-                .select('question_id')
-                .eq('user_id', String(userId));
-            if (historyData) {
-                historyIds = historyData.map(h => h.question_id);
+            try {
+                // Timeout de 3s para el historial para asegurar rapidez
+                const historyPromise = supabase
+                    .from('quiz_history')
+                    .select('question_id')
+                    .eq('user_id', String(userId));
+                    
+                const { data: historyData } = await fetchWithTimeout(historyPromise, 3000);
+                if (historyData) {
+                    historyIds = historyData.map(h => h.question_id);
+                }
+            } catch (err) {
+                if (err.message === 'TIMEOUT') {
+                    console.warn("Timeout obteniendo historial. Se ignorará el historial.");
+                } else {
+                    throw err;
+                }
             }
         }
 
-        const todayUTC = new Date().toISOString().split('T')[0];
-
-        // 1. PRIORIDAD ABSOLUTA: Intentar obtener quizzes creados HOY (UTC)
-        let { data, error } = await supabase
+        // Obtener las preguntas más recientes (Timeout global de 5s para la DB principal)
+        const quizPromise = supabase
             .from('quizzes')
             .select('*')
-            .gte('created_at', todayUTC);
-        
+            .order('created_at', { ascending: false })
+            .limit(200);
+
+        let data, error;
+        try {
+            const result = await fetchWithTimeout(quizPromise, 5000);
+            data = result.data;
+            error = result.error;
+        } catch (err) {
+            if (err.message === 'TIMEOUT') {
+                return res.status(504).json({ error: 'Tiempo de espera agotado al contactar con la base de datos (5s).' });
+            }
+            throw err;
+        }
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
         // Filtrar preguntas ya respondidas
         if (data && historyIds.length > 0) {
             data = data.filter(q => !historyIds.includes(q.id));
         }
 
-        // Lógica de Daily Challenge (Seed diario)
+        // Si tenemos al menos 5 preguntas no jugadas
         if (data && data.length >= 5) {
+            // Generar una semilla basada en el día actual (UTC) para que las preguntas roten diariamente
+            // aunque el usuario no las agote todas a la vez.
+            const todayUTC = new Date().toISOString().split('T')[0];
             let seed = 0;
             for(let i=0; i<todayUTC.length; i++) {
                 seed += todayUTC.charCodeAt(i);
@@ -64,8 +104,8 @@ export default async function handler(req, res) {
             return res.status(200).json(shuffled.slice(0, 5)); 
         }
 
-        // Si no hay suficientes preguntas de hoy (el cron falló o no se ha ejecutado aún)
-        return res.status(200).json({ error: 'not_ready' });
+        // Si el usuario ya ha jugado todas las preguntas en la BD
+        return res.status(200).json({ error: 'Has completado todas las preguntas disponibles. ¡Vuelve mañana para más!' });
 
     } catch (err) {
         console.error('Error detallado en API /generate-quiz:', err.message || err);

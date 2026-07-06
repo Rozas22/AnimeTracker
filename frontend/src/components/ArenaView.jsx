@@ -183,10 +183,10 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
 
   const handleStartQuiz = async () => {
       const lastQuizStr = localStorage.getItem('lastQuizDate');
-      const today = new Date().toDateString();
+      const todayUTC = new Date().toISOString().split('T')[0];
       
-      if (lastQuizStr === today) {
-          alert('Ya has jugado el Quiz Diario de hoy. ¡Vuelve mañana para ganar más PL!');
+      if (lastQuizStr === todayUTC) {
+          alert('Ya has jugado el Quiz Diario de hoy. ¡Vuelve mañana (00:00 UTC) para ganar más PL!');
           return;
       }
 
@@ -197,7 +197,11 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
           const res = await fetch('/api/generate-quiz' + (user ? '?userId=' + user.id : ''));
           const data = await res.json();
           if (data.error) {
-              alert(data.error);
+              if (data.error === 'not_ready') {
+                  alert('Actualizando preguntas de hoy... Por favor, inténtalo de nuevo en unos minutos.');
+              } else {
+                  alert(data.error);
+              }
               setShowQuizModal(false);
               return;
           }
@@ -264,7 +268,7 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
       } else {
           setQuizStatus('finished');
           trackEvent('quiz_finish', { score: newScore, userId: user?.id });
-          localStorage.setItem('lastQuizDate', new Date().toDateString());
+          localStorage.setItem('lastQuizDate', new Date().toISOString().split('T')[0]);
           
           if (user) {
               if (currentStats.sessionCorrect === quizQuestions.length && !currentStats.sessionFailed) {

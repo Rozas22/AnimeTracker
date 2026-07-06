@@ -133,10 +133,24 @@ Ejemplo de respuesta esperada:
             throw new Error(insertError.message);
         }
 
+        // 5. Registrar éxito en cron_logs
+        await supabase.from('cron_logs').insert([{
+            job_name: 'generate_quizzes',
+            status: 'success'
+        }]);
+
         return res.status(200).json({ success: true, count: generatedQuizzes.length, animes: selectedAnimes });
 
     } catch (err) {
         console.error('Error Crítico en Cron Job:', err.message || err);
+        
+        // Registrar error en cron_logs
+        await supabase.from('cron_logs').insert([{
+            job_name: 'generate_quizzes',
+            status: 'error',
+            error_message: err.message || String(err)
+        }]);
+
         return res.status(500).json({ error: 'Fallo al ejecutar el cron job', details: err.message });
     }
 }

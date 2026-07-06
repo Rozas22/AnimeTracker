@@ -28,11 +28,11 @@ export default async function handler(req, res) {
             throw new Error(topError.message);
         }
 
-        // 2. Si hay un ganador, insertarlo en user_achievements
+        // 2. Si hay un ganador, registrar su victoria
         if (topUsers && topUsers.length > 0) {
-            // Podrías manejar empates aquí quitando el .limit(1) y filtrando por los que tengan la misma puntuación que el primero.
-            // Por simplicidad, tomamos el top 1 absoluto.
             const winner = topUsers[0];
+            
+            // Logro genérico
             const { error: achieveError } = await supabase
                 .from('user_achievements')
                 .insert([{
@@ -42,6 +42,25 @@ export default async function handler(req, res) {
                 
             if (achieveError) {
                 console.error('Error inserting achievement:', achieveError);
+            }
+
+            // Registro en la tabla mensual
+            const date = new Date();
+            date.setUTCDate(0); // Último día del mes anterior
+            const prevMonth = date.getUTCMonth() + 1;
+            const prevYear = date.getUTCFullYear();
+
+            const { error: winError } = await supabase
+                .from('monthly_winners')
+                .insert([{
+                    anilist_id: winner.anilist_id,
+                    month: prevMonth,
+                    year: prevYear,
+                    score: winner.monthly_quiz_points
+                }]);
+
+            if (winError) {
+                console.error('Error inserting into monthly_winners:', winError);
             }
         }
 
@@ -56,10 +75,24 @@ export default async function handler(req, res) {
             throw new Error(error.message);
         }
 
+        // 4. Registrar éxito en cron_logs
+        await supabase.from('cron_logs').insert([{
+            job_name: 'reset_monthly',
+            status: 'success'
+        }]);
+
         return res.status(200).json({ success: true, message: "Ligas Mensuales reiniciadas exitosamente." });
 
     } catch (err) {
         console.error('Critical Error in Monthly Reset Cron:', err.message || err);
+        
+        // Registrar error en cron_logs
+        await supabase.from('cron_logs').insert([{
+            job_name: 'reset_monthly',
+            status: 'error',
+            error_message: err.message || String(err)
+        }]);
+
         return res.status(500).json({ error: 'Fallo al ejecutar el reinicio mensual', details: err.message });
     }
 }

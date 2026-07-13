@@ -1,7 +1,7 @@
 // ─── VERSIÓN DEL CACHÉ ───────────────────────────────────────────────────────
 // Incrementa este número en cada despliegue para forzar limpieza completa.
-const CACHE_VERSION = "v7"; 
-const CACHE_NAME    = `animatracker-${CACHE_VERSION}`;
+const CACHE_VERSION = "v8"; 
+const CACHE_NAME    = `kuramatracker-${CACHE_VERSION}`;
 
 // Solo cacheamos el shell de la SPA — NO las imágenes de marca
 // para que logo.png / iconos siempre se descarguen frescos.

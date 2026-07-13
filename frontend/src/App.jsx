@@ -510,7 +510,7 @@ export default function App() {
 
   // Mobile Settings Modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [selectedFrame, setSelectedFrame] = useState(localStorage.getItem('animeTrackerSelectedFrame') || 'auto');
+  const [selectedFrame, setSelectedFrame] = useState(localStorage.getItem('KuramaTrackerSelectedFrame') || 'auto');
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
   const [levelUpData, setLevelUpData] = useState(null);
   const [selectedTrophy, setSelectedTrophy] = useState(null);
@@ -518,21 +518,21 @@ export default function App() {
   const [episodeNotifications, setEpisodeNotifications] = useState([]);
   const [dismissedEpNotifs, setDismissedEpNotifs] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('animeTrackerDismissedEpNotifs') || '[]');
+      return JSON.parse(localStorage.getItem('KuramaTrackerDismissedEpNotifs') || '[]');
     } catch {
       return [];
     }
   });
   const [readEpNotifs, setReadEpNotifs] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('animeTrackerReadEpNotifs') || '[]');
+      return JSON.parse(localStorage.getItem('KuramaTrackerReadEpNotifs') || '[]');
     } catch {
       return [];
     }
   });
   const [socialNotifications, setSocialNotifications] = useState(() => {
     try {
-      const saved = localStorage.getItem('animeTrackerSocialNotifs');
+      const saved = localStorage.getItem('KuramaTrackerSocialNotifs');
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
@@ -1089,7 +1089,7 @@ export default function App() {
             }
           });
           newNotifs = newNotifs.slice(0, 50);
-          localStorage.setItem('animeTrackerSocialNotifs', JSON.stringify(newNotifs));
+          localStorage.setItem('KuramaTrackerSocialNotifs', JSON.stringify(newNotifs));
           return newNotifs;
         });
       }
@@ -1101,7 +1101,7 @@ export default function App() {
   const dismissSocialNotification = (id) => {
     setSocialNotifications(prev => {
       const newNotifs = prev.filter(n => n.id !== id);
-      localStorage.setItem('animeTrackerSocialNotifs', JSON.stringify(newNotifs));
+      localStorage.setItem('KuramaTrackerSocialNotifs', JSON.stringify(newNotifs));
       return newNotifs;
     });
   };
@@ -1110,7 +1110,7 @@ export default function App() {
     setDismissedEpNotifs(prev => {
       if (prev.includes(id)) return prev;
       const next = [...prev, id];
-      localStorage.setItem('animeTrackerDismissedEpNotifs', JSON.stringify(next));
+      localStorage.setItem('KuramaTrackerDismissedEpNotifs', JSON.stringify(next));
       return next;
     });
   };
@@ -1119,7 +1119,7 @@ export default function App() {
     setReadEpNotifs(prev => {
       if (prev.includes(id)) return prev;
       const next = [...prev, id];
-      localStorage.setItem('animeTrackerReadEpNotifs', JSON.stringify(next));
+      localStorage.setItem('KuramaTrackerReadEpNotifs', JSON.stringify(next));
       return next;
     });
   };
@@ -1137,13 +1137,13 @@ export default function App() {
     });
     if (changed) {
       setReadEpNotifs(newReadIds);
-      localStorage.setItem('animeTrackerReadEpNotifs', JSON.stringify(newReadIds));
+      localStorage.setItem('KuramaTrackerReadEpNotifs', JSON.stringify(newReadIds));
     }
 
     // Mark all social notifications as read
     setSocialNotifications(prev => {
       const updated = prev.map(n => ({ ...n, isRead: true }));
-      localStorage.setItem('animeTrackerSocialNotifs', JSON.stringify(updated));
+      localStorage.setItem('KuramaTrackerSocialNotifs', JSON.stringify(updated));
       return updated;
     });
   };
@@ -1744,7 +1744,7 @@ export default function App() {
 
   const handleFrameSelect = (frame) => {
     setSelectedFrame(frame);
-    localStorage.setItem('animeTrackerSelectedFrame', frame);
+    localStorage.setItem('KuramaTrackerSelectedFrame', frame);
   };
 
   const handleLogout = () => {
@@ -3078,7 +3078,7 @@ case 'mylist': {
       <div className="app-container">
         <header>
           <div className="logo-container" style={{ padding: '0.25rem 0' }}>
-            <img src="/logo.png" alt="AnimeTracker" style={{ width: '130px', objectFit: 'contain' }} />
+            <img src="/logo.png" alt="KuramaTracker" style={{ width: '130px', objectFit: 'contain' }} />
           </div>
         </header>
         <Callback 
@@ -3095,7 +3095,7 @@ case 'mylist': {
       <div className="app-container">
         <header>
           <div className="logo-container">
-            <img src="/logo.png" alt="AnimeTracker" style={{ height: '36px', objectFit: 'contain' }} />
+            <img src="/logo.png" alt="KuramaTracker" style={{ height: '36px', objectFit: 'contain' }} />
           </div>
         </header>
 
@@ -3286,7 +3286,7 @@ case 'mylist': {
         <div className="sidebar-logo" style={{ padding: '1rem 1.25rem 0.5rem' }}>
           <img
             src="/logo.png"
-            alt="AnimeTracker"
+            alt="KuramaTracker"
             style={{ width: '150px', objectFit: 'contain', display: 'block' }}
           />
         </div>
@@ -3395,7 +3395,7 @@ case 'mylist': {
         {/* MOBILE TOP BAR */}
         <header className="mobile-header">
           <div className="logo-container" style={{ padding: '0.1rem 0' }}>
-            <img src="/logo.png" alt="AnimeTracker" style={{ width: '120px', objectFit: 'contain' }} />
+            <img src="/logo.png" alt="KuramaTracker" style={{ width: '120px', objectFit: 'contain' }} />
           </div>
           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
             <button

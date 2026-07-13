@@ -182,38 +182,42 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
   }, [user, friendList, supabase]);
 
   const handleStartQuiz = async () => {
-      const lastQuizStr = localStorage.getItem('lastQuizDate');
-      const todayUTC = new Date().toISOString().split('T')[0];
-      
-      if (lastQuizStr === todayUTC) {
-          alert('Ya has jugado el Quiz Diario de hoy. ¡Vuelve mañana (00:00 UTC) para ganar más PL!');
-          return;
-      }
+    const lastQuizStr = localStorage.getItem('lastQuizDate');
+    const d = new Date();
+    const todayLocal = d.getFullYear() + '-' + (d.getMonth() + 1).toString().padStart(2, '0') + '-' + d.getDate().toString().padStart(2, '0');
+    
+    if (lastQuizStr === todayLocal) {
+        alert('Ya has jugado el Quiz Diario de hoy. ¡Vuelve mañana a las 00:00 (hora local) para ganar más PL!');
+        return;
+    }
 
-      setShowQuizModal(true);
-      setQuizStatus('loading');
-      
-      try {
-          const res = await fetch('/api/generate-quiz' + (user ? '?userId=' + user.id : ''));
-          const data = await res.json();
-          if (data.error) {
-              alert(data.error);
-              setShowQuizModal(false);
-              return;
-          }
-          setQuizQuestions(data);
-          setCurrentQuestionIndex(0);
-          setQuizScore(0);
-          setStreakCount(0);
-          setBonusPoints(0);
-          setQuizStatus('playing');
-          trackEvent('quiz_start', { userId: user?.id });
-      } catch (err) {
-          console.error(err);
-          alert('Hubo un error al preparar el quiz. Inténtalo de nuevo.');
-          setShowQuizModal(false);
-          setQuizStatus('idle');
-      }
+    setShowQuizModal(true);
+    setQuizStatus('loading');
+    
+    try {
+        const userIdParam = user ? `userId=${user.id}` : '';
+        const dateParam = `localDate=${todayLocal}`;
+        const queryParams = [userIdParam, dateParam].filter(Boolean).join('&');
+        const res = await fetch(`/api/generate-quiz?${queryParams}`);
+        const data = await res.json();
+        if (data.error) {
+            alert(data.error);
+            setShowQuizModal(false);
+            return;
+        }
+        setQuizQuestions(data);
+        setCurrentQuestionIndex(0);
+        setQuizScore(0);
+        setStreakCount(0);
+        setBonusPoints(0);
+        setQuizStatus('playing');
+        trackEvent('quiz_start', { userId: user?.id });
+    } catch (err) {
+        console.error(err);
+        alert('Hubo un error al preparar el quiz. Inténtalo de nuevo.');
+        setShowQuizModal(false);
+        setQuizStatus('idle');
+    }
   };
 
   const handleAnswer = async (answer) => {
@@ -264,7 +268,9 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
       } else {
           setQuizStatus('finished');
           trackEvent('quiz_finish', { score: newScore, userId: user?.id });
-          localStorage.setItem('lastQuizDate', new Date().toISOString().split('T')[0]);
+          const dFinish = new Date();
+          const todayLocalFinish = dFinish.getFullYear() + '-' + (dFinish.getMonth() + 1).toString().padStart(2, '0') + '-' + dFinish.getDate().toString().padStart(2, '0');
+          localStorage.setItem('lastQuizDate', todayLocalFinish);
           
           if (user) {
               if (currentStats.sessionCorrect === quizQuestions.length && !currentStats.sessionFailed) {

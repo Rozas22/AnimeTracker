@@ -86,12 +86,12 @@ export default async function handler(req, res) {
 
         // Si tenemos al menos 5 preguntas no jugadas
         if (data && data.length >= 5) {
-            // Generar una semilla basada en el día actual (UTC) para que las preguntas roten diariamente
-            // aunque el usuario no las agote todas a la vez.
-            const todayUTC = new Date().toISOString().split('T')[0];
+            // Generar una semilla basada en el día local del usuario
+            // para que las preguntas roten diariamente en su medianoche exacta.
+            const seedDate = req.query?.localDate || new Date().toISOString().split('T')[0];
             let seed = 0;
-            for(let i=0; i<todayUTC.length; i++) {
-                seed += todayUTC.charCodeAt(i);
+            for(let i=0; i<seedDate.length; i++) {
+                seed += seedDate.charCodeAt(i);
             }
             
             let shuffled = [...data];

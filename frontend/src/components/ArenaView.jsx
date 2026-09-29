@@ -23,6 +23,9 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
   const [isAnswering, setIsAnswering] = useState(false);
   const [streakCount, setStreakCount] = useState(0);
   const [bonusPoints, setBonusPoints] = useState(0);
+  const [lastMonthWinner, setLastMonthWinner] = useState(null);
+  const [monthWinnersHistory, setMonthWinnersHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Calculate league badges
   const getLeagueInfo = (points) => {
@@ -169,6 +172,18 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                     }
                 });
                 setAchievementsMap(achMap);
+            }
+
+            // Fetch monthly winners history
+            const { data: winnersData } = await supabase
+                .from('monthly_winners')
+                .select('*')
+                .order('year', { ascending: false })
+                .order('month', { ascending: false });
+
+            if (winnersData && winnersData.length > 0) {
+                setLastMonthWinner(winnersData[0]);
+                setMonthWinnersHistory(winnersData);
             }
         } catch (err) {
             console.error("Error fetching arena stats:", err);
@@ -392,6 +407,90 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
           </button>
         </div>
       </div>
+
+      {/* ─── CAMPEON DEL MES ANTERIOR ─────────────────────────────── */}
+      {lastMonthWinner && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(255,152,0,0.08))',
+          border: '1px solid rgba(245,158,11,0.4)',
+          borderRadius: '16px',
+          padding: '1.25rem 1.5rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ fontSize: '2.5rem', lineHeight: 1 }}>🏆</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '0.75rem', color: 'rgba(245,158,11,0.8)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.25rem' }}>
+              Campeon de {['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][lastMonthWinner.month]} {lastMonthWinner.year}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {lastMonthWinner.avatar_url && (
+                <img
+                  src={lastMonthWinner.avatar_url}
+                  alt={lastMonthWinner.username}
+                  style={{ width: 40, height: 40, borderRadius: '50%', border: '2px solid #f59e0b', flexShrink: 0 }}
+                  onError={e => { e.target.style.display = 'none'; }}
+                />
+              )}
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#f59e0b' }}>
+                  {lastMonthWinner.username || `Usuario #${lastMonthWinner.anilist_id}`}
+                  {user && lastMonthWinner.anilist_id === user.id && (
+                    <span style={{ marginLeft: 8, fontSize: '0.7rem', background: 'rgba(245,158,11,0.2)', border: '1px solid #f59e0b', borderRadius: 8, padding: '2px 8px' }}>Eres tu!</span>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+                  {lastMonthWinner.score?.toLocaleString()} PL en ese mes
+                </div>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowHistory(v => !v)}
+            style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', borderRadius: 10, padding: '0.4rem 0.9rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, flexShrink: 0 }}
+          >
+            {showHistory ? 'Ocultar historial' : 'Ver historial'}
+          </button>
+        </div>
+      )}
+
+      {/* ─── HISTORIAL DE CAMPEONES ───────────────────────────────── */}
+      {showHistory && monthWinnersHistory.length > 0 && (
+        <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '1rem', marginBottom: '1.5rem' }}>
+          <h3 style={{ margin: '0 0 0.75rem', fontSize: '0.95rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Historial de Campeones
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {monthWinnersHistory.map((w, i) => {
+              const monthNames = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
+                  <span style={{ fontSize: '1.1rem' }}>{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🏅'}</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', minWidth: 110 }}>{monthNames[w.month]} {w.year}</span>
+                  {w.avatar_url && (
+                    <img src={w.avatar_url} alt="" style={{ width: 24, height: 24, borderRadius: '50%' }} onError={e => { e.target.style.display = 'none'; }} />
+                  )}
+                  <span style={{ fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {w.username || `#${w.anilist_id}`}
+                    {user && w.anilist_id === user.id && <span style={{ marginLeft: 6, fontSize: '0.7rem', color: '#f59e0b' }}>Tu</span>}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: '#f59e0b', fontWeight: 600 }}>{w.score?.toLocaleString()} PL</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Indicador del mes en curso cuando se ve el ranking mensual */}
+      {activeLeague === 'monthly' && (
+        <div style={{ textAlign: 'center', marginBottom: '0.75rem', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
+          Ranking de {['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][new Date().getMonth() + 1]} {new Date().getFullYear()} — se reinicia el 1 del proximo mes
+        </div>
+      )}
 
       <AnimatePresence>
         {showQuizModal && (

@@ -3,6 +3,7 @@ import { Trophy, Swords, Shield, Star, Crown, Tv, Target, TrendingUp, TrendingDo
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabase';
 import { trackEvent } from '../AnalyticsTracker';
+import MonthlyPrizeCarousel from './MonthlyPrizeCarousel';
 
 const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
   const friendList = anilistFriends || [];
@@ -415,6 +416,9 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
           </button>
         </div>
       </div>
+
+      {/* ─── PREMIO DEL MES (CARRUSEL AUTOMÁTICO) ─────────────────── */}
+      <MonthlyPrizeCarousel user={user} />
 
       {/* ─── CAMPEON DEL MES ANTERIOR ─────────────────────────────── */}
       {lastMonthWinner && (

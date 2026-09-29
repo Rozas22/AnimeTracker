@@ -44,7 +44,7 @@ export default async function handler(req, res) {
         // Get top scorer
         const { data: topUsers, error: topError } = await supabase
             .from('users')
-            .select('anilist_id, username, avatar_url, monthly_quiz_points')
+            .select('anilist_id, username, monthly_quiz_points')
             .gt('monthly_quiz_points', 0)
             .order('monthly_quiz_points', { ascending: false })
             .limit(1);
@@ -62,14 +62,27 @@ export default async function handler(req, res) {
                 achievement_type: 'monthly_winner'
             }]);
 
-            await supabase.from('monthly_winners').insert([{
+            let { error: winError } = await supabase.from('monthly_winners').insert([{
                 anilist_id:  winner.anilist_id,
                 username:    winner.username   || null,
-                avatar_url:  winner.avatar_url || null,
+                avatar_url:  null,
                 month:       prevMonth,
                 year:        prevYear,
                 score:       winner.monthly_quiz_points
             }]);
+
+            if (winError && winError.message && winError.message.includes('column')) {
+                const fallback = await supabase
+                    .from('monthly_winners')
+                    .insert([{
+                        anilist_id: winner.anilist_id,
+                        month:      prevMonth,
+                        year:       prevYear,
+                        score:      winner.monthly_quiz_points
+                    }]);
+                winError = fallback.error;
+            }
+            if (winError) console.error('monthly_winners insert error:', winError.message);
         }
 
         // Reset monthly points

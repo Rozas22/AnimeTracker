@@ -15,7 +15,7 @@ async function runMonthlyReset(res) {
     // 2. Get the top scorer with points > 0
     const { data: topUsers, error: topError } = await supabase
         .from('users')
-        .select('anilist_id, username, avatar_url, monthly_quiz_points')
+        .select('anilist_id, username, monthly_quiz_points')
         .gt('monthly_quiz_points', 0)
         .order('monthly_quiz_points', { ascending: false })
         .limit(1);
@@ -34,17 +34,29 @@ async function runMonthlyReset(res) {
             .insert([{ anilist_id: winner.anilist_id, achievement_type: 'monthly_winner' }]);
         if (achieveError) console.error('Achievement insert error:', achieveError.message);
 
-        // 2b. Record in monthly_winners with username + avatar for permanent history
-        const { error: winError } = await supabase
+        // 2b. Record in monthly_winners with fallback if columns don't exist yet
+        let { error: winError } = await supabase
             .from('monthly_winners')
             .insert([{
                 anilist_id:  winner.anilist_id,
                 username:    winner.username   || null,
-                avatar_url:  winner.avatar_url || null,
+                avatar_url:  null,
                 month:       prevMonth,
                 year:        prevYear,
                 score:       winner.monthly_quiz_points
             }]);
+
+        if (winError && winError.message && winError.message.includes('column')) {
+            const fallback = await supabase
+                .from('monthly_winners')
+                .insert([{
+                    anilist_id: winner.anilist_id,
+                    month:      prevMonth,
+                    year:       prevYear,
+                    score:      winner.monthly_quiz_points
+                }]);
+            winError = fallback.error;
+        }
         if (winError) console.error('monthly_winners insert error:', winError.message);
     }
 

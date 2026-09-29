@@ -182,8 +182,16 @@ const ArenaView = ({ user, anilistFriends, setQuizPoints }) => {
                 .order('month', { ascending: false });
 
             if (winnersData && winnersData.length > 0) {
-                setLastMonthWinner(winnersData[0]);
-                setMonthWinnersHistory(winnersData);
+                const enriched = winnersData.map(w => {
+                    const match = players.find(p => String(p.id) === String(w.anilist_id));
+                    return {
+                        ...w,
+                        username: w.username || match?.name || `Usuario #${w.anilist_id}`,
+                        avatar_url: w.avatar_url || match?.avatar || null
+                    };
+                });
+                setLastMonthWinner(enriched[0]);
+                setMonthWinnersHistory(enriched);
             }
         } catch (err) {
             console.error("Error fetching arena stats:", err);

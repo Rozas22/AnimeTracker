@@ -1,7 +1,15 @@
 {
+  "id": "/",
   "short_name": "KuramaTracker",
   "name": "KuramaTracker – Sigue tu anime",
   "description": "Sincroniza tu lista de AniList, consulta estadísticas reales y comparte tu progreso con amigos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1622",
+  "theme_color": "#f59e0b",
+  "categories": ["entertainment", "social"],
   "icons": [
     {
       "src": "/apple-touch-icon.png",
@@ -13,18 +21,25 @@
       "src": "/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
-  ],
-  "start_url": "/",
-  "background_color": "#0b1622",
-  "theme_color": "#f59e0b",
-  "display": "standalone",
-  "orientation": "portrait"
+  ]
 }

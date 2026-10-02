@@ -12,6 +12,13 @@ import Callback from './components/Callback';
 import { useTheme, ACCENT_COLORS } from './ThemeContext.jsx';
 import InstallPWA from './components/InstallPWA';
 import confetti from 'canvas-confetti';
+import { 
+  isPushNotificationSupported, 
+  getNotificationPermission, 
+  subscribeUserToPush, 
+  unsubscribeUserFromPush, 
+  syncPlanningAnimesWithServer 
+} from './pushNotifications';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const ITEMS_PER_PAGE = 24;
@@ -536,6 +543,8 @@ export default function App() {
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
+  const [planningNotifications, setPlanningNotifications] = useState([]);
+  const [pushPermissionStatus, setPushPermissionStatus] = useState(() => getNotificationPermission());
 
   // Theme
   const { accentColor, setAccentColor, styleMode, setStyleMode } = useTheme();
@@ -576,20 +585,30 @@ export default function App() {
     };
   }, []);
 
-  // Detect if a new Service Worker is waiting to update
+  // ─── PWA AUTO-UPDATE ROBUSTO Y SERVICE WORKER ───────────────────────
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
 
-    navigator.serviceWorker.getRegistration().then((reg) => {
+    let refreshing = false;
+
+    // Detectar cuando el nuevo SW toma el control para recargar suavemente
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+
+    const setupRegistration = (reg) => {
       if (!reg) return;
       setSwRegistration(reg);
 
-      // A. Already waiting (e.g. user refreshed while update was pending)
+      // Si ya hay un SW esperando
       if (reg.waiting) {
         setShowUpdateBanner(true);
       }
 
-      // B. A new SW just installed and is waiting
+      // Si se detecta un nuevo SW instalándose
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
@@ -599,17 +618,38 @@ export default function App() {
           }
         });
       });
+
+      // Forzar chequeo silencioso de nueva versión en el servidor
+      try {
+        reg.update().catch(() => {});
+      } catch (_) {}
+    };
+
+    navigator.serviceWorker.getRegistration().then((reg) => {
+      if (reg) setupRegistration(reg);
     });
 
-    // C. After skipWaiting fires and the new SW takes control —
-    //    reload only if the user clicked the banner (refreshing flag).
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true;
-        window.location.reload();
+    // Comprobación periódica cada 15 minutos en segundo plano
+    const updateInterval = setInterval(() => {
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (reg) reg.update().catch(() => {});
+      });
+    }, 15 * 60 * 1000);
+
+    // Comprobar actualización al volver a abrir o enfocar la app
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        navigator.serviceWorker.getRegistration().then((reg) => {
+          if (reg) reg.update().catch(() => {});
+        });
       }
-    });
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(updateInterval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   const handleUpdateApp = () => {
@@ -625,6 +665,33 @@ export default function App() {
       });
     }
     setShowUpdateBanner(false);
+  };
+
+  // ─── GESTOR DE NOTIFICACIONES PUSH PARA PLANEADO VER ───────────────
+  const handleTogglePushNotifications = async () => {
+    if (!isPushNotificationSupported()) {
+      showToast('Tu navegador o dispositivo no soporta notificaciones Web Push.');
+      return;
+    }
+
+    if (pushPermissionStatus === 'granted') {
+      const res = await unsubscribeUserFromPush(userData?.id);
+      if (res?.success) {
+        setPushPermissionStatus('default');
+        showToast('Notificaciones de estreno desactivadas.');
+      }
+    } else {
+      const res = await subscribeUserToPush(userData?.id);
+      if (res.success) {
+        setPushPermissionStatus('granted');
+        showToast('🟢 ¡Notificaciones activadas! Te avisaremos cuando comiencen tus animes planeados.');
+      } else if (res.reason === 'permission_denied') {
+        setPushPermissionStatus('denied');
+        showToast('Permiso de notificaciones bloqueado en los ajustes del navegador.');
+      } else {
+        showToast('No se pudo activar las notificaciones.');
+      }
+    }
   };
 
   // Sync tab state with browser history (back/forward routing)
@@ -931,7 +998,32 @@ export default function App() {
       }
     });
     setEpisodeNotifications(newNotifs);
-  }, [completedAnime, dismissedEpNotifs, readEpNotifs]);
+
+    // ─── Detección en vivo de animes en "Planeado ver" que ya están en emisión (RELEASING) ───
+    const planningEntries = completedAnime.filter(e => e.status === 'PLANNING');
+    if (userData?.id) {
+      syncPlanningAnimesWithServer(userData.id, planningEntries);
+    }
+
+    const airingPlanning = planningEntries.filter(e => e.media?.status === 'RELEASING');
+    const newPlanningNotifs = [];
+
+    airingPlanning.forEach(entry => {
+      const notifId = `planning_airing_${entry.media.id}`;
+      if (dismissedEpNotifs.includes(notifId)) return;
+
+      newPlanningNotifs.push({
+        id: notifId,
+        type: 'planning_airing',
+        anime: entry.media,
+        title: entry.media.title?.userPreferred || entry.media.title?.romaji || 'Anime',
+        timeText: '¡Ya en emisión!',
+        isRead: readEpNotifs.includes(notifId)
+      });
+    });
+
+    setPlanningNotifications(newPlanningNotifs);
+  }, [completedAnime, dismissedEpNotifs, readEpNotifs, userData?.id]);
   const [mylistSubTab, setMylistSubTab] = useState('CURRENT');
   const [searchPage, setSearchPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
@@ -3200,7 +3292,80 @@ case 'mylist': {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto', flex: 1, paddingRight: '0.25rem' }}>
             {notificationTab === 'episodes' ? (
               <>
-                {episodeNotifications.length === 0 ? (
+                {/* ─── Toggle de Notificaciones Push de Estrenos ─── */}
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(16, 185, 129, 0.05))',
+                  border: '1px solid rgba(34, 197, 94, 0.35)',
+                  borderRadius: '12px',
+                  padding: '0.65rem 0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ fontSize: '1.1rem' }}>🔔</span>
+                    <div style={{ fontSize: '0.78rem', lineHeight: 1.25 }}>
+                      <div style={{ fontWeight: 700, color: '#4ade80' }}>Avisos de "Planeado ver"</div>
+                      <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.7rem' }}>
+                        {pushPermissionStatus === 'granted' ? 'Activado: te avisaremos al instante' : 'Actívalos para saber cuándo se estrenan'}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleTogglePushNotifications}
+                    style={{
+                      background: pushPermissionStatus === 'granted' ? 'rgba(34, 197, 94, 0.25)' : 'var(--color-accent-green, #22c55e)',
+                      border: 'none',
+                      color: '#fff',
+                      padding: '0.35rem 0.7rem',
+                      borderRadius: '8px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  >
+                    {pushPermissionStatus === 'granted' ? 'Desactivar' : 'Activar'}
+                  </button>
+                </div>
+
+                {/* ─── Animes en Planeado ver que ya han comenzado a emitirse ─── */}
+                {planningNotifications.map(pNotif => (
+                  <div key={pNotif.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: 'rgba(34, 197, 94, 0.08)', border: '1px solid rgba(34, 197, 94, 0.4)', borderRadius: '12px', alignItems: 'flex-start', position: 'relative' }}>
+                    <img src={pNotif.anime.coverImage?.large} alt="cover" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '2px solid #22c55e' }} />
+                    <div style={{ flex: 1, paddingRight: '1.25rem' }}>
+                      <span style={{ background: '#22c55e', color: '#000', fontSize: '0.62rem', fontWeight: 800, padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase', display: 'inline-block', marginBottom: '0.2rem' }}>
+                        🟢 Ya en emisión
+                      </span>
+                      <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', fontWeight: '600', lineHeight: 1.2 }}>{pNotif.title}</p>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
+                        Estaba en tu lista de "Planeado ver" y ha comenzado a emitirse.
+                      </p>
+                      <button 
+                        onClick={() => { 
+                          markEpisodeNotificationAsRead(pNotif.id);
+                          setShowNotificationCenter(false); 
+                          handleTabClick('mylist'); 
+                          setMylistSubTab('PLANNING'); 
+                        }} 
+                        className="btn-primary" 
+                        style={{ padding: '0.35rem 0.6rem', fontSize: '0.75rem', width: '100%', background: '#22c55e', border: 'none', color: '#000', fontWeight: 'bold' }}
+                      >
+                        Ver en mi lista
+                      </button>
+                    </div>
+                    <button 
+                      onClick={() => dismissEpisodeNotification(pNotif.id)} 
+                      style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', padding: '0.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                      aria-label="Descartar"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+
+                {episodeNotifications.length === 0 && planningNotifications.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '1.5rem 0', color: 'var(--color-text-secondary)' }}>
                     <Bell size={32} style={{ opacity: 0.2, marginBottom: '0.5rem' }} />
                     <p style={{ margin: 0, fontSize: '0.9rem' }}>Todo al día en tus animes</p>
@@ -3369,9 +3534,9 @@ case 'mylist': {
               style={{ position: 'relative' }}
             >
               <Bell size={18} />
-              {(episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length) > 0 && (
+              {(episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length + planningNotifications.filter(n => !n.isRead).length) > 0 && (
                 <span style={{ position: 'absolute', top: -2, right: -2, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                  {episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length}
+                  {episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length + planningNotifications.filter(n => !n.isRead).length}
                 </span>
               )}
             </button>
@@ -3412,9 +3577,9 @@ case 'mylist': {
               style={{ position: 'relative' }}
             >
               <Bell size={20} />
-              {(episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length) > 0 && (
+              {(episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length + planningNotifications.filter(n => !n.isRead).length) > 0 && (
                 <span style={{ position: 'absolute', top: -2, right: -2, background: 'var(--color-accent-purple)', color: 'white', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                  {episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length}
+                  {episodeNotifications.filter(n => !n.isRead).length + socialNotifications.filter(n => !n.isRead).length + planningNotifications.filter(n => !n.isRead).length}
                 </span>
               )}
             </button>

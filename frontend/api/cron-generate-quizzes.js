@@ -139,6 +139,17 @@ Ejemplo de respuesta esperada:
             status: 'success'
         }]);
 
+        // 6. Ejecutar también la comprobación de animes en "Planeado ver"
+        try {
+            const checkPlanningModule = await import('./cron-check-planning-airing.js');
+            if (checkPlanningModule?.default) {
+                const fakeRes = { status: () => ({ json: () => {} }) };
+                await checkPlanningModule.default({ method: 'POST', headers: { authorization: `Bearer ${process.env.CRON_SECRET}` } }, fakeRes);
+            }
+        } catch (planningErr) {
+            console.warn('Comprobación de planeados en cron falló levemente:', planningErr);
+        }
+
         return res.status(200).json({ success: true, count: generatedQuizzes.length, animes: selectedAnimes });
 
     } catch (err) {

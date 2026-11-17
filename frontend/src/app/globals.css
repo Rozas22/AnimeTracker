@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root,
+  .dark {
+    /* Fondo principal Obsidian profundo (#0b1622) */
+    --background: 211 51% 9%;
+    --foreground: 210 40% 98%;
+
+    /* Superficies / Bento Cards (#131f30) */
+    --card: 215 43% 13%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 215 43% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Color Primario: Kurama Fox Amber (#f59e0b) */
+    --primary: 38 92% 50%;
+    --primary-foreground: 211 51% 9%;
+
+    /* Color Secundario: Slate Oscuro */
+    --secondary: 215 32% 18%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 32% 16%;
+    --muted-foreground: 215 20% 65%;
+
+    /* Acento: AniList Blue (#3db4f2) */
+    --accent: 201 87% 59%;
+    --accent-foreground: 211 51% 9%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 215 28% 20%;
+    --input: 215 28% 20%;
+    --ring: 38 92% 50%;
+
+    --radius: 0.875rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased selection:bg-kurama/30 selection:text-kurama-100;
+    overflow-x: hidden;
+  }
+}
+
+/* Utilidades para modo PWA Standalone (iOS / Android) y Bento Cards */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0.75rem);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .bento-card {
+    @apply rounded-2xl border border-white/[0.08] bg-card/80 backdrop-blur-xl shadow-xl transition-all duration-300 hover:border-white/[0.15];
+  }
+}

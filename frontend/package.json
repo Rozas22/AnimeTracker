@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:next": "next dev -p 3000",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -31,7 +33,7 @@
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.6.2",
     "postcss": "^8.5.33",
-    "tailwindcss": "^4.3.5",
+    "tailwindcss": "^3.4.19",
     "typescript": "^7.0.2",
     "vite": "^5.2.11"
   }

@@ -178,7 +178,8 @@ export interface UserFormatStatistic {
   count: number;
   meanScore: number;
   minutesWatched: number;
-  episodesWatched: number;
+  /** AniList no expone este campo en las estadísticas agrupadas */
+  episodesWatched?: number;
   format: MediaFormat;
 }
 
@@ -186,7 +187,8 @@ export interface UserStatusStatistic {
   count: number;
   meanScore: number;
   minutesWatched: number;
-  episodesWatched: number;
+  /** AniList no expone este campo en las estadísticas agrupadas */
+  episodesWatched?: number;
   status: MediaListStatus;
 }
 
@@ -194,7 +196,8 @@ export interface UserGenreStatistic {
   count: number;
   meanScore: number;
   minutesWatched: number;
-  episodesWatched: number;
+  /** AniList no expone este campo en las estadísticas agrupadas */
+  episodesWatched?: number;
   genre: string;
 }
 
@@ -202,7 +205,8 @@ export interface UserReleaseYearStatistic {
   count: number;
   meanScore: number;
   minutesWatched: number;
-  episodesWatched: number;
+  /** AniList no expone este campo en las estadísticas agrupadas */
+  episodesWatched?: number;
   releaseYear: number;
 }
 

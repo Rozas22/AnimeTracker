@@ -45,14 +45,12 @@ const ANILIST_USER_FIELDS = `
         count
         meanScore
         minutesWatched
-        episodesWatched
         status
       }
       genres {
         count
         meanScore
         minutesWatched
-        episodesWatched
         genre
       }
     }

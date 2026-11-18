@@ -125,12 +125,12 @@ export function ProfileBillboard({
   return (
     <section
       aria-label="Tu perfil y tu liga"
-      className="relative isolate overflow-hidden rounded-[18px] bg-card"
+      className="relative isolate rounded-[18px] bg-card"
       style={{ boxShadow: 'var(--shadow-lift)' }}
     >
       {/* Fondo: banner del anime destacado, apagado y desenfocado */}
       {backdrop && (
-        <div aria-hidden="true" className="absolute inset-0 -z-10">
+        <div aria-hidden="true" className="absolute inset-0 -z-10 overflow-hidden rounded-[18px]">
           <Image
             src={backdrop}
             alt=""
@@ -148,7 +148,7 @@ export function ProfileBillboard({
       <div className="grid gap-6 p-5 sm:gap-8 sm:p-8 lg:grid-cols-[1fr_minmax(300px,380px)] lg:items-end lg:p-10">
         {/* Identidad y nivel */}
         <div className="min-w-0">
-          <div className="flex items-center gap-7 pl-2 pt-2 sm:gap-10 sm:pl-4 sm:pt-4">
+          <div className="flex items-center gap-7 pl-2 pt-4 sm:gap-10 sm:pl-4 sm:pt-4">
             <AnimeFrame frame={effectiveFrame} size={104} detail="full" label={frameStyle.label}>
               <Image
                 src={avatarUrl}

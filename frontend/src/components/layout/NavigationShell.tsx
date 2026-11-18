@@ -279,7 +279,7 @@ export function NavigationShell({
          ═══════════════════════════════════════════════════════════════════ */}
       <div className="flex flex-1 flex-col md:pl-64 min-w-0">
         {/* Top Header Mobile (< md) */}
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-white/[0.05] bg-background px-4 pt-safe md:hidden">
+        <header className="sticky top-0 z-30 flex h-[calc(4rem+env(safe-area-inset-top,0px))] items-center justify-between border-b border-white/[0.05] bg-background px-4 pt-safe md:hidden">
           <Link href="/" className="flex items-center gap-2.5">
             <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-popover">
               <Image

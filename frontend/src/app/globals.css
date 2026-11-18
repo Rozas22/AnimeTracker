@@ -58,12 +58,15 @@
 
   html {
     color-scheme: dark;
+    /* clip (no hidden): recorta el desborde lateral sin convertir el body en
+       contenedor de scroll, que en iOS rompe el scroll hasta arriba y el sticky */
+    overflow-x: clip;
     scrollbar-color: hsl(224 18% 26%) transparent;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    overflow-x: hidden;
+    overflow-x: clip;
     font-feature-settings: 'tnum' 0;
   }
 

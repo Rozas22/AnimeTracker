@@ -46,7 +46,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   {
     label: 'Buscador',
     shortLabel: 'Buscar',
-    href: '/buscar',
+    href: '/buscador',
     icon: Search,
     showInMobileBar: true,
   },

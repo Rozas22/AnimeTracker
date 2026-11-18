@@ -4,15 +4,15 @@ import { ProfileHeroBento } from '@/components/dashboard/ProfileHeroBento';
 import { StatsBentoGrid } from '@/components/dashboard/StatsBentoGrid';
 import { AiringScheduleBento } from '@/components/dashboard/AiringScheduleBento';
 import { TrophyShowcase } from '@/components/dashboard/TrophyShowcase';
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import type { AniListUser } from '@/types/anilist';
 import type { UserProfileRow, UserAchievementRow } from '@/types/database';
-
-// ─── DATOS MOCK DE RESPALDO PARA PREVISUALIZACIÓN INMEDIATA EN LOCALHOST ─────
 
 const MOCK_ANILIST_USER: AniListUser = {
   id: 7952169,
   name: 'Rozas22',
-  about: 'Amante del anime shonen, seinen y fantasía oscura. Compitiendo en la Liga de KuramaTracker.',
+  about:
+    'Amante del anime shonen, seinen y fantasía oscura. Compitiendo en la Liga de KuramaTracker.',
   avatar: {
     large: '/logo.png',
     medium: '/logo.png',
@@ -25,7 +25,7 @@ const MOCK_ANILIST_USER: AniListUser = {
       count: 124,
       meanScore: 85.4,
       standardDeviation: 10.8,
-      minutesWatched: 37920, // 1580 episodios (~26.3 días)
+      minutesWatched: 37920,
       episodesWatched: 1580,
       statuses: [
         { status: 'CURRENT', count: 8, meanScore: 86, minutesWatched: 2400, episodesWatched: 100 },
@@ -66,52 +66,6 @@ const MOCK_ACHIEVEMENTS: UserAchievementRow[] = [
   },
 ];
 
-// ─── SKELETON LOADER CON FORMA EXACTA DEL BENTO GRID ─────────────────────────
-
-export function DashboardSkeleton(): React.JSX.Element {
-  return (
-    <div className="space-y-6 animate-pulse" aria-busy="true" aria-label="Cargando Dashboard">
-      {/* Skeleton Hero (8 + 4 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="bento-card lg:col-span-8 h-72 bg-card/50 p-6 flex flex-col justify-between">
-          <div className="flex items-center gap-5">
-            <div className="h-24 w-24 rounded-2xl bg-white/[0.06]" />
-            <div className="space-y-3 flex-1">
-              <div className="h-5 w-32 rounded-full bg-white/[0.06]" />
-              <div className="h-8 w-48 rounded-lg bg-white/[0.08]" />
-              <div className="h-4 w-40 rounded bg-white/[0.05]" />
-            </div>
-          </div>
-          <div className="space-y-2 pt-4 border-t border-white/[0.05]">
-            <div className="h-4 w-56 rounded bg-white/[0.06]" />
-            <div className="h-4 w-full rounded-full bg-white/[0.08]" />
-          </div>
-        </div>
-
-        <div className="lg:col-span-4 flex flex-col gap-5">
-          <div className="bento-card flex-1 h-32 bg-card/50 p-5" />
-          <div className="bento-card flex-1 h-32 bg-card/50 p-5" />
-        </div>
-      </div>
-
-      {/* Skeleton KPIs (4 cols) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((item) => (
-          <div key={item} className="bento-card h-28 bg-card/50 p-5" />
-        ))}
-      </div>
-
-      {/* Skeleton Distribución + Géneros */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="bento-card lg:col-span-7 h-60 bg-card/50 p-6" />
-        <div className="bento-card lg:col-span-5 h-60 bg-card/50 p-6" />
-      </div>
-    </div>
-  );
-}
-
-// ─── CONTENIDO SERVIDOR DEL DASHBOARD ────────────────────────────────────────
-
 async function DashboardContent(): Promise<React.JSX.Element> {
   const authData = await getServerAuthenticatedUser();
 
@@ -128,7 +82,6 @@ async function DashboardContent(): Promise<React.JSX.Element> {
 
   return (
     <div className="space-y-7">
-      {/* 1. Hero Bento: Avatar con Marco, Nivel, Barra de XP Animada, Liga Global y Racha */}
       <ProfileHeroBento
         anilistUser={anilistUser}
         initialProfile={supabaseProfile}
@@ -136,13 +89,10 @@ async function DashboardContent(): Promise<React.JSX.Element> {
         totalEpisodesWatched={episodesWatched}
       />
 
-      {/* 2. Bento Grid de Estadísticas: KPIs, Barra Multicolor de Estados y Top Géneros */}
       <StatsBentoGrid statistics={anilistUser.statistics.anime} />
 
-      {/* 3. Calendario de Emisión Semanal Interactivo */}
       <AiringScheduleBento />
 
-      {/* 4. Vitrina Interactiva de Trofeos y Marcos (TROPHY_CONFIG) */}
       <TrophyShowcase
         totalEpisodesWatched={episodesWatched}
         achievements={achievements}

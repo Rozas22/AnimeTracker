@@ -1,5 +1,27 @@
 /// <reference types="next" />
 /// <reference types="next/image-types/global" />
 
-// NOTE: This file should not be edited
-// see https://nextjs.org/docs/app/building-your-application/configuring/typescript for more information.
+declare module '*.css';
+
+declare module 'canvas-confetti' {
+  export interface ConfettiOptions {
+    particleCount?: number;
+    angle?: number;
+    spread?: number;
+    startVelocity?: number;
+    decay?: number;
+    gravity?: number;
+    drift?: number;
+    ticks?: number;
+    origin?: { x?: number; y?: number };
+    colors?: string[];
+    shapes?: string[];
+    scalar?: number;
+    zIndex?: number;
+    disableForReducedMotion?: boolean;
+  }
+
+  export default function confetti(
+    options?: ConfettiOptions
+  ): Promise<null> | null;
+}

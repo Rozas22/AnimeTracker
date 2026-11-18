@@ -10,9 +10,16 @@ backend/.env
 .env.development.local
 .env.test.local
 .env.production.local
+frontend/.env
+frontend/.env.local
+!.env.example
+!frontend/.env.example
 
-# Production builds
+# Production & Next.js builds
 frontend/dist/
+frontend/.next/
+.next/
+*.tsbuildinfo
 
 # IDE / System files
 .vscode/
@@ -20,3 +27,5 @@ frontend/dist/
 .DS_Store
 Thumbs.db
 *.log
+
+.vercel

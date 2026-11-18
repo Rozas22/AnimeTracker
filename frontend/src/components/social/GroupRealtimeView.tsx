@@ -14,7 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import {
-  calculateLevel,
+  resolveUnifiedUserLevel,
   calculatePL,
   getLeagueInfo,
   FRAME_STYLES,
@@ -157,8 +157,11 @@ export function GroupRealtimeView({
         {/* Directorio de Amigos */}
         <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 content-start">
           {filteredMembers.map((member, idx) => {
-            const episodes = Math.floor((member.anime_points || 0) / 10);
-            const levelData = calculateLevel(episodes);
+            const levelData = resolveUnifiedUserLevel({
+              supabaseAnimePoints: member.anime_points,
+              supabaseStoredLevel: member.level,
+            });
+            const episodes = levelData.totalEpisodesWatched;
             const totalPL = calculatePL(episodes, member.quiz_points || 0);
             const league = getLeagueInfo(totalPL);
             const frame = FRAME_STYLES[levelData.unlockedFrame];
@@ -188,7 +191,7 @@ export function GroupRealtimeView({
                       </p>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <span className="font-bold text-kurama">
-                          Nv. {member.level || levelData.computedLevel}
+                          Nv. {levelData.computedLevel}
                         </span>
                         <span>•</span>
                         <span className="truncate">{levelData.userTitle}</span>

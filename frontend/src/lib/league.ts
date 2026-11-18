@@ -327,6 +327,52 @@ export function calculateLevel(
   };
 }
 
+export interface UnifiedLevelSourceInput {
+  /** Episodios reportados en directo por AniList (`statistics.anime.episodesWatched`) */
+  anilistEpisodesWatched?: number | null;
+  /** Puntos de anime en Supabase (`public.users.anime_points`, donde 1 ep = 10 pts) */
+  supabaseAnimePoints?: number | null;
+  /** Nivel guardado en Supabase (`public.users.level`) como último recurso si no hay puntos */
+  supabaseStoredLevel?: number | null;
+}
+
+export interface UnifiedLevelSnapshot extends LevelProgressResult {
+  totalEpisodesWatched: number;
+  totalAnimePoints: number;
+}
+
+/**
+ * ÚNICA FUENTE DE VERDAD para el nivel y experiencia del usuario en toda la aplicación.
+ * Toma el valor más actualizado entre AniList (`episodesWatched`) y Supabase (`anime_points / 10`),
+ * garantizando que el Dashboard, la Barra Lateral, el Grupo y la Arena muestren exactamente el mismo Nivel.
+ */
+export function resolveUnifiedUserLevel(
+  input: UnifiedLevelSourceInput
+): UnifiedLevelSnapshot {
+  const fromAniList =
+    typeof input.anilistEpisodesWatched === 'number' &&
+    input.anilistEpisodesWatched > 0
+      ? Math.floor(input.anilistEpisodesWatched)
+      : 0;
+
+  const fromSupabasePoints =
+    typeof input.supabaseAnimePoints === 'number' && input.supabaseAnimePoints > 0
+      ? Math.floor(input.supabaseAnimePoints / PROGRESSION_CONFIG.pointsPerEpisode)
+      : 0;
+
+  const totalEpisodesWatched = Math.max(fromAniList, fromSupabasePoints);
+  const totalAnimePoints =
+    totalEpisodesWatched * PROGRESSION_CONFIG.pointsPerEpisode;
+
+  const levelResult = calculateLevel(totalEpisodesWatched);
+
+  return {
+    ...levelResult,
+    totalEpisodesWatched,
+    totalAnimePoints,
+  };
+}
+
 // ─── SISTEMA DE PUNTOS DE LIGA (PL) Y DIVISIONES ─────────────────────────────
 
 export interface LeagueTierInfo {

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  calculateLevel,
+  resolveUnifiedUserLevel,
   calculatePL,
   getLeagueInfo,
   FRAME_STYLES,
@@ -42,8 +42,8 @@ const FALLBACK_USER: Pick<AniListUser, 'id' | 'name' | 'avatar' | 'bannerImage'>
   id: 7952169,
   name: 'Rozas22',
   avatar: {
-    large: '/logo.png',
-    medium: '/logo.png',
+    large: 'https://s4.anilist.co/file/anilistcdn/user/avatar/large/b7952169-aN2k8haFFNOq.png',
+    medium: 'https://s4.anilist.co/file/anilistcdn/user/avatar/medium/b7952169-aN2k8haFFNOq.png',
   },
   bannerImage: null,
 };
@@ -60,33 +60,31 @@ export function ProfileHeroBento({
     isLoading,
   } = useSupabaseUser(anilistUser?.id ?? initialProfile?.anilist_id);
 
-  const activeProfile = initialProfile ?? hookProfile;
-  const activeAchievements = initialAchievements ?? hookAchievements;
+  const activeProfile = hookProfile ?? initialProfile;
+  const activeAchievements =
+    hookAchievements.length > 0 ? hookAchievements : (initialAchievements ?? []);
 
   // Selector de marco activo ('auto' usa el más alto desbloqueado por nivel)
   const [selectedFrameMode, setSelectedFrameMode] = useState<FrameType | 'auto'>('auto');
+  const [avatarLoadError, setAvatarLoadError] = useState<boolean>(false);
 
-  // Cálculo de episodios totales: prioridad prop -> AniList stats -> anime_points / 10 -> demo
-  const resolvedEpisodes = useMemo<number>(() => {
-    if (typeof totalEpisodesWatched === 'number') return totalEpisodesWatched;
-    if (anilistUser?.statistics?.anime?.episodesWatched !== undefined) {
-      return anilistUser.statistics.anime.episodesWatched;
-    }
-    if (activeProfile?.anime_points !== undefined && activeProfile.anime_points > 0) {
-      return Math.floor(activeProfile.anime_points / 10);
-    }
-    return 1420; // Valor de demostración visual inicial si aún no ha sincronizado
-  }, [totalEpisodesWatched, anilistUser, activeProfile]);
+  // ÚNICA FUENTE DE VERDAD para episodios y nivel (unificado entre AniList y Supabase)
+  const levelData = useMemo(
+    () =>
+      resolveUnifiedUserLevel({
+        anilistEpisodesWatched:
+          totalEpisodesWatched ??
+          anilistUser?.statistics?.anime?.episodesWatched,
+        supabaseAnimePoints: activeProfile?.anime_points,
+        supabaseStoredLevel: activeProfile?.level,
+      }),
+    [totalEpisodesWatched, anilistUser, activeProfile]
+  );
 
+  const resolvedEpisodes = levelData.totalEpisodesWatched;
   const quizPoints = activeProfile?.quiz_points ?? 0;
   const monthlyQuizPoints = activeProfile?.monthly_quiz_points ?? 0;
   const currentStreak = activeProfile?.current_streak ?? 0;
-
-  // Cálculos matemáticos del motor de progresión y liga
-  const levelData = useMemo(
-    () => calculateLevel(resolvedEpisodes),
-    [resolvedEpisodes]
-  );
 
   const totalGlobalPL = useMemo(
     () => calculatePL(resolvedEpisodes, quizPoints),
@@ -136,11 +134,12 @@ export function ProfileHeroBento({
 
   const displayName =
     anilistUser?.name ?? activeProfile?.username ?? FALLBACK_USER.name;
-  const avatarUrl =
-    anilistUser?.avatar?.large ??
-    anilistUser?.avatar?.medium ??
-    FALLBACK_USER.avatar.large ??
+  const rawAvatarUrl =
+    anilistUser?.avatar?.large ||
+    anilistUser?.avatar?.medium ||
+    FALLBACK_USER.avatar.large ||
     '/logo.png';
+  const avatarUrl = avatarLoadError ? '/logo.png' : rawAvatarUrl;
   const bannerUrl = anilistUser?.bannerImage ?? null;
 
   return (
@@ -166,6 +165,7 @@ export function ProfileHeroBento({
               fill
               sizes="(max-width: 1024px) 100vw, 66vw"
               className="object-cover object-center"
+              unoptimized={bannerUrl.startsWith('http')}
               priority
             />
             <div className="absolute inset-0 bg-gradient-to-t from-card via-card/85 to-transparent" />
@@ -195,6 +195,8 @@ export function ProfileHeroBento({
                   fill
                   sizes="112px"
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  unoptimized={avatarUrl.startsWith('http')}
+                  onError={() => setAvatarLoadError(true)}
                   priority
                 />
               </div>

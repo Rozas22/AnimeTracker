@@ -141,6 +141,7 @@ export function AnimeDetailModal({
                 alt=""
                 fill
                 sizes="672px"
+                unoptimized={media.bannerImage.startsWith('http')}
                 className="object-cover opacity-40"
               />
             )}
@@ -156,6 +157,7 @@ export function AnimeDetailModal({
                   alt={title}
                   fill
                   sizes="112px"
+                  unoptimized={coverUrl.startsWith('http')}
                   className="object-cover"
                 />
               </div>

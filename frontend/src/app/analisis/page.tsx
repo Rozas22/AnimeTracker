@@ -6,9 +6,8 @@ import { TrophyShowcase } from '@/components/dashboard/TrophyShowcase';
 
 export default async function AnalisisPage(): Promise<React.JSX.Element> {
   const authUser = await getServerAuthenticatedUser();
-  const episodesWatched =
-    authUser?.anilistViewer?.statistics?.anime?.episodesWatched ??
-    Math.floor((authUser?.profile?.anime_points || 15800) / 10);
+  const episodesWatched = authUser.unifiedLevel.totalEpisodesWatched;
+  const computedLevel = authUser.unifiedLevel.computedLevel;
 
   return (
     <div className="space-y-6">
@@ -21,16 +20,17 @@ export default async function AnalisisPage(): Promise<React.JSX.Element> {
             Análisis y Métricas Detalladas
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Desglose profundo de tu historial de visualización, géneros y progresión de nivel.
+            Desglose profundo de tu historial de visualización ({episodesWatched.toLocaleString('es-ES')} episodios • Nivel {computedLevel}).
           </p>
         </div>
       </div>
 
-      <StatsBentoGrid statistics={authUser?.anilistViewer?.statistics?.anime} />
+      <StatsBentoGrid statistics={authUser.anilistViewer?.statistics?.anime} />
 
       <TrophyShowcase
+        currentLevel={computedLevel}
         totalEpisodesWatched={episodesWatched}
-        achievements={authUser?.achievements ?? []}
+        achievements={authUser.achievements}
       />
     </div>
   );

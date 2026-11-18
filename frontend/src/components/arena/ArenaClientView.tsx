@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-  calculateLevel,
+  resolveUnifiedUserLevel,
   calculatePL,
   getLeagueInfo,
   FRAME_STYLES,
@@ -366,8 +366,11 @@ export function ArenaClientView({
       {/* Tabla de Ranking */}
       <div className="bento-card divide-y divide-white/[0.06] overflow-hidden">
         {sortedLeaderboard.map((player, idx) => {
-          const episodes = Math.floor((player.anime_points || 0) / 10);
-          const levelData = calculateLevel(episodes);
+          const levelData = resolveUnifiedUserLevel({
+            supabaseAnimePoints: player.anime_points,
+            supabaseStoredLevel: player.level,
+          });
+          const episodes = levelData.totalEpisodesWatched;
           const totalPL = calculatePL(episodes, player.quiz_points || 0);
           const league = getLeagueInfo(totalPL);
           const frame = FRAME_STYLES[levelData.unlockedFrame];
@@ -426,8 +429,7 @@ export function ArenaClientView({
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Nv. {player.level || levelData.computedLevel} • {league.icon}{' '}
-                    {league.name}
+                    Nv. {levelData.computedLevel} • {league.icon} {league.name}
                   </p>
                 </div>
               </div>

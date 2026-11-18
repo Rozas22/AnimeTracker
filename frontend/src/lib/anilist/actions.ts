@@ -1,9 +1,11 @@
 'use server';
 
-import { revalidateTag } from 'next/cache';
+import dns from 'node:dns';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { calculateLevel } from '@/lib/league';
+import { calculateLevel, resolveUnifiedUserLevel } from '@/lib/league';
+import { fetchPublicAniListUserById } from '@/lib/auth';
 import type {
   Media,
   MediaListEntry,
@@ -13,6 +15,12 @@ import type {
   GraphQLResponse,
   PageInfo,
 } from '@/types/anilist';
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch {
+  // Ignorar si no aplica en entorno Edge
+}
 
 const ANILIST_ENDPOINT =
   process.env.NEXT_PUBLIC_ANILIST_GRAPHQL_URL || 'https://graphql.anilist.co';
@@ -453,4 +461,113 @@ export async function saveAnimeProgressAction(
     rateLimited: false,
     fromFallback: false,
   };
+}
+
+// ─── 4. SINCRONIZACIÓN FORZADA ANILIST ↔ SUPABASE (AJUSTES) ─────────────────
+
+export interface SyncAccountResult {
+  anilistId: number;
+  username: string;
+  avatarUrl: string | null;
+  episodesWatched: number;
+  computedLevel: number;
+  animePoints: number;
+  syncedAt: string;
+}
+
+export async function syncAccountWithAniListAction(
+  anilistUserId: number
+): Promise<AniListActionResult<SyncAccountResult>> {
+  try {
+    revalidateTag('anilist-viewer');
+    revalidateTag(`anilist-user-${anilistUserId}`);
+    revalidateTag(`anilist-collection-${anilistUserId}`);
+
+    const supabase = createClient();
+    const [anilistUser, { data: existingRow }] = await Promise.all([
+      fetchPublicAniListUserById(anilistUserId),
+      supabase
+        .from('users')
+        .select('*')
+        .eq('anilist_id', anilistUserId)
+        .maybeSingle(),
+    ]);
+
+    const unified = resolveUnifiedUserLevel({
+      anilistEpisodesWatched: anilistUser?.statistics?.anime?.episodesWatched,
+      supabaseAnimePoints: existingRow?.anime_points,
+      supabaseStoredLevel: existingRow?.level,
+    });
+
+    const syncedAt = new Date().toISOString();
+    const resolvedUsername =
+      anilistUser?.name ?? existingRow?.username ?? `Usuario #${anilistUserId}`;
+
+    await supabase.from('users').upsert(
+      {
+        anilist_id: anilistUserId,
+        username: resolvedUsername,
+        anime_points: unified.totalAnimePoints,
+        level: unified.computedLevel,
+        last_updated_at: syncedAt,
+      },
+      { onConflict: 'anilist_id' }
+    );
+
+    revalidatePath('/');
+    revalidatePath('/arena');
+    revalidatePath('/grupo');
+    revalidatePath('/ajustes');
+
+    return {
+      data: {
+        anilistId: anilistUserId,
+        username: resolvedUsername,
+        avatarUrl:
+          anilistUser?.avatar?.large ?? anilistUser?.avatar?.medium ?? null,
+        episodesWatched: unified.totalEpisodesWatched,
+        computedLevel: unified.computedLevel,
+        animePoints: unified.totalAnimePoints,
+        syncedAt,
+      },
+      error: null,
+      rateLimited: false,
+      fromFallback: false,
+    };
+  } catch (err: unknown) {
+    return {
+      data: null,
+      error:
+        err instanceof Error
+          ? err.message
+          : 'Error al sincronizar cuenta con AniList y Supabase',
+      rateLimited: false,
+      fromFallback: false,
+    };
+  }
+}
+
+export async function updateProfileVisibilityAction(params: {
+  anilistUserId: number;
+  visibility: 'public' | 'friends' | 'private';
+}): Promise<{ success: boolean; error: string | null }> {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from('users')
+    .update({
+      profile_visibility: params.visibility,
+      last_updated_at: new Date().toISOString(),
+    })
+    .eq('anilist_id', params.anilistUserId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath('/');
+  revalidatePath('/grupo');
+  revalidatePath('/ajustes');
+
+  return { success: true, error: null };
 }

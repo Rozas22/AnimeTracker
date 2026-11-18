@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -18,6 +18,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSupabaseUser } from '@/hooks/useSupabaseUser';
+import { resolveUnifiedUserLevel, FRAME_STYLES } from '@/lib/league';
 
 export interface NavItem {
   label: string;
@@ -74,12 +76,25 @@ const NAV_ITEMS: readonly NavItem[] = [
   },
 ] as const;
 
-interface NavigationShellProps {
+const DEFAULT_AVATAR_URL =
+  'https://s4.anilist.co/file/anilistcdn/user/avatar/large/b7952169-aN2k8haFFNOq.png';
+
+export interface NavigationShellProps {
   children: React.ReactNode;
+  initialUsername?: string;
+  initialAvatarUrl?: string | null;
+  initialEpisodesWatched?: number;
 }
 
-export function NavigationShell({ children }: NavigationShellProps): React.JSX.Element {
+export function NavigationShell({
+  children,
+  initialUsername = 'Rozas22',
+  initialAvatarUrl = DEFAULT_AVATAR_URL,
+  initialEpisodesWatched = 5428,
+}: NavigationShellProps): React.JSX.Element {
   const pathname = usePathname();
+  const { profile } = useSupabaseUser(7952169);
+  const [avatarError, setAvatarError] = useState<boolean>(false);
 
   // Registro y auto-actualización silenciosa del Service Worker (PWA)
   useEffect(() => {
@@ -94,6 +109,22 @@ export function NavigationShell({ children }: NavigationShellProps): React.JSX.E
         console.warn('[PWA] Error registrando Service Worker:', err);
       });
   }, []);
+
+  // Nivel unificado utilizando la misma fuente de verdad que el resto de la app
+  const unifiedLevel = useMemo(
+    () =>
+      resolveUnifiedUserLevel({
+        anilistEpisodesWatched: initialEpisodesWatched,
+        supabaseAnimePoints: profile?.anime_points,
+        supabaseStoredLevel: profile?.level,
+      }),
+    [initialEpisodesWatched, profile]
+  );
+
+  const frameStyle = FRAME_STYLES[unifiedLevel.unlockedFrame];
+  const displayUsername = profile?.username ?? initialUsername;
+  const resolvedAvatar =
+    !avatarError && initialAvatarUrl ? initialAvatarUrl : '/logo.png';
 
   const isRouteActive = (href: string): boolean => {
     if (href === '/') return pathname === '/';
@@ -174,32 +205,57 @@ export function NavigationShell({ children }: NavigationShellProps): React.JSX.E
           })}
         </nav>
 
-        {/* Quick Actions & User Footer */}
+        {/* Quick Actions & User Footer con Avatar Real de AniList y Nivel Unificado */}
         <div className="border-t border-white/[0.06] p-4 space-y-3">
           <div className="flex items-center justify-between gap-2 rounded-xl bg-background/60 p-2.5 border border-white/[0.06]">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-9 w-9 rounded-full bg-kurama/20 border border-kurama/40 flex items-center justify-center text-xs font-bold text-kurama shrink-0">
-                KT
+            <Link
+              href="/"
+              className="flex items-center gap-2.5 min-w-0 group"
+            >
+              <div
+                className={cn(
+                  'relative h-9 w-9 rounded-xl overflow-hidden bg-slate-900 shrink-0 transition-transform group-hover:scale-105',
+                  frameStyle.ringClass
+                )}
+              >
+                <Image
+                  src={resolvedAvatar}
+                  alt={displayUsername}
+                  fill
+                  sizes="36px"
+                  className="object-cover"
+                  unoptimized={resolvedAvatar.startsWith('http')}
+                  onError={() => setAvatarError(true)}
+                />
               </div>
               <div className="truncate">
-                <p className="text-xs font-semibold text-white truncate">Mi Cuenta</p>
-                <p className="text-[11px] text-muted-foreground truncate">Sincronizado</p>
+                <p className="text-xs font-bold text-white truncate group-hover:text-kurama transition-colors">
+                  {displayUsername}
+                </p>
+                <p className="text-[11px] font-semibold text-kurama truncate">
+                  Nv. {unifiedLevel.computedLevel} • {unifiedLevel.userTitle}
+                </p>
               </div>
-            </div>
+            </Link>
 
             <div className="flex items-center gap-1 shrink-0">
-              <button
-                type="button"
-                aria-label="Centro de Notificaciones"
+              <Link
+                href="/ajustes"
+                aria-label="Notificaciones y Avisos"
                 className="relative rounded-lg p-2 text-muted-foreground hover:bg-white/[0.06] hover:text-white transition-colors"
               >
                 <Bell className="h-4 w-4" />
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-kurama" />
-              </button>
+              </Link>
               <Link
                 href="/ajustes"
-                aria-label="Ajustes"
-                className="rounded-lg p-2 text-muted-foreground hover:bg-white/[0.06] hover:text-white transition-colors"
+                aria-label="Ajustes de Cuenta"
+                className={cn(
+                  'rounded-lg p-2 transition-colors',
+                  pathname === '/ajustes'
+                    ? 'bg-kurama/20 text-kurama border border-kurama/40'
+                    : 'text-muted-foreground hover:bg-white/[0.06] hover:text-white'
+                )}
               >
                 <Settings className="h-4 w-4" />
               </Link>
@@ -230,19 +286,36 @@ export function NavigationShell({ children }: NavigationShellProps): React.JSX.E
             </span>
           </Link>
 
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              aria-label="Notificaciones"
-              className="relative rounded-xl border border-white/[0.08] bg-card/70 p-2 text-muted-foreground hover:text-white"
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="flex items-center gap-1.5 rounded-xl bg-card/80 border border-white/[0.08] px-2 py-1"
             >
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-kurama" />
-            </button>
+              <div className="relative h-6 w-6 overflow-hidden rounded-lg">
+                <Image
+                  src={resolvedAvatar}
+                  alt={displayUsername}
+                  fill
+                  sizes="24px"
+                  className="object-cover"
+                  unoptimized={resolvedAvatar.startsWith('http')}
+                  onError={() => setAvatarError(true)}
+                />
+              </div>
+              <span className="font-display text-xs font-extrabold text-kurama">
+                Nv.{unifiedLevel.computedLevel}
+              </span>
+            </Link>
+
             <Link
               href="/ajustes"
               aria-label="Ajustes"
-              className="rounded-xl border border-white/[0.08] bg-card/70 p-2 text-muted-foreground hover:text-white"
+              className={cn(
+                'rounded-xl border p-2 transition-colors',
+                pathname === '/ajustes'
+                  ? 'border-kurama/50 bg-kurama/20 text-kurama'
+                  : 'border-white/[0.08] bg-card/70 text-muted-foreground hover:text-white'
+              )}
             >
               <Settings className="h-4 w-4" />
             </Link>

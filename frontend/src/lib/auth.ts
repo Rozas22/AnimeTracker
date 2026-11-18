@@ -1,7 +1,16 @@
+import dns from 'node:dns';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import { resolveUnifiedUserLevel, type UnifiedLevelSnapshot } from '@/lib/league';
 import type { UserProfileRow, UserAchievementRow, TablesInsert } from '@/types/database';
 import type { AniListUser, GraphQLResponse } from '@/types/anilist';
+
+// Evitar timeouts IPv6 de Node.js/undici en Windows al conectar con graphql.anilist.co
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch {
+  // Ignorar en entornos Edge donde node:dns no aplique
+}
 
 const ADMIN_ANILIST_ID = Number(process.env.NEXT_PUBLIC_ADMIN_ANILIST_ID ?? 7952169);
 
@@ -11,7 +20,44 @@ export interface AuthenticatedKuramaUser {
   profile: UserProfileRow | null;
   achievements: UserAchievementRow[];
   anilistViewer: AniListUser | null;
+  unifiedLevel: UnifiedLevelSnapshot;
 }
+
+const ANILIST_USER_FIELDS = `
+  id
+  name
+  about
+  avatar {
+    large
+    medium
+  }
+  bannerImage
+  siteUrl
+  updatedAt
+  statistics {
+    anime {
+      count
+      meanScore
+      standardDeviation
+      minutesWatched
+      episodesWatched
+      statuses {
+        count
+        meanScore
+        minutesWatched
+        episodesWatched
+        status
+      }
+      genres {
+        count
+        meanScore
+        minutesWatched
+        episodesWatched
+        genre
+      }
+    }
+  }
+`;
 
 /**
  * Verifica si un ID de AniList corresponde al administrador de KuramaTracker.
@@ -22,7 +68,7 @@ export function isAdminUser(anilistId: number | string | null | undefined): bool
 }
 
 /**
- * Obtiene el usuario autenticado de AniList usando el token guardado en cookies (Server-side).
+ * Obtiene el usuario autenticado de AniList usando el token OAuth guardado en cookies.
  */
 export async function fetchAniListViewerFromToken(
   accessToken: string
@@ -30,25 +76,7 @@ export async function fetchAniListViewerFromToken(
   const query = `
     query ViewerProfile {
       Viewer {
-        id
-        name
-        about
-        avatar {
-          large
-          medium
-        }
-        bannerImage
-        siteUrl
-        updatedAt
-        statistics {
-          anime {
-            count
-            meanScore
-            standardDeviation
-            minutesWatched
-            episodesWatched
-          }
-        }
+        ${ANILIST_USER_FIELDS}
       }
     }
   `;
@@ -62,7 +90,7 @@ export async function fetchAniListViewerFromToken(
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({ query }),
-      next: { revalidate: 120, tags: ['anilist-viewer'] },
+      next: { revalidate: 300, tags: ['anilist-viewer'] },
     });
 
     if (!response.ok) return null;
@@ -75,17 +103,53 @@ export async function fetchAniListViewerFromToken(
 }
 
 /**
- * Recupera en el Servidor el perfil completo del usuario autenticado
- * cruzando la sesión (Supabase Auth o Cookie OAuth de AniList) con la tabla `public.users`.
+ * Obtiene los datos públicos de un usuario de AniList por su `id` (Avatar, Banner y Estadísticas reales)
+ * con caché en servidor de 10 minutos para evitar errores 429.
  */
-export async function getServerAuthenticatedUser(): Promise<AuthenticatedKuramaUser | null> {
+export async function fetchPublicAniListUserById(
+  anilistId: number
+): Promise<AniListUser | null> {
+  const query = `
+    query PublicUserProfile($id: Int!) {
+      User(id: $id) {
+        ${ANILIST_USER_FIELDS}
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ query, variables: { id: anilistId } }),
+      next: { revalidate: 600, tags: ['anilist-viewer', `anilist-user-${anilistId}`] },
+    });
+
+    if (!response.ok) return null;
+
+    const json = (await response.json()) as GraphQLResponse<{ User: AniListUser }>;
+    return json.data?.User ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Recupera en el Servidor el perfil completo del usuario autenticado
+ * cruzando la sesión con `public.users` y con la API de AniList,
+ * y unificando el Nivel (`resolveUnifiedUserLevel`) como única fuente de verdad.
+ */
+export async function getServerAuthenticatedUser(): Promise<AuthenticatedKuramaUser> {
   const cookieStore = cookies();
   const supabase = createClient();
 
   let resolvedAniListId: number | null = null;
   let anilistViewer: AniListUser | null = null;
 
-  // 1. Intentar resolver desde Supabase Auth (user_metadata.anilist_id)
+  // 1. Intentar resolver desde Supabase Auth
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
@@ -99,7 +163,7 @@ export async function getServerAuthenticatedUser(): Promise<AuthenticatedKuramaU
     resolvedAniListId = Number(metaAniListId);
   }
 
-  // 2. Intentar resolver desde cookies de sesión OAuth de AniList
+  // 2. Intentar resolver desde cookies OAuth de AniList
   const anilistIdCookie = cookieStore.get('kurama_anilist_id')?.value;
   const anilistTokenCookie = cookieStore.get('kurama_anilist_token')?.value;
 
@@ -114,30 +178,75 @@ export async function getServerAuthenticatedUser(): Promise<AuthenticatedKuramaU
     }
   }
 
+  // 3. Si aún no hay cookie activa en desarrollo, usar la cuenta principal (7952169 / Rozas22)
   if (!resolvedAniListId) {
-    return null;
+    resolvedAniListId = ADMIN_ANILIST_ID;
   }
 
-  // 3. Consultar fila en `public.users` y logros en `public.user_achievements`
-  const [{ data: profile }, { data: achievements }] = await Promise.all([
-    supabase
+  // 4. Consultar en paralelo Supabase (`users` + `user_achievements`) y el perfil real de AniList
+  const [{ data: profileRow }, { data: achievements }, publicAniListUser] =
+    await Promise.all([
+      supabase
+        .from('users')
+        .select('*')
+        .eq('anilist_id', resolvedAniListId)
+        .maybeSingle(),
+      supabase
+        .from('user_achievements')
+        .select('*')
+        .eq('anilist_id', resolvedAniListId)
+        .order('awarded_at', { ascending: false }),
+      anilistViewer
+        ? Promise.resolve(anilistViewer)
+        : fetchPublicAniListUserById(resolvedAniListId),
+    ]);
+
+  const finalAniListViewer = anilistViewer ?? publicAniListUser;
+
+  // 5. Calcular el Nivel Unificado (Única Fuente de Verdad entre AniList y Supabase)
+  const unifiedLevel = resolveUnifiedUserLevel({
+    anilistEpisodesWatched: finalAniListViewer?.statistics?.anime?.episodesWatched,
+    supabaseAnimePoints: profileRow?.anime_points,
+    supabaseStoredLevel: profileRow?.level,
+  });
+
+  // 6. Si el nivel o los puntos de episodios en Supabase estaban desactualizados, sincronizarlos
+  let finalProfile = profileRow ?? null;
+  if (
+    finalProfile &&
+    (finalProfile.level !== unifiedLevel.computedLevel ||
+      finalProfile.anime_points !== unifiedLevel.totalAnimePoints)
+  ) {
+    const { data: syncedRow } = await supabase
       .from('users')
-      .select('*')
+      .update({
+        level: unifiedLevel.computedLevel,
+        anime_points: unifiedLevel.totalAnimePoints,
+        username: finalAniListViewer?.name ?? finalProfile.username,
+        last_updated_at: new Date().toISOString(),
+      })
       .eq('anilist_id', resolvedAniListId)
-      .maybeSingle(),
-    supabase
-      .from('user_achievements')
       .select('*')
-      .eq('anilist_id', resolvedAniListId)
-      .order('awarded_at', { ascending: false }),
-  ]);
+      .maybeSingle();
+
+    if (syncedRow) {
+      finalProfile = syncedRow;
+    } else {
+      finalProfile = {
+        ...finalProfile,
+        level: unifiedLevel.computedLevel,
+        anime_points: unifiedLevel.totalAnimePoints,
+      };
+    }
+  }
 
   return {
     anilistId: resolvedAniListId,
     isAdmin: isAdminUser(resolvedAniListId),
-    profile: profile ?? null,
+    profile: finalProfile,
     achievements: achievements ?? [],
-    anilistViewer,
+    anilistViewer: finalAniListViewer,
+    unifiedLevel,
   };
 }
 

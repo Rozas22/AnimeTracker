@@ -4,9 +4,9 @@ import {
   getWeeklyAiringScheduleAction,
   getUserAnimeCollectionAction,
 } from '@/lib/anilist/actions';
-import { ProfileHeroBento } from '@/components/dashboard/ProfileHeroBento';
-import { StatsBentoGrid } from '@/components/dashboard/StatsBentoGrid';
-import { AiringScheduleBento } from '@/components/dashboard/AiringScheduleBento';
+import { ProfileBillboard } from '@/components/wall/ProfileBillboard';
+import { StatsStrip } from '@/components/wall/StatsStrip';
+import { HomeWall } from '@/components/wall/HomeWall';
 import { TrophyShowcase } from '@/components/dashboard/TrophyShowcase';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import type { AniListUser } from '@/types/anilist';
@@ -92,20 +92,29 @@ async function DashboardContent(): Promise<React.JSX.Element> {
   const unifiedEpisodes = authData.unifiedLevel.totalEpisodesWatched;
   const unifiedLevelNumber = authData.unifiedLevel.computedLevel;
 
+  const entries = collectionResult.data ?? [];
+  const featured =
+    entries
+      .filter((e) => (e.status === 'CURRENT' || e.status === 'REPEATING') && e.media.bannerImage)
+      .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0] ?? null;
+
   return (
-    <div className="space-y-7">
-      <ProfileHeroBento
+    <div className="space-y-8">
+      <ProfileBillboard
         anilistUser={anilistUser}
         initialProfile={supabaseProfile}
         initialAchievements={achievements}
         totalEpisodesWatched={unifiedEpisodes}
+        backdropUrl={featured?.media.bannerImage ?? anilistUser.bannerImage}
+        backdropTitle={featured ? featured.media.title.userPreferred : null}
+        footer={<StatsStrip variant="figures" statistics={anilistUser.statistics.anime} entries={entries} />}
       />
 
-      <StatsBentoGrid statistics={anilistUser.statistics.anime} />
-
-      <AiringScheduleBento
+      <HomeWall
+        entries={entries}
         schedules={airingResult.data ?? []}
-        watchingEntries={collectionResult.data ?? []}
+        anilistUserId={authData.anilistId ?? anilistUser.id}
+        afterFirstRow={<StatsStrip statistics={anilistUser.statistics.anime} entries={entries} />}
       />
 
       <TrophyShowcase

@@ -114,7 +114,7 @@ export function AnimeDetailModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md overflow-y-auto"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 overflow-y-auto"
       >
         <motion.div
           initial={{ scale: 0.94, y: 18, opacity: 0 }}
@@ -134,7 +134,7 @@ export function AnimeDetailModal({
           </button>
 
           {/* Cabecera con Banner o Gradiente */}
-          <div className="relative h-36 sm:h-44 w-full bg-gradient-to-r from-kurama/25 via-slate-900 to-sky-500/20 overflow-hidden">
+          <div className="relative h-36 sm:h-44 w-full bg-popover overflow-hidden">
             {media.bannerImage && (
               <Image
                 src={media.bannerImage}
@@ -180,7 +180,7 @@ export function AnimeDetailModal({
                   )}
                 </div>
 
-                <h2 className="font-display text-xl sm:text-2xl font-extrabold text-white leading-tight">
+                <h2 className="font-display text-xl sm:text-2xl font-bold text-white leading-tight">
                   {title}
                 </h2>
 
@@ -319,7 +319,7 @@ export function AnimeDetailModal({
                   disabled={isSaving}
                   onClick={() => void handleSave()}
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-kurama-500 to-amber-600 px-5 py-2.5 text-xs font-extrabold text-slate-950 shadow-lg transition-all hover:brightness-110',
+                    'inline-flex items-center gap-1.5 rounded-xl bg-kurama px-5 py-2.5 text-xs font-bold text-slate-950 shadow-lg transition-all hover:brightness-110',
                     isSaving && 'opacity-70'
                   )}
                 >

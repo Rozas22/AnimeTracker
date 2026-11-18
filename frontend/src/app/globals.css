@@ -2,56 +2,97 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MURO DE STREAMING — tokens del sistema
+   Suelo tinta-noche, superficies sólidas, carteles como único color rico
+   y un acento lima eléctrica reservado para foco, progreso y acción.
+   ═══════════════════════════════════════════════════════════════════════════ */
 @layer base {
   :root,
   .dark {
-    /* Fondo principal Obsidian profundo (#0b1622) */
-    --background: 211 51% 9%;
-    --foreground: 210 40% 98%;
+    /* Suelo tinta-noche (#0c0e14) */
+    --background: 225 25% 6%;
+    --foreground: 220 25% 96%;
 
-    /* Superficies / Bento Cards (#131f30) */
-    --card: 215 43% 13%;
-    --card-foreground: 210 40% 98%;
+    /* Superficie de fila / tarjeta (#161922) */
+    --card: 225 21% 11%;
+    --card-foreground: 220 25% 96%;
 
-    --popover: 215 43% 11%;
-    --popover-foreground: 210 40% 98%;
+    /* Superficie elevada (#1e222d) */
+    --popover: 224 20% 15%;
+    --popover-foreground: 220 25% 96%;
 
-    /* Color Primario: Kurama Fox Amber (#f59e0b) */
-    --primary: 38 92% 50%;
-    --primary-foreground: 211 51% 9%;
+    /* Acento: Lima eléctrica (#c6f432) con texto tinta encima */
+    --primary: 74 90% 58%;
+    --primary-foreground: 225 25% 6%;
 
-    /* Color Secundario: Slate Oscuro */
-    --secondary: 215 32% 18%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 224 20% 15%;
+    --secondary-foreground: 220 25% 96%;
 
-    --muted: 215 32% 16%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 224 20% 15%;
+    --muted-foreground: 224 12% 65%;
 
-    /* Acento: AniList Blue (#3db4f2) */
-    --accent: 201 87% 59%;
-    --accent-foreground: 211 51% 9%;
+    --accent: 224 20% 18%;
+    --accent-foreground: 220 25% 96%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 78% 62%;
+    --destructive-foreground: 220 25% 96%;
 
-    --border: 215 28% 20%;
-    --input: 215 28% 20%;
-    --ring: 38 92% 50%;
+    --border: 224 18% 18%;
+    --input: 224 18% 18%;
+    --ring: 74 90% 58%;
 
-    --radius: 0.875rem;
+    --radius: 0.625rem;
+
+    /* Profundidad: sombras con desplazamiento y desenfoque real */
+    --shadow-tile: 0 18px 34px -14px rgb(0 0 0 / 0.75);
+    --shadow-lift: 0 30px 50px -18px rgb(0 0 0 / 0.85);
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    color-scheme: dark;
+    scrollbar-color: hsl(224 18% 26%) transparent;
+  }
+
   body {
-    @apply bg-background text-foreground font-sans antialiased selection:bg-kurama/30 selection:text-kurama-100;
+    @apply bg-background text-foreground font-sans antialiased;
     overflow-x: hidden;
+    font-feature-settings: 'tnum' 0;
+  }
+
+  ::selection {
+    background: hsl(74 90% 58% / 0.85);
+    color: hsl(225 25% 6%);
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(74 90% 58%);
+    outline-offset: 2px;
+  }
+
+  input,
+  textarea {
+    caret-color: hsl(74 90% 58%);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(224 18% 22%);
+    border-radius: 999px;
+    border: 3px solid hsl(225 25% 6%);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
   }
 }
 
-/* Utilidades para modo PWA Standalone (iOS / Android) y Bento Cards */
 @layer utilities {
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0.75rem);
@@ -61,7 +102,219 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
+  /* Contenedor sólido del muro (sustituye al cristal del sistema anterior) */
   .bento-card {
-    @apply rounded-2xl border border-white/[0.08] bg-card/80 backdrop-blur-xl shadow-xl transition-all duration-300 hover:border-white/[0.15];
+    @apply rounded-[14px] bg-card transition-[transform,box-shadow] duration-300;
+    box-shadow: var(--shadow-tile);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Fila horizontal con scroll por cartel */
+  .rail-scroll {
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .rail-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .rail-scroll > * {
+    scroll-snap-align: start;
+  }
+}
+
+/* ═══ Firma del muro: cartel en 3D ═══ */
+@layer components {
+  .poster-card {
+    --rx: 0deg;
+    --ry: 0deg;
+    --mx: 50%;
+    --my: 0%;
+    transform-style: preserve-3d;
+    transform: rotateX(var(--rx)) rotateY(var(--ry)) translateZ(0);
+    box-shadow: var(--shadow-tile);
+    transition:
+      transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+  .poster-tile:hover .poster-card,
+  .poster-tile:focus-within .poster-card {
+    transform: rotateX(var(--rx)) rotateY(var(--ry)) translateZ(28px) scale(1.04);
+    box-shadow:
+      0 34px 50px -16px rgb(0 0 0 / 0.9),
+      0 0 0 1px hsl(74 90% 58% / 0.9);
+    transition-duration: 0.18s, 0.4s;
+  }
+  .poster-sheen {
+    opacity: 0;
+    background: radial-gradient(
+      circle at var(--mx) var(--my),
+      rgb(255 255 255 / 0.5),
+      rgb(255 255 255 / 0.12) 35%,
+      transparent 62%
+    );
+    transition: opacity 0.3s ease-out;
+    mix-blend-mode: overlay;
+  }
+  .poster-tile:hover .poster-sheen {
+    opacity: 1;
+  }
+  /* Destacado: giro permanente, visible sin ratón y en táctil */
+  .poster-tile--featured .poster-card {
+    --ry: -14deg;
+    --rx: 4deg;
+    box-shadow: var(--shadow-lift);
+  }
+
+  /* Estantería 3D en reposo: los carteles giran al entrar y salir de la fila
+     al desplazarla (también en táctil). Solo navegadores con scroll-driven animations. */
+  @supports (animation-timeline: view()) {
+    .rail-scroll > .poster-tile {
+      animation: shelf-turn linear both;
+      animation-timeline: view(inline);
+    }
+    @keyframes shelf-turn {
+      0% {
+        transform: perspective(1000px) rotateY(-34deg) translateZ(-60px) scale(0.92);
+        opacity: 0.6;
+      }
+      22%,
+      78% {
+        transform: none;
+        opacity: 1;
+      }
+      100% {
+        transform: perspective(1000px) rotateY(34deg) translateZ(-60px) scale(0.92);
+        opacity: 0.6;
+      }
+    }
+  }
+
+  .poster-rank {
+    color: hsl(225 25% 6%);
+    -webkit-text-stroke: 2px hsl(224 14% 46%);
+  }
+
+  /* Fila activa se levanta; las demás se apagan un poco */
+  .wall-rows > .wall-row {
+    transition:
+      opacity 0.35s ease-out,
+      transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (hover: hover) {
+    .wall-rows:has(> .wall-row:hover) > .wall-row:not(:hover) {
+      opacity: 0.55;
+    }
+    .wall-rows > .wall-row:hover {
+      transform: translateY(-4px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .poster-card,
+    .poster-tile:hover .poster-card,
+    .poster-tile:focus-within .poster-card {
+      transform: scale(1.02);
+      transition: box-shadow 0.2s;
+    }
+    .wall-rows > .wall-row:hover {
+      transform: none;
+    }
+    .rail-scroll > .poster-tile {
+      animation: none;
+    }
+    .poster-tile--featured .poster-card {
+      --ry: 0deg;
+      --rx: 0deg;
+    }
+    .anime-frame * {
+      animation: none !important;
+    }
+  }
+
+  /* ═══ Marcos anime por nivel ═══ */
+  .af-flame {
+    animation: af-flicker 1.4s ease-in-out infinite alternate;
+  }
+  @keyframes af-flicker {
+    0% { transform: scaleY(0.82) scaleX(1.04); opacity: 0.85; }
+    50% { transform: scaleY(1.08) scaleX(0.96); opacity: 1; }
+    100% { transform: scaleY(0.92) scaleX(1.02); opacity: 0.9; }
+  }
+  .af-aura {
+    filter: drop-shadow(0 -4px 6px rgb(255 160 40 / 0.55));
+  }
+  .af-spin {
+    animation: af-rotate 24s linear infinite;
+  }
+  .af-spin-rev {
+    animation: af-rotate 36s linear infinite reverse;
+  }
+  @keyframes af-rotate {
+    to { transform: rotate(360deg); }
+  }
+  .af-slash {
+    animation: af-shine 3.2s ease-in-out infinite;
+  }
+  @keyframes af-shine {
+    0%, 70%, 100% { opacity: 0.55; }
+    80% { opacity: 1; }
+  }
+  .af-twinkle path {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: af-twinkle 2.4s ease-in-out infinite;
+  }
+  @keyframes af-twinkle {
+    0%, 100% { transform: scale(0.4); opacity: 0.3; }
+    50% { transform: scale(1); opacity: 1; }
+  }
+  .af-tail {
+    animation: af-sway 3.6s ease-in-out infinite alternate;
+  }
+  @keyframes af-sway {
+    from { transform: rotate(-4deg); }
+    to { transform: rotate(4deg); }
+  }
+  .af-tails,
+  .af-hue {
+    animation: af-hue 8s linear infinite;
+  }
+  @keyframes af-hue {
+    to { filter: hue-rotate(360deg); }
+  }
+  .af-tails {
+    filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.5));
+  }
+
+  /* ═══ Emblemas de trofeo ═══ */
+  .emblem-3d {
+    display: inline-block;
+    perspective: 700px;
+  }
+  .emblem-3d > .trophy-emblem {
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.4s ease-out;
+    filter: drop-shadow(0 10px 12px rgb(0 0 0 / 0.55));
+  }
+  .group:hover .emblem-3d > .trophy-emblem,
+  .emblem-3d:hover > .trophy-emblem {
+    transform: rotateY(22deg) rotateX(6deg) translateZ(14px);
+    filter: drop-shadow(-8px 16px 14px rgb(0 0 0 / 0.65));
+  }
+  .trophy-shine {
+    animation: trophy-shine 4.5s ease-in-out infinite;
+  }
+  @keyframes trophy-shine {
+    0%, 60% { transform: skewX(-20deg) translateX(0); }
+    100% { transform: skewX(-20deg) translateX(190px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .trophy-shine { animation: none; }
+    .group:hover .emblem-3d > .trophy-emblem,
+    .emblem-3d:hover > .trophy-emblem { transform: none; }
   }
 }

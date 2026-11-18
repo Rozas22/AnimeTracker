@@ -201,19 +201,15 @@ export function MyListClientView({
       {/* Cabecera de Mi Lista */}
       <div className="bento-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-kurama/15 border border-kurama/35 text-kurama">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-popover text-white">
             <ListVideo className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-extrabold text-white flex items-center gap-2">
+            <h1 className="font-display text-2xl font-bold text-white flex items-center gap-2">
               Mi Colección de Anime
-              <span className="inline-flex items-center gap-1 rounded-full bg-kurama/20 border border-kurama/40 px-2.5 py-0.5 text-xs font-bold text-kurama">
-                <Sparkles className="h-3 w-3" />
-                Optimistic UI
-              </span>
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Sincronizado mediante Server Proxy con caché inteligente de AniList (0 errores 429).
+              Sincronizada con tu cuenta de AniList.
             </p>
           </div>
         </div>
@@ -265,14 +261,14 @@ export function MyListClientView({
               className={cn(
                 'flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold whitespace-nowrap transition-all border',
                 isActive
-                  ? 'bg-kurama text-slate-950 border-kurama shadow-[0_0_20px_rgba(245,158,11,0.35)]'
+                  ? 'bg-kurama text-slate-950 border-kurama'
                   : 'bg-card/70 text-muted-foreground border-white/[0.08] hover:text-white hover:border-white/20'
               )}
             >
               <span>{tab.label}</span>
               <span
                 className={cn(
-                  'rounded-full px-2 py-0.5 text-[10px] font-extrabold',
+                  'rounded-full px-2 py-0.5 text-[10px] font-bold',
                   isActive
                     ? 'bg-slate-950/20 text-slate-950'
                     : 'bg-white/[0.07] text-slate-300'
@@ -287,7 +283,7 @@ export function MyListClientView({
 
       {/* Grid de Tarjetas de Anime */}
       {filteredEntries.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-6 pt-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {filteredEntries.map((entry) => (
             <AnimeCard
               key={entry.mediaId}

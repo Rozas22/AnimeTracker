@@ -150,7 +150,7 @@ export function SettingsClientView({
             <Settings className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-extrabold text-white">
+            <h1 className="font-display text-2xl font-bold text-white">
               Ajustes de Cuenta &amp; Sincronización
             </h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
@@ -164,7 +164,7 @@ export function SettingsClientView({
           disabled={isSyncing}
           onClick={handleManualSync}
           className={cn(
-            'inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-kurama-500 to-amber-600 px-5 py-3 text-xs font-extrabold text-slate-950 shadow-lg transition-all hover:brightness-110 shrink-0',
+            'inline-flex items-center justify-center gap-2 rounded-xl bg-kurama px-5 py-3 text-xs font-bold text-slate-950 shadow-lg transition-all hover:brightness-110 shrink-0',
             isSyncing && 'opacity-70'
           )}
         >
@@ -191,7 +191,7 @@ export function SettingsClientView({
             <div className="flex items-center justify-between border-b border-white/[0.07] pb-4">
               <div className="flex items-center gap-2.5">
                 <Database className="h-4 w-4 text-kurama" />
-                <h2 className="font-display text-base font-extrabold text-white">
+                <h2 className="font-display text-base font-bold text-white">
                   Estado de Sincronización (Fuente de Verdad Única)
                 </h2>
               </div>
@@ -221,7 +221,7 @@ export function SettingsClientView({
 
               <div className="space-y-1 min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-display text-xl font-extrabold text-white truncate">
+                  <h3 className="font-display text-xl font-bold text-white truncate">
                     {username}
                   </h3>
                   <a
@@ -248,7 +248,7 @@ export function SettingsClientView({
                 <p className="text-[10px] font-bold uppercase text-muted-foreground">
                   Nivel Unificado
                 </p>
-                <p className="mt-1 font-display text-xl font-extrabold text-kurama">
+                <p className="mt-1 font-display text-xl font-bold text-kurama">
                   Nv. {currentLevel}
                 </p>
               </div>
@@ -256,7 +256,7 @@ export function SettingsClientView({
                 <p className="text-[10px] font-bold uppercase text-muted-foreground">
                   Episodios Vistos
                 </p>
-                <p className="mt-1 font-display text-xl font-extrabold text-white">
+                <p className="mt-1 font-display text-xl font-bold text-white">
                   {episodesWatched.toLocaleString('es-ES')}
                 </p>
               </div>
@@ -264,7 +264,7 @@ export function SettingsClientView({
                 <p className="text-[10px] font-bold uppercase text-muted-foreground">
                   Anime Points
                 </p>
-                <p className="mt-1 font-display text-xl font-extrabold text-sky-300">
+                <p className="mt-1 font-display text-xl font-bold text-sky-300">
                   {animePoints.toLocaleString('es-ES')}
                 </p>
               </div>
@@ -272,7 +272,7 @@ export function SettingsClientView({
                 <p className="text-[10px] font-bold uppercase text-muted-foreground">
                   División Global
                 </p>
-                <p className="mt-1 font-display text-base font-extrabold text-amber-300">
+                <p className="mt-1 font-display text-base font-bold text-amber-300">
                   {leagueInfo.icon} {leagueInfo.name}
                 </p>
               </div>
@@ -284,7 +284,7 @@ export function SettingsClientView({
             <div className="flex items-center gap-2.5 border-b border-white/[0.07] pb-3.5">
               <Eye className="h-4 w-4 text-kurama" />
               <div>
-                <h2 className="font-display text-base font-extrabold text-white">
+                <h2 className="font-display text-base font-bold text-white">
                   Privacidad y Visibilidad en Supabase
                 </h2>
                 <p className="text-xs text-muted-foreground">
@@ -342,7 +342,7 @@ export function SettingsClientView({
             <div className="flex items-center gap-2.5 border-b border-white/[0.07] pb-3.5">
               <Award className="h-4 w-4 text-kurama" />
               <div>
-                <h2 className="font-display text-base font-extrabold text-white">
+                <h2 className="font-display text-base font-bold text-white">
                   Marco de Avatar Desbloqueado
                 </h2>
                 <p className="text-xs text-muted-foreground">
@@ -386,7 +386,7 @@ export function SettingsClientView({
           <div className="bento-card p-6 space-y-3">
             <div className="flex items-center gap-2.5">
               <Bell className="h-4 w-4 text-emerald-400" />
-              <h2 className="font-display text-base font-extrabold text-white">
+              <h2 className="font-display text-base font-bold text-white">
                 Notificaciones Push PWA
               </h2>
             </div>

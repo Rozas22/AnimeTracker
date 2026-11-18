@@ -124,7 +124,7 @@ export function SearchCatalogView({
               <Search className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="font-display text-2xl font-extrabold text-white flex items-center gap-2">
+              <h1 className="font-display text-2xl font-bold text-white flex items-center gap-2">
                 Explorar Catálogo de AniList
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-400/35 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
                   <Sparkles className="h-3 w-3" />
@@ -208,7 +208,7 @@ export function SearchCatalogView({
         <AnimeGridSkeleton count={12} />
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-6 pt-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
             {results.map((media) => (
               <AnimeCard
                 key={media.id}
@@ -224,7 +224,7 @@ export function SearchCatalogView({
                 type="button"
                 disabled={isLoadingMore}
                 onClick={handleLoadMore}
-                className="inline-flex items-center gap-2 rounded-2xl bg-card hover:bg-white/[0.08] border border-kurama/40 px-6 py-3 text-xs font-extrabold text-kurama shadow-lg transition-all"
+                className="inline-flex items-center gap-2 rounded-2xl bg-card hover:bg-white/[0.08] border border-kurama/40 px-6 py-3 text-xs font-bold text-kurama shadow-lg transition-all"
               >
                 {isLoadingMore ? (
                   <>

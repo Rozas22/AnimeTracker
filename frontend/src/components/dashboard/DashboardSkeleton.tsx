@@ -1,46 +1,32 @@
 import React from 'react';
 
+/** Esqueleto de carga con la forma del Muro: cabecera, cifras y una fila de carteles. */
 export function DashboardSkeleton(): React.JSX.Element {
   return (
-    <div
-      className="space-y-6 animate-pulse"
-      aria-busy="true"
-      aria-label="Cargando Dashboard"
-    >
-      {/* Skeleton Hero (8 + 4 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="bento-card lg:col-span-8 h-72 bg-card/50 p-6 flex flex-col justify-between">
+    <div className="space-y-8 animate-pulse" aria-busy="true" aria-label="Cargando">
+      <div className="grid gap-8 rounded-[18px] bg-card p-5 sm:p-8 lg:grid-cols-[1fr_minmax(300px,380px)] lg:p-10">
+        <div className="space-y-6">
           <div className="flex items-center gap-5">
-            <div className="h-24 w-24 rounded-2xl bg-white/[0.06]" />
-            <div className="space-y-3 flex-1">
-              <div className="h-5 w-32 rounded-full bg-white/[0.06]" />
-              <div className="h-8 w-48 rounded-lg bg-white/[0.08]" />
-              <div className="h-4 w-40 rounded bg-white/[0.05]" />
+            <div className="h-20 w-20 rounded-[14px] bg-popover sm:h-28 sm:w-28" />
+            <div className="space-y-3">
+              <div className="h-9 w-56 rounded-md bg-popover" />
+              <div className="h-4 w-40 rounded bg-popover" />
             </div>
           </div>
-          <div className="space-y-2 pt-4 border-t border-white/[0.05]">
-            <div className="h-4 w-56 rounded bg-white/[0.06]" />
-            <div className="h-4 w-full rounded-full bg-white/[0.08]" />
-          </div>
+          <div className="h-2.5 max-w-xl rounded-full bg-popover" />
         </div>
-
-        <div className="lg:col-span-4 flex flex-col gap-5">
-          <div className="bento-card flex-1 h-32 bg-card/50 p-5" />
-          <div className="bento-card flex-1 h-32 bg-card/50 p-5" />
-        </div>
+        <div className="h-44 rounded-[14px] bg-popover" />
       </div>
 
-      {/* Skeleton KPIs (4 cols) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((item) => (
-          <div key={item} className="bento-card h-28 bg-card/50 p-5" />
-        ))}
-      </div>
+      <div className="h-64 rounded-[18px] bg-card" />
 
-      {/* Skeleton Distribución + Géneros */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="bento-card lg:col-span-7 h-60 bg-card/50 p-6" />
-        <div className="bento-card lg:col-span-5 h-60 bg-card/50 p-6" />
+      <div className="space-y-3">
+        <div className="h-6 w-40 rounded bg-card" />
+        <div className="flex gap-4 overflow-hidden pt-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="aspect-[2/3] w-[38vw] max-w-[172px] shrink-0 rounded-[10px] bg-card sm:w-[172px]" />
+          ))}
+        </div>
       </div>
     </div>
   );

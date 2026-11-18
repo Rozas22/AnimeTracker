@@ -16,7 +16,7 @@ export default async function AnalisisPage(): Promise<React.JSX.Element> {
           <BarChart3 className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="font-display text-2xl font-extrabold text-white">
+          <h1 className="font-display text-2xl font-bold text-white">
             Análisis y Métricas Detalladas
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground">

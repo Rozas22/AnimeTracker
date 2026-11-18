@@ -4,10 +4,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import {
-  Swords,
   Trophy,
   Crown,
-  Sparkles,
+  Medal,
+  Play,
   Timer,
   CheckCircle2,
   XCircle,
@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AnimeFrame } from '@/components/frames/AnimeFrame';
 import {
   resolveUnifiedUserLevel,
   calculatePL,
@@ -42,6 +43,14 @@ export interface ArenaClientViewProps {
 }
 
 type LeagueTab = 'monthly' | 'global' | 'legends';
+
+/** Color del icono de medalla por división (solo el icono, nunca el texto). */
+const TIER_COLOR: Record<string, string> = {
+  bronze: '#c08457',
+  silver: '#c9cfdb',
+  gold: '#e3b341',
+  diamond: '#7cc8f0',
+};
 
 const MONTH_NAMES: readonly string[] = [
   '',
@@ -195,340 +204,263 @@ export function ArenaClientView({
 
   const currentQuestion = questions[currentQIndex] ?? null;
 
+  const myRank = sortedLeaderboard.findIndex((u) => u.anilist_id === currentUserId);
+
   return (
-    <div className="space-y-6">
-      {/* ═══════════════════════════════════════════════════════════════════
-          CABECERA ARENA + BOTÓN QUIZ DIARIO 2.0
-         ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bento-card relative overflow-hidden p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-kurama/15 blur-3xl"
-        />
-
-        <div className="relative z-10 space-y-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-kurama/20 border border-kurama/40 px-3 py-0.5 text-xs font-extrabold uppercase tracking-wider text-kurama">
-            <Swords className="h-3.5 w-3.5" />
-            Arena Competitiva &amp; Quiz Anti-Cheat
-          </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-white">
-            Liga de Anime KuramaTracker
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground max-w-xl">
-            Compite cada mes desde cero en la Liga Mensual respondiendo el Quiz Diario, o escala en la Liga Global con tu historial completo de AniList.
+    <div className="space-y-8">
+      {/* Cabecera de la Arena */}
+      <section className="flex flex-col gap-6 rounded-[18px] bg-card p-6 sm:p-8 md:flex-row md:items-end md:justify-between" style={{ boxShadow: 'var(--shadow-tile)' }}>
+        <div className="max-w-xl">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">Arena</h1>
+          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+            Cada mes la liga empieza de cero: responde el quiz diario para sumar puntos. La liga global suma además todo tu historial de AniList.
           </p>
+          {myRank >= 0 && (
+            <p className="mt-4 text-sm text-white tabular">
+              Vas <strong className="font-semibold">{myRank + 1}.º</strong> de {sortedLeaderboard.length} en{' '}
+              {activeLeague === 'monthly' ? 'la liga mensual' : activeLeague === 'global' ? 'la liga global' : 'leyendas'}
+            </p>
+          )}
         </div>
-
         <button
           type="button"
           onClick={() => void handleStartQuiz()}
-          className="relative z-10 inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-kurama-500 via-amber-500 to-orange-500 px-6 py-4 font-display text-sm font-extrabold text-slate-950 shadow-[0_0_30px_rgba(245,158,11,0.45)] transition-all hover:scale-105 hover:brightness-110 active:scale-95 shrink-0"
+          className="inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-[12px] bg-kurama px-7 font-display text-base font-semibold text-ink transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]"
         >
-          <Sparkles className="h-5 w-5" />
-          Jugar Quiz Diario (+PL)
+          <Play className="h-4 w-4 fill-current" aria-hidden="true" />
+          Jugar quiz diario
         </button>
-      </div>
+      </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          FILA DE PODIO: CAMPEÓN DEL MES ANTERIOR + PREMIO DEL MES
-         ═══════════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Card Campeón del Mes Anterior */}
-        <div className="bento-card lg:col-span-7 p-6 border-amber-400/40 bg-gradient-to-br from-amber-500/15 via-card to-card flex flex-col justify-between space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-400/50 text-3xl shadow-[0_0_25px_rgba(245,158,11,0.35)]">
-                🏆
+      {/* Campeón vigente y premio del mes */}
+      <section className="grid grid-cols-1 gap-px overflow-hidden rounded-[18px] bg-white/[0.06] lg:grid-cols-[1.4fr_1fr]" style={{ boxShadow: 'var(--shadow-tile)' }}>
+        <div className="min-w-0 bg-card p-6 sm:p-7">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[12px] bg-popover text-white">
+                <Crown className="h-6 w-6" aria-hidden="true" />
               </div>
-              <div>
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-300">
-                  {lastWinner
-                    ? `Campeón de ${MONTH_NAMES[lastWinner.month] ?? ''} ${lastWinner.year}`
-                    : 'Campeón Mensual Vigente'}
-                </span>
-                <h2 className="font-display text-2xl font-extrabold text-white flex items-center gap-2">
-                  {lastWinner?.username ?? 'Rozas22'}
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">
+                  {lastWinner ? `Campeón de ${MONTH_NAMES[lastWinner.month] ?? ''} ${lastWinner.year}` : 'Campeón del mes'}
+                </p>
+                <h2 className="flex items-center gap-2 truncate font-display text-2xl font-bold text-white">
+                  {lastWinner?.username ?? 'Aún sin campeón'}
                   {lastWinner?.anilist_id === currentUserId && (
-                    <span className="rounded-full bg-kurama text-slate-950 px-2.5 py-0.5 text-[10px] font-extrabold">
-                      ¡ERES TÚ!
-                    </span>
+                    <span className="rounded-md bg-white px-2 py-0.5 text-xs font-semibold text-ink">Tú</span>
                   )}
                 </h2>
-                <p className="text-xs text-amber-200/80 font-semibold">
-                  {(lastWinner?.score ?? 4780).toLocaleString('es-ES')} PL obtenidos en el mes
-                </p>
+                {lastWinner && (
+                  <p className="text-sm text-muted-foreground tabular">{lastWinner.score.toLocaleString('es-ES')} PL en el mes</p>
+                )}
               </div>
             </div>
-
             {monthlyWinners.length > 0 && (
               <button
                 type="button"
                 onClick={() => setShowWinnersHistory((v) => !v)}
-                className="inline-flex items-center gap-1 rounded-xl bg-white/[0.06] hover:bg-white/10 border border-white/15 px-3 py-1.5 text-xs font-bold text-amber-200"
+                aria-expanded={showWinnersHistory}
+                className="inline-flex shrink-0 items-center gap-1 rounded-[10px] bg-popover px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent"
               >
-                <span>Historial ({monthlyWinners.length})</span>
-                {showWinnersHistory ? (
-                  <ChevronUp className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                )}
+                Historial
+                {showWinnersHistory ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
             )}
           </div>
 
           {showWinnersHistory && monthlyWinners.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3 border-t border-white/10">
-              {monthlyWinners.map((w, idx) => (
-                <div
-                  key={w.id}
-                  className="flex items-center justify-between rounded-xl bg-background/60 border border-white/[0.07] px-3.5 py-2 text-xs"
-                >
-                  <span className="font-semibold text-white">
-                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🏅'}{' '}
-                    {MONTH_NAMES[w.month]} {w.year} —{' '}
-                    <strong className="text-kurama">
-                      {w.username ?? `#${w.anilist_id}`}
-                    </strong>
+            <ol className="mt-5 divide-y divide-white/[0.06] border-t border-white/[0.06]">
+              {monthlyWinners.map((w) => (
+                <li key={w.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                  <span className="text-muted-foreground">
+                    {MONTH_NAMES[w.month]} {w.year}
+                    <span className="ml-2 font-medium text-white">{w.username ?? `#${w.anilist_id}`}</span>
                   </span>
-                  <span className="font-bold text-slate-300">
-                    {w.score.toLocaleString('es-ES')} PL
-                  </span>
-                </div>
+                  <span className="text-white tabular">{w.score.toLocaleString('es-ES')} PL</span>
+                </li>
               ))}
-            </div>
+            </ol>
           )}
         </div>
 
-        {/* Card Premio Mensual */}
-        <div className="bento-card lg:col-span-5 p-6 flex flex-col justify-between space-y-3 border-kurama/30">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-kurama/15 border border-kurama/35 text-kurama">
-              <Gift className="h-5 w-5" />
+        <div className="min-w-0 bg-card p-6 sm:p-7">
+          <div className="flex items-center gap-4">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[12px] bg-popover text-white">
+              <Gift className="h-6 w-6" aria-hidden="true" />
             </div>
-            <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-kurama">
-                Recompensa Mensual Activa
-              </span>
-              <h3 className="font-display text-lg font-extrabold text-white">
-                {activePrize?.title ?? 'Premio Exclusivo de Temporada'}
-              </h3>
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">Premio de este mes</p>
+              <h3 className="truncate font-display text-xl font-bold text-white">{activePrize?.title ?? 'Premio de temporada'}</h3>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
             {activePrize?.description ??
-              'El jugador que finalice en el 1er puesto de la Liga Mensual el día 1 del mes se lleva el premio oficial y la corona permanente.'}
+              'Quien termine primero en la liga mensual el día 1 se lleva el premio y una corona permanente.'}
           </p>
         </div>
-      </div>
+      </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SELECTOR DE LIGAS Y TABLA DE CLASIFICACIÓN
-         ═══════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setActiveLeague('monthly')}
-          className={cn(
-            'rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all border',
-            activeLeague === 'monthly'
-              ? 'bg-kurama text-slate-950 border-kurama shadow-lg'
-              : 'bg-card/70 text-muted-foreground border-white/10 hover:text-white'
-          )}
-        >
-          ⏱️ Liga Mensual (Mes en Curso)
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveLeague('global')}
-          className={cn(
-            'rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all border',
-            activeLeague === 'global'
-              ? 'bg-sky-400 text-slate-950 border-sky-400 shadow-lg'
-              : 'bg-card/70 text-muted-foreground border-white/10 hover:text-white'
-          )}
-        >
-          🌍 Liga Global (AniList + Quiz)
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveLeague('legends')}
-          className={cn(
-            'rounded-xl px-4 py-2.5 text-xs font-extrabold transition-all border',
-            activeLeague === 'legends'
-              ? 'bg-amber-400 text-slate-950 border-amber-400 shadow-lg'
-              : 'bg-card/70 text-muted-foreground border-white/10 hover:text-white'
-          )}
-        >
-          👑 Leyendas del Mes (Coronas)
-        </button>
-      </div>
+      {/* Clasificación */}
+      <section aria-labelledby="ranking-title" className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 id="ranking-title" className="font-display text-xl font-semibold text-white">Clasificación</h2>
+          <div role="tablist" aria-label="Tipo de liga" className="inline-flex rounded-[12px] bg-card p-1">
+            {([
+              ['monthly', 'Liga mensual'],
+              ['global', 'Liga global'],
+              ['legends', 'Leyendas'],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={activeLeague === key}
+                onClick={() => setActiveLeague(key)}
+                className={cn(
+                  'rounded-[9px] px-3.5 py-2 text-sm font-medium transition-colors sm:px-4',
+                  activeLeague === key ? 'bg-popover text-white' : 'text-muted-foreground hover:text-white'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* Tabla de Ranking */}
-      <div className="bento-card divide-y divide-white/[0.06] overflow-hidden">
-        {sortedLeaderboard.map((player, idx) => {
-          const levelData = resolveUnifiedUserLevel({
-            supabaseAnimePoints: player.anime_points,
-            supabaseStoredLevel: player.level,
-          });
-          const episodes = levelData.totalEpisodesWatched;
-          const totalPL = calculatePL(episodes, player.quiz_points || 0);
-          const league = getLeagueInfo(totalPL);
-          const frame = FRAME_STYLES[levelData.unlockedFrame];
-          const crowns = crownsByUser[player.anilist_id] ?? 0;
+        <ol className="overflow-hidden rounded-[18px] bg-card" style={{ boxShadow: 'var(--shadow-tile)' }}>
+          {sortedLeaderboard.map((player, idx) => {
+            const levelData = resolveUnifiedUserLevel({
+              supabaseAnimePoints: player.anime_points,
+              supabaseStoredLevel: player.level,
+            });
+            const episodes = levelData.totalEpisodesWatched;
+            const totalPL = calculatePL(episodes, player.quiz_points || 0);
+            const league = getLeagueInfo(totalPL);
+            const frame = FRAME_STYLES[levelData.unlockedFrame];
+            const crowns = crownsByUser[player.anilist_id] ?? 0;
+            const isMe = player.anilist_id === currentUserId;
 
-          const displayScore =
-            activeLeague === 'monthly'
-              ? `${(player.monthly_quiz_points || 0).toLocaleString('es-ES')} PL`
-              : activeLeague === 'legends'
-                ? `${crowns} ${crowns === 1 ? 'Corona' : 'Coronas'}`
-                : `${totalPL.toLocaleString('es-ES')} PL`;
+            const displayScore =
+              activeLeague === 'monthly'
+                ? `${(player.monthly_quiz_points || 0).toLocaleString('es-ES')} PL`
+                : activeLeague === 'legends'
+                  ? `${crowns} ${crowns === 1 ? 'corona' : 'coronas'}`
+                  : `${totalPL.toLocaleString('es-ES')} PL`;
 
-          return (
-            <div
-              key={player.anilist_id}
-              className={cn(
-                'flex items-center justify-between gap-4 p-4 sm:px-6 transition-colors hover:bg-white/[0.03]',
-                player.anilist_id === currentUserId && 'bg-kurama/[0.07]'
-              )}
-            >
-              <div className="flex items-center gap-4 min-w-0">
-                <span
-                  className={cn(
-                    'w-7 font-display text-lg font-extrabold text-center shrink-0',
-                    idx === 0
-                      ? 'text-amber-400'
-                      : idx === 1
-                        ? 'text-slate-300'
-                        : idx === 2
-                          ? 'text-amber-600'
-                          : 'text-muted-foreground'
-                  )}
-                >
-                  #{idx + 1}
-                </span>
-
-                <div
-                  className={cn(
-                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 font-display text-xs font-extrabold text-kurama',
-                    frame.ringClass
-                  )}
-                >
-                  {(player.username ?? 'KT').slice(0, 2).toUpperCase()}
-                </div>
-
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-display text-sm sm:text-base font-extrabold text-white truncate">
+            return (
+              <li
+                key={player.anilist_id}
+                className={cn(
+                  'flex items-center justify-between gap-4 border-t border-white/[0.05] px-4 py-3.5 first:border-t-0 sm:px-6',
+                  isMe ? 'bg-popover' : 'transition-colors hover:bg-white/[0.02]'
+                )}
+              >
+                <div className="flex min-w-0 items-center gap-4">
+                  <span className={cn('w-7 shrink-0 text-center font-display text-lg tabular', idx < 3 ? 'font-bold text-white' : 'text-muted-foreground')}>
+                    {idx + 1}
+                  </span>
+                  <AnimeFrame frame={levelData.unlockedFrame} size={44} label={frame.label}>
+                    <span className="grid h-full w-full place-items-center bg-[#252a36] text-xs font-semibold text-white">
+                      {(player.username ?? 'KT').slice(0, 2).toUpperCase()}
+                    </span>
+                  </AnimeFrame>
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 truncate font-medium text-white">
                       {player.username ?? `Usuario #${player.anilist_id}`}
+                      {isMe && <span className="rounded-md bg-white px-1.5 py-0.5 text-[10px] font-semibold text-ink">Tú</span>}
+                      {crowns > 0 && (
+                        <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground tabular">
+                          <Crown className="h-3.5 w-3.5" aria-hidden="true" />
+                          {crowns}
+                        </span>
+                      )}
                     </p>
-                    {crowns > 0 && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-                        <Crown className="h-3 w-3" />
-                        {crowns}
-                      </span>
-                    )}
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground tabular">
+                      Nv. {levelData.computedLevel}
+                      <span aria-hidden="true">·</span>
+                      <Medal className="h-3.5 w-3.5" style={{ color: TIER_COLOR[league.id] }} aria-hidden="true" />
+                      {league.name}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Nv. {levelData.computedLevel} • {league.icon} {league.name}
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-display text-base font-semibold text-white tabular sm:text-lg">{displayScore}</p>
+                  <p className="text-xs text-muted-foreground tabular">
+                    {activeLeague === 'monthly' ? 'este mes' : activeLeague === 'legends' ? 'títulos' : `${episodes.toLocaleString('es-ES')} ep. vistos`}
                   </p>
                 </div>
-              </div>
+              </li>
+            );
+          })}
+          {sortedLeaderboard.length === 0 && (
+            <li className="px-6 py-10 text-center text-sm text-muted-foreground">Todavía no hay jugadores en esta liga.</li>
+          )}
+        </ol>
+      </section>
 
-              <div className="text-right shrink-0">
-                <p className="font-display text-base sm:text-lg font-extrabold text-kurama">
-                  {displayScore}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {activeLeague === 'monthly'
-                    ? 'Puntos del mes'
-                    : activeLeague === 'legends'
-                      ? 'Títulos ganados'
-                      : `${episodes} ep. vistos`}
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          MODAL DEL QUIZ DIARIO 2.0 (VALIDADO POR SERVER ACTIONS)
-         ═══════════════════════════════════════════════════════════════════ */}
+      {/* Quiz diario */}
       <AnimatePresence>
         {quizOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Quiz diario"
           >
             <motion.div
-              initial={{ scale: 0.92, y: 16 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.92, y: 16 }}
-              className="bento-card relative w-full max-w-lg p-6 sm:p-7 space-y-6 border-kurama/40"
+              initial={{ scale: 0.94, y: 16, rotateX: 8 }}
+              animate={{ scale: 1, y: 0, rotateX: 0 }}
+              exit={{ scale: 0.94, y: 16 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+              className="relative w-full max-w-lg space-y-6 rounded-[18px] bg-popover p-6 sm:p-7"
+              style={{ boxShadow: 'var(--shadow-lift)', transformPerspective: 900 }}
             >
               <button
                 type="button"
                 onClick={() => setQuizOpen(false)}
-                className="absolute top-4 right-4 rounded-full p-1.5 text-muted-foreground hover:bg-white/10 hover:text-white"
+                aria-label="Cerrar quiz"
+                className="absolute right-4 top-4 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/10 hover:text-white"
               >
                 <X className="h-4 w-4" />
               </button>
 
               {!quizFinished && currentQuestion ? (
                 <>
-                  {/* Cabecera de Pregunta + Temporizador */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between pr-8">
-                      <span className="rounded-full bg-kurama/20 border border-kurama/40 px-3 py-0.5 text-xs font-extrabold text-kurama">
-                        Pregunta {currentQIndex + 1} / {questions.length}
+                    <div className="flex items-center justify-between pr-8 text-sm tabular">
+                      <span className="text-muted-foreground">
+                        Pregunta {currentQIndex + 1} de {questions.length}
                       </span>
-                      <span
-                        className={cn(
-                          'inline-flex items-center gap-1 font-display text-sm font-extrabold',
-                          timeLeft <= 5 ? 'text-rose-400 animate-pulse' : 'text-white'
-                        )}
-                      >
-                        <Timer className="h-4 w-4 text-kurama" />
-                        {timeLeft}s
+                      <span className={cn('inline-flex items-center gap-1 font-semibold', timeLeft <= 5 ? 'text-[#ff6b81]' : 'text-white')}>
+                        <Timer className="h-4 w-4" aria-hidden="true" />
+                        {timeLeft} s
                       </span>
                     </div>
-
-                    {/* Barra visual de tiempo */}
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-950">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
                       <motion.div
                         key={currentQIndex}
                         initial={{ width: '100%' }}
                         animate={{ width: `${(timeLeft / 15) * 100}%` }}
                         transition={{ duration: 0.9, ease: 'linear' }}
-                        className={cn(
-                          'h-full rounded-full',
-                          timeLeft <= 5 ? 'bg-rose-500' : 'bg-kurama'
-                        )}
+                        className={cn('h-full rounded-full', timeLeft <= 5 ? 'bg-[#ff6b81]' : 'bg-kurama')}
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <span className="text-xs font-bold uppercase tracking-wider text-sky-400">
-                      {currentQuestion.anime_title}
-                    </span>
-                    <h3 className="font-display text-lg sm:text-xl font-extrabold text-white leading-snug">
-                      {currentQuestion.question}
-                    </h3>
+                    <p className="text-sm text-muted-foreground">{currentQuestion.anime_title}</p>
+                    <h3 className="font-display text-lg font-semibold leading-snug text-white sm:text-xl">{currentQuestion.question}</h3>
                   </div>
 
-                  {/* Opciones */}
                   <div className="space-y-2.5">
                     {currentQuestion.options.map((opt) => {
                       const isSelected = selectedOption === opt;
                       const isCorrectOption =
-                        revealedCorrect !== null &&
-                        opt.trim().toLowerCase() ===
-                          revealedCorrect.trim().toLowerCase();
-                      const isWrongSelected =
-                        isSelected && revealedCorrect !== null && !isCorrectOption;
+                        revealedCorrect !== null && opt.trim().toLowerCase() === revealedCorrect.trim().toLowerCase();
+                      const isWrongSelected = isSelected && revealedCorrect !== null && !isCorrectOption;
 
                       return (
                         <button
@@ -537,48 +469,37 @@ export function ArenaClientView({
                           disabled={selectedOption !== null}
                           onClick={() => void handleSelectAnswer(opt)}
                           className={cn(
-                            'w-full flex items-center justify-between rounded-xl border p-3.5 text-left text-xs sm:text-sm font-semibold transition-all',
+                            'flex w-full items-center justify-between rounded-[12px] p-4 text-left text-sm font-medium transition-[background-color,transform] duration-150',
                             isCorrectOption
-                              ? 'border-emerald-400 bg-emerald-500/20 text-emerald-200'
+                              ? 'bg-emerald-500/20 text-emerald-100'
                               : isWrongSelected
-                                ? 'border-rose-500 bg-rose-500/20 text-rose-200'
-                                : 'border-white/10 bg-background/70 text-slate-200 hover:border-kurama/50 hover:bg-white/[0.04]'
+                                ? 'bg-rose-500/20 text-rose-100'
+                                : 'bg-card text-white enabled:hover:bg-accent enabled:active:scale-[0.99]'
                           )}
                         >
                           <span>{opt}</span>
-                          {isCorrectOption && (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                          )}
-                          {isWrongSelected && (
-                            <XCircle className="h-4 w-4 text-rose-400 shrink-0" />
-                          )}
+                          {isCorrectOption && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" aria-label="Correcta" />}
+                          {isWrongSelected && <XCircle className="h-4 w-4 shrink-0 text-rose-400" aria-label="Incorrecta" />}
                         </button>
                       );
                     })}
                   </div>
                 </>
               ) : (
-                /* Pantalla Final del Quiz */
-                <div className="text-center py-6 space-y-4">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-kurama/20 border border-kurama/40 text-kurama">
-                    <Trophy className="h-8 w-8" />
+                <div className="space-y-4 py-6 text-center">
+                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-[14px] bg-card text-white">
+                    <Trophy className="h-8 w-8" aria-hidden="true" />
                   </div>
-                  <h3 className="font-display text-2xl font-extrabold text-white">
-                    ¡Quiz Diario Completado!
-                  </h3>
+                  <h3 className="font-display text-2xl font-bold text-white">Quiz de hoy completado</h3>
                   <p className="text-sm text-muted-foreground">
-                    Has sumado{' '}
-                    <strong className="text-kurama font-extrabold">
-                      +{sessionPoints} PL
-                    </strong>{' '}
-                    verificados en el servidor para tu clasificación mensual y global.
+                    Has sumado <strong className="font-semibold text-white tabular">+{sessionPoints} PL</strong> a tu liga mensual y global.
                   </p>
                   <button
                     type="button"
                     onClick={() => setQuizOpen(false)}
-                    className="rounded-xl bg-kurama px-6 py-2.5 text-xs font-extrabold text-slate-950"
+                    className="rounded-[10px] bg-kurama px-6 py-3 text-sm font-semibold text-ink"
                   >
-                    Volver al Ranking
+                    Volver a la clasificación
                   </button>
                 </div>
               )}

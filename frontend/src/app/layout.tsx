@@ -1,28 +1,20 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
-import { Inter, Outfit } from 'next/font/google';
+import { Lexend } from 'next/font/google';
 import { NavigationShell } from '@/components/layout/NavigationShell';
 import './globals.css';
 
-const inter = Inter({
+const lexend = Lexend({
   subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit',
-  weight: ['500', '600', '700', '800'],
+  variable: '--font-lexend',
+  weight: ['300', '400', '500', '600', '700', '800'],
   display: 'swap',
 });
 
 export const viewport: Viewport = {
-  themeColor: '#f59e0b',
+  themeColor: '#0c0e14',
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover',
 };
 
@@ -84,7 +76,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>): Rea
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${outfit.variable} dark`}
+      className={`${lexend.variable} dark`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">

@@ -2,16 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Users,
-  Radio,
-  Flame,
-  Trophy,
-  Sparkles,
-  Search,
-  Activity,
-} from 'lucide-react';
+import { Flame, Medal, Search, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AnimeFrame } from '@/components/frames/AnimeFrame';
 import { createClient } from '@/lib/supabase/client';
 import {
   resolveUnifiedUserLevel,
@@ -20,6 +13,14 @@ import {
   FRAME_STYLES,
 } from '@/lib/league';
 import type { UserProfileRow } from '@/types/database';
+
+/** Color del icono de medalla por división (solo el icono, nunca el texto). */
+const TIER_COLOR: Record<string, string> = {
+  bronze: '#c08457',
+  silver: '#c9cfdb',
+  gold: '#e3b341',
+  diamond: '#7cc8f0',
+};
 
 export interface ActivityFeedItem {
   id: string;
@@ -126,170 +127,140 @@ export function GroupRealtimeView({
   }, [members, searchQuery]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Cabecera de El Grupo */}
-      <div className="bento-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/15 border border-purple-400/35 text-purple-300">
-            <Users className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="font-display text-2xl font-extrabold text-white flex items-center gap-2.5">
-              El Grupo &amp; Comunidad
+      <section className="flex flex-col gap-5 rounded-[18px] bg-card p-6 sm:flex-row sm:items-end sm:justify-between sm:p-8" style={{ boxShadow: 'var(--shadow-tile)' }}>
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">El Grupo</h1>
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span>El nivel, la liga y la racha de quienes juegan contigo.</span>
+            <span className="inline-flex items-center gap-1.5 text-white">
               <span
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold',
-                  isRealtimeConnected
-                    ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-300'
-                    : 'bg-kurama/15 border-kurama/40 text-kurama'
-                )}
-              >
-                <Radio className="h-3 w-3 animate-pulse" />
-                {isRealtimeConnected ? 'Realtime Activo' : 'Sincronizado'}
-              </span>
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Sigue el nivel, marcos y actividad en directo de tus amigos en KuramaTracker.
-            </p>
-          </div>
+                className={cn('h-2 w-2 rounded-full', isRealtimeConnected ? 'bg-kurama' : 'bg-muted-foreground')}
+                aria-hidden="true"
+              />
+              {isRealtimeConnected ? 'En directo' : 'Sincronizado'}
+            </span>
+          </p>
         </div>
 
-        {/* Buscador de Amigos */}
-        <div className="relative sm:w-64">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <label className="relative block sm:w-72">
+          <span className="sr-only">Buscar en el grupo</span>
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar amigo por nombre..."
-            className="w-full rounded-xl bg-background/80 border border-white/15 pl-9 pr-3 py-2 text-xs text-white placeholder:text-muted-foreground focus:outline-none focus:border-kurama"
+            placeholder="Buscar por nombre"
+            className="h-11 w-full rounded-[10px] border border-white/10 bg-background pl-10 pr-3 text-sm text-white placeholder:text-muted-foreground focus:border-kurama focus:outline-none"
           />
-        </div>
-      </div>
+        </label>
+      </section>
 
-      {/* Layout Principal: Directorio de Miembros (8 cols) + Activity Feed Realtime (4 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Directorio de Amigos */}
-        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4 content-start">
-          {filteredMembers.map((member, idx) => {
-            const levelData = resolveUnifiedUserLevel({
-              supabaseAnimePoints: member.anime_points,
-              supabaseStoredLevel: member.level,
-            });
-            const episodes = levelData.totalEpisodesWatched;
-            const totalPL = calculatePL(episodes, member.quiz_points || 0);
-            const league = getLeagueInfo(totalPL);
-            const frame = FRAME_STYLES[levelData.unlockedFrame];
-            const name = member.username ?? `Usuario #${member.anilist_id}`;
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_340px]">
+        {/* Miembros */}
+        <section aria-label="Miembros del grupo">
+          {filteredMembers.length === 0 ? (
+            <p className="rounded-[14px] bg-card px-6 py-10 text-center text-sm text-muted-foreground">
+              Nadie del grupo coincide con «{searchQuery}».
+            </p>
+          ) : (
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {filteredMembers.map((member, idx) => {
+                const levelData = resolveUnifiedUserLevel({
+                  supabaseAnimePoints: member.anime_points,
+                  supabaseStoredLevel: member.level,
+                });
+                const episodes = levelData.totalEpisodesWatched;
+                const totalPL = calculatePL(episodes, member.quiz_points || 0);
+                const league = getLeagueInfo(totalPL);
+                const frame = FRAME_STYLES[levelData.unlockedFrame];
+                const name = member.username ?? `Usuario #${member.anilist_id}`;
 
-            return (
-              <motion.div
-                key={member.anilist_id}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: idx * 0.04 }}
-                className="bento-card p-4 flex flex-col justify-between gap-4 hover:border-kurama/40"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div
-                      className={cn(
-                        'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-900 font-display text-sm font-extrabold text-kurama',
-                        frame.ringClass
-                      )}
-                    >
-                      {name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-display text-base font-extrabold text-white truncate">
-                        {name}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span className="font-bold text-kurama">
-                          Nv. {levelData.computedLevel}
+                return (
+                  <motion.li
+                    key={member.anilist_id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: Math.min(idx, 10) * 0.03 }}
+                    className="rounded-[14px] bg-card p-5 transition-transform duration-300 hover:-translate-y-0.5"
+                    style={{ boxShadow: 'var(--shadow-tile)' }}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <AnimeFrame frame={levelData.unlockedFrame} size={48} label={frame.label}>
+                        <span className="grid h-full w-full place-items-center bg-[#252a36] text-sm font-semibold text-white">
+                          {name.slice(0, 2).toUpperCase()}
                         </span>
-                        <span>•</span>
-                        <span className="truncate">{levelData.userTitle}</span>
+                      </AnimeFrame>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-display text-base font-semibold text-white">{name}</p>
+                        <p className="truncate text-xs text-muted-foreground tabular">
+                          Nv. {levelData.computedLevel} · {levelData.userTitle}
+                        </p>
                       </div>
+                      <span className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                        <Medal className="h-4 w-4" style={{ color: TIER_COLOR[league.id] }} aria-hidden="true" />
+                        {league.name}
+                      </span>
                     </div>
-                  </div>
 
-                  <span
-                    className={cn(
-                      'shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-bold',
-                      league.borderColor,
-                      league.textColor
-                    )}
-                  >
-                    {league.icon} {league.name}
-                  </span>
-                </div>
+                    <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-white/[0.06] pt-4">
+                      <div>
+                        <dt className="text-xs text-muted-foreground">PL total</dt>
+                        <dd className="mt-0.5 font-display text-base font-semibold text-white tabular">{totalPL.toLocaleString('es-ES')}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Este mes</dt>
+                        <dd className="mt-0.5 font-display text-base font-semibold text-white tabular">
+                          {(member.monthly_quiz_points || 0).toLocaleString('es-ES')}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Racha</dt>
+                        <dd className="mt-0.5 flex items-center gap-1 font-display text-base font-semibold text-white tabular">
+                          <Flame className={cn('h-4 w-4', (member.current_streak || 0) > 0 ? 'text-[#ff8a3d]' : 'text-muted-foreground')} aria-hidden="true" />
+                          {member.current_streak || 0} d
+                        </dd>
+                      </div>
+                    </dl>
+                  </motion.li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
-                <div className="grid grid-cols-3 gap-2 rounded-xl bg-background/60 p-2.5 border border-white/[0.06] text-center">
-                  <div>
-                    <p className="font-display text-sm font-extrabold text-white">
-                      {totalPL.toLocaleString('es-ES')}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">PL Global</p>
-                  </div>
-                  <div>
-                    <p className="font-display text-sm font-extrabold text-kurama">
-                      {(member.monthly_quiz_points || 0).toLocaleString('es-ES')}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">PL Mes</p>
-                  </div>
-                  <div>
-                    <p className="font-display text-sm font-extrabold text-orange-300 flex items-center justify-center gap-0.5">
-                      <Flame className="h-3.5 w-3.5 text-orange-400" />
-                      {member.current_streak || 0}d
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">Racha</p>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Columna Lateral: Activity Feed en Tiempo Real */}
-        <div className="lg:col-span-4">
-          <div className="bento-card p-5 space-y-4 sticky top-24">
-            <div className="flex items-center justify-between border-b border-white/[0.07] pb-3.5">
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-kurama" />
-                <h2 className="font-display text-base font-extrabold text-white">
-                  Activity Feed en Vivo
-                </h2>
-              </div>
-              <Sparkles className="h-4 w-4 text-kurama" />
-            </div>
-
-            <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
-              <AnimatePresence initial={false}>
-                {feed.map((item) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, x: 16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="rounded-xl border border-white/[0.07] bg-background/60 p-3 space-y-1"
-                  >
-                    <p className="text-xs text-slate-200 leading-relaxed">
-                      <strong className="text-kurama font-bold">
-                        {item.username}
-                      </strong>{' '}
-                      {item.actionText}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <Trophy className="h-3 w-3 text-amber-400" />
-                      {item.timestamp}
-                    </p>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
+        {/* Actividad */}
+        <aside aria-labelledby="feed-title" className="lg:sticky lg:top-8 lg:self-start">
+          <div className="rounded-[14px] bg-card p-5" style={{ boxShadow: 'var(--shadow-tile)' }}>
+            <h2 id="feed-title" className="flex items-center gap-2 font-display text-base font-semibold text-white">
+              <Activity className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              Actividad reciente
+            </h2>
+            {feed.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">Aún no hay actividad.</p>
+            ) : (
+              <ol className="mt-3 max-h-[520px] divide-y divide-white/[0.06] overflow-y-auto pr-1">
+                <AnimatePresence initial={false}>
+                  {feed.map((item) => (
+                    <motion.li
+                      key={item.id}
+                      initial={{ opacity: 0, x: 12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="py-3"
+                    >
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        <strong className="font-semibold text-white">{item.username}</strong> {item.actionText}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground/80 tabular">{item.timestamp}</p>
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
+              </ol>
+            )}
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );

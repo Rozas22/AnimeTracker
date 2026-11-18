@@ -17,8 +17,8 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        display: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-lexend)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-lexend)', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -54,15 +54,20 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Paleta de identidad de KuramaTracker
+        // Acento de KuramaTracker: lima eléctrica (Muro de Streaming)
         kurama: {
-          DEFAULT: '#f59e0b',
-          50: '#fffbeb',
-          100: '#fef3c7',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
+          DEFAULT: '#c6f432',
+          50: '#f8fee8',
+          100: '#effccb',
+          400: '#d5f76a',
+          500: '#c6f432',
+          600: '#a6d31a',
+          700: '#7fa312',
+        },
+        ink: {
+          DEFAULT: '#0c0e14',
+          surface: '#161922',
+          raised: '#1e222d',
         },
         anilist: {
           DEFAULT: '#3db4f2',

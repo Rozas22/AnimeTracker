@@ -15,7 +15,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || 'https://anime-tracker-wine.vercel.app'
+    process.env.NEXT_PUBLIC_APP_URL || 'https://www.kuramatracker.com'
   ),
   title: {
     default: 'KuramaTracker — Rastrea tu Anime y Compite en la Liga',

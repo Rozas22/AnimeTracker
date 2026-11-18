@@ -121,7 +121,7 @@ export default async function handler(req, res) {
           icon: '/icon-192.png',
           image: cover,
           animeId: item.anime_id,
-          url: `https://anime-tracker-wine.vercel.app/#mylist`
+          url: `https://www.kuramatracker.com/lista`
         });
 
         for (const sub of subscriptions) {

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://anime-tracker-wine.vercel.app/sitemap.xml
+Sitemap: https://www.kuramatracker.com/sitemap.xml

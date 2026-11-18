@@ -44,6 +44,9 @@
 
     --radius: 0.625rem;
 
+    /* Lexend autoalojada (@fontsource-variable/lexend), sin descargas en el build */
+    --font-lexend: 'Lexend Variable', 'Lexend', system-ui, sans-serif;
+
     /* Profundidad: sombras con desplazamiento y desenfoque real */
     --shadow-tile: 0 18px 34px -14px rgb(0 0 0 / 0.75);
     --shadow-lift: 0 30px 50px -18px rgb(0 0 0 / 0.85);

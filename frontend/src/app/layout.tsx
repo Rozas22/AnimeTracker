@@ -1,17 +1,10 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
-import { Lexend } from 'next/font/google';
+import '@fontsource-variable/lexend';
 import { cookies } from 'next/headers';
 import { NavigationShell } from '@/components/layout/NavigationShell';
 import { SESSION_COOKIES } from '@/lib/session';
 import './globals.css';
-
-const lexend = Lexend({
-  subsets: ['latin'],
-  variable: '--font-lexend',
-  weight: ['300', '400', '500', '600', '700', '800'],
-  display: 'swap',
-});
 
 export const viewport: Viewport = {
   themeColor: '#0c0e14',
@@ -78,7 +71,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>): Rea
   return (
     <html
       lang="es"
-      className={`${lexend.variable} dark`}
+      className="dark"
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">

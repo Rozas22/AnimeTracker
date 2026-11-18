@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useTransition } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Crown, Flame, Play } from 'lucide-react';
@@ -11,8 +11,10 @@ import {
   getLeagueInfo,
   FRAME_STYLES,
   TROPHY_CONFIG,
+  resolveDisplayFrame,
   type FrameType,
 } from '@/lib/league';
+import { saveSelectedFrame } from '@/lib/frames/saveFrame';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { AnimeFrame } from '@/components/frames/AnimeFrame';
 import type { AniListUser } from '@/types/anilist';
@@ -53,7 +55,31 @@ export function ProfileBillboard({
   const achievements =
     hookAchievements.length > 0 ? hookAchievements : (initialAchievements ?? []);
 
-  const [frameMode, setFrameMode] = useState<FrameType | 'auto'>('auto');
+  const [frameMode, setFrameMode] = useState<FrameType | 'auto'>(
+    (profile?.selected_frame as FrameType | null | undefined) ?? 'auto'
+  );
+  const [frameMsg, setFrameMsg] = useState<string | null>(null);
+  const [isSavingFrame, startFrameSave] = useTransition();
+
+  // Cuando llega el perfil (o cambia en tiempo real), refleja el marco guardado
+  useEffect(() => {
+    setFrameMode((profile?.selected_frame as FrameType | null | undefined) ?? 'auto');
+  }, [profile?.selected_frame]);
+
+  const saveFrame = (value: FrameType | 'auto'): void => {
+    const previous = frameMode;
+    setFrameMode(value);
+    setFrameMsg(null);
+    startFrameSave(async () => {
+      const res = await saveSelectedFrame(anilistUser.id, value === 'auto' ? null : value);
+      if (!res.success) {
+        setFrameMode(previous);
+        setFrameMsg(res.error ?? 'No se pudo guardar el marco.');
+      } else {
+        setFrameMsg('Guardado');
+      }
+    });
+  };
   const [avatarError, setAvatarError] = useState(false);
 
   const level = useMemo(
@@ -76,7 +102,8 @@ export function ProfileBillboard({
     ? Math.min(100, ((totalPL - league.minPL) / (league.nextThresholdPL - league.minPL)) * 100)
     : 100;
 
-  const effectiveFrame: FrameType = frameMode === 'auto' ? level.unlockedFrame : frameMode;
+  const effectiveFrame: FrameType =
+    frameMode === 'auto' ? level.unlockedFrame : resolveDisplayFrame(level.computedLevel, frameMode);
   const frameStyle = FRAME_STYLES[effectiveFrame];
   const unlockedFrames = useMemo<FrameType[]>(() => {
     const list: FrameType[] = ['none'];
@@ -189,7 +216,8 @@ export function ProfileBillboard({
                 <span>Marco</span>
                 <select
                   value={frameMode}
-                  onChange={(e) => setFrameMode(e.target.value as FrameType | 'auto')}
+                  onChange={(e) => saveFrame(e.target.value as FrameType | 'auto')}
+                  disabled={isSavingFrame}
                   className="rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-white focus:border-kurama focus:outline-none"
                 >
                   <option value="auto">Automático</option>
@@ -199,6 +227,11 @@ export function ProfileBillboard({
                     </option>
                   ))}
                 </select>
+                {frameMsg && (
+                  <span role="status" className={frameMsg === 'Guardado' ? 'text-white/70' : 'text-[#ff6b81]'}>
+                    {frameMsg}
+                  </span>
+                )}
               </label>
             </div>
           </div>

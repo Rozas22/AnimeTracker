@@ -26,6 +26,7 @@ import {
   syncAccountWithAniListAction,
   updateProfileVisibilityAction,
 } from '@/lib/anilist/actions';
+import { saveSelectedFrame } from '@/lib/frames/saveFrame';
 import type { ProfileVisibility, UserProfileRow } from '@/types/database';
 
 export interface SettingsClientViewProps {
@@ -83,7 +84,24 @@ export function SettingsClientView({
   const [visibility, setVisibility] = useState<ProfileVisibility>(
     (initialProfile?.profile_visibility as ProfileVisibility) || 'public'
   );
-  const [selectedFrame, setSelectedFrame] = useState<FrameType | 'auto'>('auto');
+  const [selectedFrame, setSelectedFrameState] = useState<FrameType | 'auto'>(
+    (initialProfile?.selected_frame as FrameType | null | undefined) ?? 'auto'
+  );
+  const [isSavingFrame, startFrameSave] = useTransition();
+  const setSelectedFrame = (value: FrameType | 'auto'): void => {
+    const previous = selectedFrame;
+    setSelectedFrameState(value);
+    setFeedbackMsg(null);
+    startFrameSave(async () => {
+      const res = await saveSelectedFrame(anilistId, value === 'auto' ? null : value);
+      if (!res.success) {
+        setSelectedFrameState(previous);
+        setFeedbackMsg(res.error ?? 'No se pudo guardar el marco.');
+      } else {
+        setFeedbackMsg('Marco guardado en tu perfil.');
+      }
+    });
+  };
   const [avatarError, setAvatarError] = useState<boolean>(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
@@ -204,8 +222,7 @@ export function SettingsClientView({
               <div
                 className={cn(
                   'relative h-20 w-20 rounded-2xl overflow-hidden bg-slate-900 shrink-0',
-                  frameStyle.ringClass,
-                  frameStyle.glowClass
+                  frameStyle.ringClass
                 )}
               >
                 <Image
@@ -362,7 +379,7 @@ export function SettingsClientView({
                     : 'border-white/[0.08] bg-background/60 text-slate-300 hover:text-white'
                 )}
               >
-                ✨ Automático ({FRAME_STYLES[initialUnifiedLevel.unlockedFrame].label})
+                Automático ({FRAME_STYLES[initialUnifiedLevel.unlockedFrame].label})
               </button>
 
               {unlockedFrames.map((frameKey) => (

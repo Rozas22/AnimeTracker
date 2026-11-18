@@ -29,6 +29,8 @@ export interface Database {
           current_streak: number;
           profile_visibility: ProfileVisibility | string | null;
           last_updated_at: string | null;
+          /** Marco elegido (null = automático). Requiere supabase_migration_selected_frame.sql */
+          selected_frame?: string | null;
         };
         Insert: {
           anilist_id: number;
@@ -40,6 +42,7 @@ export interface Database {
           current_streak?: number;
           profile_visibility?: ProfileVisibility | string | null;
           last_updated_at?: string | null;
+          selected_frame?: string | null;
         };
         Update: {
           anilist_id?: number;
@@ -51,6 +54,7 @@ export interface Database {
           current_streak?: number;
           profile_visibility?: ProfileVisibility | string | null;
           last_updated_at?: string | null;
+          selected_frame?: string | null;
         };
         Relationships: [];
       };

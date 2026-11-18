@@ -11,6 +11,7 @@ import {
   calculatePL,
   getLeagueInfo,
   FRAME_STYLES,
+  resolveDisplayFrame,
 } from '@/lib/league';
 import type { UserProfileRow } from '@/types/database';
 
@@ -187,7 +188,7 @@ export function GroupRealtimeView({
                     style={{ boxShadow: 'var(--shadow-tile)' }}
                   >
                     <div className="flex items-center gap-3.5">
-                      <AnimeFrame frame={levelData.unlockedFrame} size={48} label={frame.label}>
+                      <AnimeFrame frame={resolveDisplayFrame(levelData.computedLevel, member.selected_frame)} size={48} label={frame.label}>
                         <span className="grid h-full w-full place-items-center bg-[#252a36] text-sm font-semibold text-white">
                           {name.slice(0, 2).toUpperCase()}
                         </span>

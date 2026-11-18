@@ -464,3 +464,25 @@ export function getLeagueInfo(pl: number): LeagueTierInfo {
 export function getNextLeagueThreshold(pl: number): number | null {
   return getLeagueInfo(pl).nextThresholdPL;
 }
+
+
+const FRAME_IDS: readonly FrameType[] = ['none', 'bronze', 'silver', 'gold', 'ruby', 'diamond', 'chroma'];
+
+/** ¿Está desbloqueado este marco para el nivel dado? */
+export function isFrameUnlocked(frame: FrameType, level: number): boolean {
+  if (frame === 'none') return true;
+  const milestone = TROPHY_CONFIG.find((t) => t.frameName === frame);
+  return Boolean(milestone && level >= milestone.level);
+}
+
+/**
+ * Marco que se muestra para un usuario: el que eligió (si es válido y lo tiene
+ * desbloqueado) o, si no, el más alto desbloqueado por nivel ("Automático").
+ */
+export function resolveDisplayFrame(level: number, selected?: string | null): FrameType {
+  if (selected && (FRAME_IDS as readonly string[]).includes(selected)) {
+    const f = selected as FrameType;
+    if (isFrameUnlocked(f, level)) return f;
+  }
+  return getHighestUnlockedFrame(level);
+}

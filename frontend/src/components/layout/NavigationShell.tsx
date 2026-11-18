@@ -20,7 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { AnimeFrame } from '@/components/frames/AnimeFrame';
-import { resolveUnifiedUserLevel, FRAME_STYLES } from '@/lib/league';
+import { resolveUnifiedUserLevel, FRAME_STYLES, resolveDisplayFrame } from '@/lib/league';
 
 export interface NavItem {
   label: string;
@@ -210,7 +210,7 @@ export function NavigationShell({
               href="/"
               className="flex items-center gap-2.5 min-w-0 group"
             >
-              <AnimeFrame frame={unifiedLevel.unlockedFrame} size={36} label={frameStyle.label} className="transition-transform group-hover:scale-105">
+              <AnimeFrame frame={resolveDisplayFrame(unifiedLevel.computedLevel, profile?.selected_frame)} size={36} label={frameStyle.label} className="transition-transform group-hover:scale-105">
                 <Image
                   src={resolvedAvatar}
                   alt={displayUsername}

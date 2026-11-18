@@ -4,7 +4,7 @@ import dns from 'node:dns';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { calculateLevel, resolveUnifiedUserLevel } from '@/lib/league';
+import { calculateLevel, resolveUnifiedUserLevel, isFrameUnlocked, type FrameType } from '@/lib/league';
 import { fetchPublicAniListUserById } from '@/lib/auth';
 import type {
   Media,
@@ -570,6 +570,48 @@ export async function updateProfileVisibilityAction(params: {
   revalidatePath('/grupo');
   revalidatePath('/ajustes');
 
+  return { success: true, error: null };
+}
+
+export async function updateSelectedFrameAction(params: {
+  anilistUserId: number;
+  /** null = automático */
+  frame: FrameType | null;
+}): Promise<{ success: boolean; error: string | null }> {
+  const supabase = createClient();
+
+  if (params.frame) {
+    const { data: row } = await supabase
+      .from('users')
+      .select('anime_points, level')
+      .eq('anilist_id', params.anilistUserId)
+      .maybeSingle();
+    const lvl = resolveUnifiedUserLevel({
+      supabaseAnimePoints: row?.anime_points,
+      supabaseStoredLevel: row?.level,
+    }).computedLevel;
+    if (!isFrameUnlocked(params.frame, lvl)) {
+      return { success: false, error: 'Ese marco aún no está desbloqueado.' };
+    }
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ selected_frame: params.frame })
+    .eq('anilist_id', params.anilistUserId);
+
+  if (error) {
+    const missingColumn = /selected_frame/.test(error.message);
+    return {
+      success: false,
+      error: missingColumn
+        ? 'Falta la columna selected_frame en Supabase (ejecuta supabase_migration_selected_frame.sql).'
+        : error.message,
+    };
+  }
+
+  // Sin revalidatePath: la UI ya refleja el cambio y useSupabaseUser lo recibe en
+  // tiempo real; regenerar '/' obligaría a esperar a AniList solo para guardar un marco.
   return { success: true, error: null };
 }
 

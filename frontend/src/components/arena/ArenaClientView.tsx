@@ -23,6 +23,7 @@ import {
   calculatePL,
   getLeagueInfo,
   FRAME_STYLES,
+  resolveDisplayFrame,
 } from '@/lib/league';
 import {
   getDailyQuizQuestionsAction,
@@ -359,7 +360,7 @@ export function ArenaClientView({
                   <span className={cn('w-7 shrink-0 text-center font-display text-lg tabular', idx < 3 ? 'font-bold text-white' : 'text-muted-foreground')}>
                     {idx + 1}
                   </span>
-                  <AnimeFrame frame={levelData.unlockedFrame} size={44} label={frame.label}>
+                  <AnimeFrame frame={resolveDisplayFrame(levelData.computedLevel, player.selected_frame)} size={44} label={frame.label}>
                     <span className="grid h-full w-full place-items-center bg-[#252a36] text-xs font-semibold text-white">
                       {(player.username ?? 'KT').slice(0, 2).toUpperCase()}
                     </span>

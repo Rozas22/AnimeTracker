@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-18T12:00:00Z",
+  "title": "Design System: KuramaTracker",
+  "extensions": {
+    "colorMeta": {
+      "kurama-amber": { "role": "primary", "displayName": "Ámbar Kurama", "canonical": "hsl(38 92% 50%)", "tonalRamp": ["#78350f", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d", "#fef3c7", "#fffbeb"] },
+      "kurama-amber-light": { "role": "primary", "displayName": "Ámbar Claro", "canonical": "#fbbf24", "tonalRamp": ["#78350f", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d", "#fef3c7", "#fffbeb"] },
+      "kurama-amber-deep": { "role": "primary", "displayName": "Ámbar Profundo", "canonical": "#d97706", "tonalRamp": ["#78350f", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d", "#fef3c7", "#fffbeb"] },
+      "kurama-amber-ember": { "role": "primary", "displayName": "Brasa", "canonical": "#b45309", "tonalRamp": ["#78350f", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d", "#fef3c7", "#fffbeb"] },
+      "kurama-amber-pale": { "role": "primary", "displayName": "Ámbar Pálido", "canonical": "#fef3c7", "tonalRamp": ["#78350f", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fcd34d", "#fef3c7", "#fffbeb"] },
+      "ember-orange": { "role": "primary", "displayName": "Naranja Brasa", "canonical": "#f97316", "tonalRamp": ["#7c2d12", "#9a3412", "#c2410c", "#ea580c", "#f97316", "#fb923c", "#fed7aa", "#fff7ed"] },
+      "anilist-blue": { "role": "secondary", "displayName": "Azul AniList", "canonical": "hsl(201 87% 59%)", "tonalRamp": ["#0c4a6e", "#075985", "#0284c7", "#3db4f2", "#7dd3fc", "#bae6fd", "#e0f2fe", "#f0f9ff"] },
+      "airing-emerald": { "role": "tertiary", "displayName": "Esmeralda en Emisión", "canonical": "#10b981", "tonalRamp": ["#064e3b", "#065f46", "#047857", "#10b981", "#34d399", "#6ee7b7", "#d1fae5", "#ecfdf5"] },
+      "danger-red": { "role": "tertiary", "displayName": "Rojo Peligro", "canonical": "hsl(0 84% 60%)", "tonalRamp": ["#7f1d1d", "#991b1b", "#dc2626", "#ef4444", "#f87171", "#fca5a5", "#fee2e2", "#fef2f2"] },
+      "obsidian-night": { "role": "neutral", "displayName": "Obsidiana Nocturna", "canonical": "hsl(211 51% 9%)", "tonalRamp": ["#060d15", "#0b1622", "#101a28", "#131f30", "#1c2736", "#253141", "#94a3b8", "#f8fafc"] },
+      "arena-panel": { "role": "neutral", "displayName": "Panel de Arena", "canonical": "hsl(215 43% 13%)", "tonalRamp": ["#060d15", "#0b1622", "#101a28", "#131f30", "#1c2736", "#253141", "#94a3b8", "#f8fafc"] },
+      "arena-popover": { "role": "neutral", "displayName": "Popover de Arena", "canonical": "hsl(215 43% 11%)", "tonalRamp": ["#060d15", "#0b1622", "#101a28", "#131f30", "#1c2736", "#253141", "#94a3b8", "#f8fafc"] },
+      "slate-raised": { "role": "neutral", "displayName": "Pizarra Elevada", "canonical": "hsl(215 32% 18%)", "tonalRamp": ["#060d15", "#0b1622", "#101a28", "#131f30", "#1c2736", "#253141", "#94a3b8", "#f8fafc"] },
+      "slate-muted": { "role": "neutral", "displayName": "Pizarra Apagada", "canonical": "hsl(215 32% 16%)", "tonalRamp": ["#060d15", "#0b1622", "#101a28", "#131f30", "#1c2736", "#253141", "#94a3b8", "#f8fafc"] },
+      "slate-line": { "role": "neutral", "displayName": "Línea de Pizarra", "canonical": "hsl(215 28% 20%)", "tonalRamp": ["#060d15", "#0b1622", "#101a28", "#131f30", "#1c2736", "#253141", "#94a3b8", "#f8fafc"] },
+      "mist-text": { "role": "neutral", "displayName": "Texto Niebla", "canonical": "hsl(215 20% 65%)", "tonalRamp": ["#060d15", "#0b1622", "#101a28", "#131f30", "#1c2736", "#253141", "#94a3b8", "#f8fafc"] },
+      "snow-text": { "role": "neutral", "displayName": "Texto Nieve", "canonical": "hsl(210 40% 98%)", "tonalRamp": ["#060d15", "#0b1622", "#101a28", "#131f30", "#1c2736", "#253141", "#94a3b8", "#f8fafc"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Cifras y titulares de héroe del perfil y la arena." },
+      "headline": { "displayName": "Headline", "purpose": "Títulos de página y de sección." },
+      "title": { "displayName": "Title", "purpose": "Títulos de tarjeta, nombre del anime, marca." },
+      "body": { "displayName": "Body", "purpose": "Texto general y navegación." },
+      "body-small": { "displayName": "Body Small", "purpose": "Metadatos, botones compactos y campos de texto; el tamaño más usado." },
+      "label": { "displayName": "Label", "purpose": "Chips, insignias y subtítulos en mayúsculas." }
+    },
+    "shadows": [
+      { "name": "vitrina", "value": "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)", "purpose": "Bajo cada bento card (shadow-xl)." },
+      { "name": "glow-indicador", "value": "0 0 10px #f59e0b", "purpose": "Línea activa de la barra de pestañas móvil." },
+      { "name": "glow-recompensa", "value": "0 0 20px rgba(245,158,11,0.4)", "purpose": "Indicadores en relieve, insignias y logros." },
+      { "name": "glow-heroico", "value": "0 0 30px rgba(245,158,11,0.45)", "purpose": "CTA principal de la Arena / Quiz." },
+      { "name": "sombra-etiqueta", "value": "0 8px 25px rgba(0,0,0,0.35)", "purpose": "Elementos flotantes sobre imagen." }
+    ],
+    "motion": [
+      { "name": "spring-nav", "value": "spring(stiffness: 380, damping: 30)", "purpose": "Píldora activa de la barra lateral (framer-motion layoutId)." },
+      { "name": "spring-tab", "value": "spring(stiffness: 400, damping: 30)", "purpose": "Indicador activo de la tab bar móvil." },
+      { "name": "duration-fast", "value": "200ms", "purpose": "Color y escala de iconos y elementos de navegación." },
+      { "name": "duration-base", "value": "300ms", "purpose": "Borde de bento card en hover y barras de progreso." },
+      { "name": "duration-poster", "value": "500ms", "purpose": "Zoom lento del cartel al hover." },
+      { "name": "pulse-glow", "value": "2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite", "purpose": "Pulso de opacidad (1 → 0.6) para elementos vivos." },
+      { "name": "press", "value": "scale(1.05) hover / scale(0.95) active", "purpose": "Respuesta táctil de los CTA." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "2xl", "value": "1400px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón Principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal compacta: ámbar sólido con texto obsidiana.",
+      "html": "<button class=\"ds-btn-primary\">Guardar cambios</button>",
+      "css": ".ds-btn-primary { background: hsl(var(--primary, 38 92% 50%)); color: #0b1622; border: none; border-radius: 12px; padding: 10px 24px; font-family: Inter, system-ui, sans-serif; font-size: 12px; font-weight: 800; cursor: pointer; transition: transform 0.2s, filter 0.2s, box-shadow 0.2s; } .ds-btn-primary:hover { filter: brightness(1.1); transform: scale(1.05); box-shadow: 0 0 20px rgba(245,158,11,0.4); } .ds-btn-primary:active { transform: scale(0.95); } .ds-btn-primary:focus-visible { outline: 2px solid #f59e0b; outline-offset: 2px; }"
+    },
+    {
+      "name": "CTA Heroico",
+      "kind": "button",
+      "refersTo": "button-hero",
+      "description": "Lanzador del Quiz / Arena: degradado de fuego con glow heroico.",
+      "html": "<button class=\"ds-btn-hero\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M13 2 3 14h9l-1 8 10-12h-9l1-8z\"/></svg>Jugar Quiz Diario</button>",
+      "css": ".ds-btn-hero { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(to right, #f59e0b, #f59e0b, #f97316); color: #0b1622; border: none; border-radius: 16px; padding: 16px 24px; font-family: Outfit, system-ui, sans-serif; font-size: 14px; font-weight: 800; box-shadow: 0 0 30px rgba(245,158,11,0.45); cursor: pointer; transition: transform 0.2s, filter 0.2s; } .ds-btn-hero:hover { transform: scale(1.05); filter: brightness(1.1); } .ds-btn-hero:active { transform: scale(0.95); } .ds-btn-hero:focus-visible { outline: 2px solid #fef3c7; outline-offset: 3px; }"
+    },
+    {
+      "name": "Botón de Icono",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Acción secundaria de icono sobre cristal; variante ámbar para la acción destacada.",
+      "html": "<div style=\"display:flex;gap:8px\"><button class=\"ds-btn-icon\" aria-label=\"Compartir\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M4 12v8h16v-8M12 3v13M7 8l5-5 5 5\"/></svg></button><button class=\"ds-btn-icon ds-btn-icon--amber\" aria-label=\"Añadir\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg></button></div>",
+      "css": ".ds-btn-icon { display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.07); color: #f8fafc; border: 1px solid transparent; border-radius: 12px; padding: 8px; cursor: pointer; transition: background 0.2s, transform 0.2s; } .ds-btn-icon:hover { background: rgba(255,255,255,0.15); transform: scale(1.1); } .ds-btn-icon:active { transform: scale(0.95); } .ds-btn-icon:focus-visible { outline: 2px solid #f59e0b; outline-offset: 2px; } .ds-btn-icon--amber { background: rgba(245,158,11,0.2); border-color: rgba(245,158,11,0.4); color: #f59e0b; } .ds-btn-icon--amber:hover { background: rgba(245,158,11,0.3); }"
+    },
+    {
+      "name": "Buscador",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Campo de búsqueda con icono; el foco enciende el borde en ámbar.",
+      "html": "<label class=\"ds-search\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/></svg><input class=\"ds-search-input\" placeholder=\"Busca un anime…\" /></label>",
+      "css": ".ds-search { position: relative; display: block; width: 320px; color: #94a3b8; } .ds-search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; } .ds-search-input { width: 100%; background: rgba(11,22,34,0.9); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 16px 10px 40px; color: #f8fafc; font-family: Inter, system-ui, sans-serif; font-size: 14px; transition: border-color 0.2s; } .ds-search-input::placeholder { color: #94a3b8; } .ds-search-input:focus { outline: none; border-color: #f59e0b; }"
+    },
+    {
+      "name": "Bento Card",
+      "kind": "card",
+      "refersTo": "card-bento",
+      "description": "Vitrina de cristal esmerilado: el contenedor base de todo el panel.",
+      "html": "<div class=\"ds-bento\"><p class=\"ds-bento-label\">LIGA MENSUAL</p><p class=\"ds-bento-value\">1.240 PL</p><p class=\"ds-bento-meta\">Oro · Puesto 3 de 28</p></div>",
+      "css": ".ds-bento { width: 260px; background: rgba(19,31,48,0.8); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); transition: border-color 0.3s, transform 0.3s; } .ds-bento:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-2px); } .ds-bento-label { margin: 0; font-family: Inter, system-ui, sans-serif; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; color: #94a3b8; } .ds-bento-value { margin: 6px 0 2px; font-family: Outfit, system-ui, sans-serif; font-size: 30px; font-weight: 800; color: #f59e0b; } .ds-bento-meta { margin: 0; font-family: Inter, system-ui, sans-serif; font-size: 12px; color: #94a3b8; }"
+    },
+    {
+      "name": "Tarjeta de Anime",
+      "kind": "custom",
+      "refersTo": "card-bento",
+      "description": "Cartel 2:3 con chips de cristal, título Outfit y barra de progreso ámbar.",
+      "html": "<article class=\"ds-anime\"><div class=\"ds-anime-poster\"><span class=\"ds-chip-air\">EN EMISIÓN</span><span class=\"ds-chip-score\">★ 8.6</span></div><div class=\"ds-anime-body\"><h3 class=\"ds-anime-title\">Título del anime</h3><div class=\"ds-anime-row\"><span>Ep 7 / 12</span><b>58%</b></div><div class=\"ds-progress\"><i style=\"width:58%\"></i></div></div></article>",
+      "css": ".ds-anime { width: 180px; overflow: hidden; background: rgba(19,31,48,0.8); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; cursor: pointer; transition: border-color 0.3s; } .ds-anime:hover { border-color: rgba(255,255,255,0.15); } .ds-anime:hover .ds-anime-title { color: #f59e0b; } .ds-anime-poster { position: relative; aspect-ratio: 2 / 3; background: linear-gradient(to top, #020617, rgba(2,6,23,0.3) 50%, transparent), linear-gradient(135deg, #253141, #131f30); } .ds-chip-air { position: absolute; top: 10px; left: 10px; background: rgba(16,185,129,0.9); color: #020617; border-radius: 9999px; padding: 2px 8px; font: 800 10px Inter, system-ui, sans-serif; letter-spacing: 0.05em; } .ds-chip-score { position: absolute; top: 10px; right: 10px; background: rgba(2,6,23,0.8); border: 1px solid rgba(251,191,36,0.4); color: #fcd34d; border-radius: 9999px; padding: 2px 8px; font: 800 11px Inter, system-ui, sans-serif; } .ds-anime-body { padding: 14px; } .ds-anime-title { margin: 0 0 10px; font: 700 14px/1.375 Outfit, system-ui, sans-serif; color: #f8fafc; transition: color 0.2s; } .ds-anime-row { display: flex; justify-content: space-between; font: 600 11px Inter, system-ui, sans-serif; color: #cbd5e1; margin-bottom: 6px; } .ds-anime-row b { color: #f59e0b; } .ds-progress { height: 6px; background: #020617; border: 1px solid rgba(255,255,255,0.06); border-radius: 9999px; overflow: hidden; } .ds-progress i { display: block; height: 100%; border-radius: 9999px; background: linear-gradient(to right, #f59e0b, #fcd34d); }"
+    },
+    {
+      "name": "Chips",
+      "kind": "chip",
+      "refersTo": "chip-amber",
+      "description": "Píldoras de estado: ámbar, cristal, en emisión e info de AniList.",
+      "html": "<div style=\"display:flex;gap:8px;flex-wrap:wrap\"><span class=\"ds-chip ds-chip--amber\">NUEVO</span><span class=\"ds-chip ds-chip--glass\">TV</span><span class=\"ds-chip ds-chip--air\">EN EMISIÓN</span><span class=\"ds-chip ds-chip--info\">Ep 8 en 2d</span></div>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; border-radius: 9999px; padding: 2px 10px; font-family: Inter, system-ui, sans-serif; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; } .ds-chip--amber { background: #f59e0b; color: #0b1622; } .ds-chip--glass { background: rgba(2,6,23,0.75); border: 1px solid rgba(255,255,255,0.15); color: #e2e8f0; } .ds-chip--air { background: rgba(16,185,129,0.9); color: #020617; } .ds-chip--info { background: rgba(14,165,233,0.2); border: 1px solid rgba(56,189,248,0.4); color: #bae6fd; border-radius: 6px; padding: 2px 6px; letter-spacing: 0; font-weight: 700; }"
+    },
+    {
+      "name": "Navegación Lateral",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Elementos de la barra lateral; el activo lleva la píldora de fuego ámbar.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-item--active\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0V2z\"/></svg>Arena &amp; Quiz</a><a class=\"ds-nav-item\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01\"/></svg>Mi Lista</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 6px; width: 232px; padding: 12px; background: rgba(19,31,48,0.6); border-radius: 16px; } .ds-nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: 12px; border: 1px solid transparent; color: #94a3b8; text-decoration: none; font-family: Inter, system-ui, sans-serif; font-size: 14px; font-weight: 500; transition: background 0.2s, color 0.2s; } .ds-nav-item svg { transition: transform 0.2s; } .ds-nav-item:hover { background: rgba(255,255,255,0.04); color: #fff; } .ds-nav-item:hover svg { transform: scale(1.1); } .ds-nav-item:focus-visible { outline: 2px solid #f59e0b; outline-offset: 2px; } .ds-nav-item--active { color: #fff; font-weight: 600; background: linear-gradient(to right, rgba(245,158,11,0.2), rgba(245,158,11,0.1), transparent); border-color: rgba(245,158,11,0.3); } .ds-nav-item--active svg { color: #f59e0b; }"
+    },
+    {
+      "name": "Tab Bar Móvil",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Barra inferior de 5 pestañas; la activa se enciende en ámbar con línea de glow.",
+      "html": "<nav class=\"ds-tabbar\"><a class=\"ds-tab ds-tab--active\" href=\"#\"><span class=\"ds-tab-glow\"></span><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M4 21a8 8 0 0 1 16 0\"/></svg>Perfil</a><a class=\"ds-tab\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/></svg>Buscar</a><a class=\"ds-tab\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M8 6h13M8 12h13M8 18h13\"/></svg>Lista</a></nav>",
+      "css": ".ds-tabbar { display: grid; grid-template-columns: repeat(3, 1fr); width: 300px; height: 64px; align-items: center; background: rgba(19,31,48,0.9); backdrop-filter: blur(40px); border-top: 1px solid rgba(255,255,255,0.08); } .ds-tab { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; color: #94a3b8; text-decoration: none; font: 500 11px Inter, system-ui, sans-serif; transition: color 0.2s; } .ds-tab:hover { color: #fff; } .ds-tab:focus-visible { outline: 2px solid #f59e0b; outline-offset: -2px; border-radius: 8px; } .ds-tab--active { color: #f59e0b; font-weight: 600; } .ds-tab--active svg { transform: scale(1.1); } .ds-tab-glow { position: absolute; top: -7px; width: 32px; height: 2px; border-radius: 9999px; background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La Arena del Fuego de Zorro",
+    "overview": "KuramaTracker es una arena de noche. El fondo es un azul obsidiana casi negro, y sobre él arde el fuego del zorro: el ámbar Kurama. Ese fuego aparece donde hay competición, progreso o recompensa: el nivel, la posición en la liga, la barra de episodios, el botón que lanza el Quiz Diario. Lo demás se queda en la penumbra para que el fuego se vea.\n\nDentro de la arena, cada bloque de información es una vitrina de trofeos: una tarjeta de cristal esmerilado (bento card) con un borde de luz muy fino que se enciende al pasar el ratón. Los marcos del perfil (Bronce, Plata, Oro, Rubí, Diamante, Croma) y los trofeos se lucen como piezas de colección. El tono es de videojuego: las piezas crecen, rebotan y brillan al tocarlas.\n\nLa densidad es media-alta, pensada para escanear rápido en el móvil y en el escritorio por igual: rejillas bento, carteles de anime en 2:3, etiquetas pequeñas en mayúsculas y números grandes en Outfit.",
+    "keyCharacteristics": [
+      "Solo modo oscuro: obsidiana (#0b1622) de base, paneles azul pizarra translúcidos.",
+      "El ámbar Kurama es la identidad: texto activo, glows, degradados de progreso, CTA.",
+      "El azul AniList es el acento secundario: información y contenido que viene de AniList.",
+      "Cristal esmerilado (`backdrop-blur`) con bordes blancos al 8–15 % de opacidad.",
+      "Movimiento enérgico: escala al hover, rebote con muelle en la navegación, pulsos de brillo."
+    ],
+    "rules": [
+      { "name": "La Regla del Fuego de Zorro", "body": "El ámbar es la firma de la marca y puede aparecer con libertad (texto, glow, degradado, borde), pero siempre debe *significar algo*: progreso, estado activo, recompensa o acción. Nunca se usa como fondo de relleno de un panel entero.", "section": "colors" },
+      { "name": "La Regla de las Dos Voces", "body": "Ámbar = lo tuyo (tu nivel, tu liga, tus acciones). Azul AniList = lo que viene de AniList (datos del catálogo, emisiones). No se intercambian.", "section": "colors" },
+      { "name": "La Regla del Marcador", "body": "Todo número que mida progreso o competición (Nv., PL, porcentaje, puesto) va en Outfit extrabold, y si es del usuario, en ámbar.", "section": "typography" },
+      { "name": "La Regla de la Luz, no la Altura", "body": "Para destacar algo, se enciende (glow ámbar, borde más luminoso) en vez de levantarlo con una sombra negra más grande.", "section": "elevation" }
+    ],
+    "dos": [
+      "**Do** usar el ámbar Kurama (#f59e0b) en todo lo que sea del usuario o accionable: nivel, PL, progreso, estado activo, CTA.",
+      "**Do** construir los bloques como bento cards de cristal: radio de 16px, panel al 80 % con desenfoque y borde blanco al 8 % que sube al 15 % en hover.",
+      "**Do** dar respuesta física a lo que se toca: escala de 1.05 al hover y de 0.95 al pulsar en CTA, y muelles en los indicadores que se deslizan.",
+      "**Do** escribir cifras y títulos en Outfit extrabold, y la información densa en Inter de 0.75–0.875rem.",
+      "**Do** mantener el azul AniList (#3db4f2) para datos que vienen de AniList.",
+      "**Do** respetar las zonas seguras (`pt-safe` / `pb-safe`) en cualquier barra fija."
+    ],
+    "donts": [
+      "**Don't** introducir un tema claro: la app es solo oscura (`class=\"dark\"` fija).",
+      "**Don't** usar el ámbar como fondo plano de paneles grandes; su sitio es la luz, el texto, los bordes y los degradados con sentido.",
+      "**Don't** usar sombras negras grandes para destacar algo; mejor un glow ámbar o un borde más luminoso.",
+      "**Don't** usar avatares circulares; son cuadrados redondeados con el anillo del marco.",
+      "**Don't** calcular niveles ni marcos en un componente; la fuente única es `src/lib/league.ts`.",
+      "**Don't** tomar como referencia los estilos de la SPA antigua (`src/index.css`, `src/App.jsx`); el sistema vigente es Tailwind + `src/app/globals.css`."
+    ]
+  }
+}

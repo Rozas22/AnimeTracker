@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useId } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type {
   UserProfileRow,
@@ -26,6 +26,7 @@ export interface UseSupabaseUserReturn {
  * en la tabla `public.users` y sus medallas en `public.user_achievements`.
  */
 export function useSupabaseUser(explicitAniListId?: number | null): UseSupabaseUserReturn {
+  const hookInstanceId = useId().replace(/:/g, '');
   const [anilistId, setAnilistId] = useState<number | null>(explicitAniListId ?? null);
   const [profile, setProfile] = useState<UserProfileRow | null>(null);
   const [achievements, setAchievements] = useState<UserAchievementRow[]>([]);
@@ -128,11 +129,15 @@ export function useSupabaseUser(explicitAniListId?: number | null): UseSupabaseU
   useEffect(() => {
     if (!anilistId) return;
 
+    let isSubscribedMounted = true;
     void fetchUserData(anilistId);
 
     const supabase = createClient();
+    // Canal único por instancia y montaje para evitar colisión en cliente singleton o React StrictMode
+    const uniqueTopic = `user-profile-${anilistId}-${hookInstanceId}-${Date.now()}`;
+
     const channel = supabase
-      .channel(`user-profile-${anilistId}`)
+      .channel(uniqueTopic)
       .on(
         'postgres_changes',
         {
@@ -142,7 +147,12 @@ export function useSupabaseUser(explicitAniListId?: number | null): UseSupabaseU
           filter: `anilist_id=eq.${anilistId}`,
         },
         (payload) => {
-          if (payload.new && typeof payload.new === 'object' && 'anilist_id' in payload.new) {
+          if (
+            isSubscribedMounted &&
+            payload.new &&
+            typeof payload.new === 'object' &&
+            'anilist_id' in payload.new
+          ) {
             setProfile(payload.new as UserProfileRow);
           }
         }
@@ -150,9 +160,10 @@ export function useSupabaseUser(explicitAniListId?: number | null): UseSupabaseU
       .subscribe();
 
     return () => {
+      isSubscribedMounted = false;
       void supabase.removeChannel(channel);
     };
-  }, [anilistId, fetchUserData]);
+  }, [anilistId, hookInstanceId, fetchUserData]);
 
   const refreshProfile = useCallback(async (): Promise<void> => {
     if (!anilistId) return;

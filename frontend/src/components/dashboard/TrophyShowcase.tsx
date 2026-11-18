@@ -31,7 +31,7 @@ export interface TrophyShowcaseProps {
 
 export function TrophyShowcase({
   currentLevel,
-  totalEpisodesWatched = 1420,
+  totalEpisodesWatched = 5428,
   achievements = [],
 }: TrophyShowcaseProps): React.JSX.Element {
   const [selectedTrophy, setSelectedTrophy] = useState<TrophyMilestone | null>(null);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
@@ -39,6 +39,7 @@ export function GroupRealtimeView({
   initialMembers,
   initialFeed,
 }: GroupRealtimeViewProps): React.JSX.Element {
+  const instanceId = useId().replace(/:/g, '');
   const [members, setMembers] = useState<UserProfileRow[]>(initialMembers);
   const [feed, setFeed] = useState<ActivityFeedItem[]>(initialFeed);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -46,10 +47,12 @@ export function GroupRealtimeView({
 
   // Suscripción Supabase Realtime a cambios en `public.users`
   useEffect(() => {
+    let isMounted = true;
     const supabase = createClient();
+    const uniqueChannelName = `kurama-social-activity-feed-${instanceId}-${Date.now()}`;
 
     const channel = supabase
-      .channel('kurama-social-activity-feed')
+      .channel(uniqueChannelName)
       .on(
         'postgres_changes',
         {
@@ -58,11 +61,20 @@ export function GroupRealtimeView({
           table: 'users',
         },
         (payload) => {
-          if (!payload.new || typeof payload.new !== 'object' || !('anilist_id' in payload.new)) {
+          if (
+            !isMounted ||
+            !payload.new ||
+            typeof payload.new !== 'object' ||
+            !('anilist_id' in payload.new)
+          ) {
             return;
           }
 
           const updatedUser = payload.new as UserProfileRow;
+          const unified = resolveUnifiedUserLevel({
+            supabaseAnimePoints: updatedUser.anime_points,
+            supabaseStoredLevel: updatedUser.level,
+          });
 
           setMembers((prev) => {
             const exists = prev.some((m) => m.anilist_id === updatedUser.anilist_id);
@@ -76,7 +88,7 @@ export function GroupRealtimeView({
             id: `rt-${updatedUser.anilist_id}-${Date.now()}`,
             username: updatedUser.username ?? `Usuario #${updatedUser.anilist_id}`,
             anilistId: updatedUser.anilist_id,
-            actionText: `ha actualizado su progreso (Nivel ${updatedUser.level} • ${updatedUser.monthly_quiz_points} PL este mes)`,
+            actionText: `ha actualizado su progreso (Nivel ${unified.computedLevel} • ${updatedUser.monthly_quiz_points} PL este mes)`,
             timestamp: 'Ahora mismo',
           };
 
@@ -84,13 +96,16 @@ export function GroupRealtimeView({
         }
       )
       .subscribe((status) => {
-        setIsRealtimeConnected(status === 'SUBSCRIBED');
+        if (isMounted) {
+          setIsRealtimeConnected(status === 'SUBSCRIBED');
+        }
       });
 
     return () => {
+      isMounted = false;
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [instanceId]);
 
   const filteredMembers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();

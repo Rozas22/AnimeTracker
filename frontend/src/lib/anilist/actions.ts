@@ -615,6 +615,11 @@ export async function getWeeklyAiringScheduleAction(): Promise<
             seasonYear
             episodes
             duration
+            endDate {
+              year
+              month
+              day
+            }
             coverImage {
               extraLarge
               large
@@ -662,6 +667,7 @@ export async function getWeeklyAiringScheduleAction(): Promise<
   // 2. Excluir contenido para adultos (isAdult).
   // 3. Exigir póster oficial válido (coverImage.large o coverImage.medium).
   // 4. Priorizar series con tracción real (popularity >= 1500) y deduplicar por mediaId + episode.
+  const nowMs = Date.now();
   const seenKeys = new Set<string>();
   const validatedSchedules: AiringScheduleNode[] = [];
 
@@ -670,6 +676,26 @@ export async function getWeeklyAiringScheduleAction(): Promise<
     if (!media) continue;
     if (media.status !== 'RELEASING') continue;
     if (media.isAdult) continue;
+
+    // Validar que el episodio programado no supere el total de episodios de una temporada cerrada
+    if (media.episodes && media.episodes > 0 && item.episode > media.episodes) {
+      continue;
+    }
+
+    // Validar que la fecha de finalización (endDate) del anime no haya pasado ya
+    if (media.endDate?.year && media.endDate?.month && media.endDate?.day) {
+      const endMs = Date.UTC(
+        media.endDate.year,
+        media.endDate.month - 1,
+        media.endDate.day,
+        23,
+        59,
+        59
+      );
+      if (endMs < nowMs) {
+        continue;
+      }
+    }
 
     const posterUrl =
       media.coverImage?.extraLarge ||

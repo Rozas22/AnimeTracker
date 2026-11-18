@@ -178,9 +178,14 @@ export async function getServerAuthenticatedUser(): Promise<AuthenticatedKuramaU
     }
   }
 
-  // 3. Si aún no hay cookie activa en desarrollo, usar la cuenta principal (7952169 / Rozas22)
+  // 3. Solo en desarrollo local y sin sesión: usar la cuenta principal para poder maquetar.
+  //    En producción el middleware ya manda a /entrar a quien no tiene sesión.
   if (!resolvedAniListId) {
-    resolvedAniListId = ADMIN_ANILIST_ID;
+    if (process.env.NODE_ENV !== 'production') {
+      resolvedAniListId = ADMIN_ANILIST_ID;
+    } else {
+      throw new Error('Sesión no encontrada');
+    }
   }
 
   // 4. Consultar en paralelo Supabase (`users` + `user_achievements`) y el perfil real de AniList

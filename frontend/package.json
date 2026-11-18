@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3000",
-    "dev:next": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
     "dev:vite": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "build:vite": "vite build",
+    "preview:vite": "vite preview"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

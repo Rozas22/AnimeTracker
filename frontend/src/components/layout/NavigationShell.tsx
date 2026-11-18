@@ -16,6 +16,7 @@ import {
   Settings,
   Sparkles,
   type LucideIcon,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
@@ -77,11 +78,13 @@ const NAV_ITEMS: readonly NavItem[] = [
   },
 ] as const;
 
-const DEFAULT_AVATAR_URL =
-  'https://s4.anilist.co/file/anilistcdn/user/avatar/large/b7952169-aN2k8haFFNOq.png';
+/** Cuenta usada solo en desarrollo local cuando no hay sesión */
+const DEV_ANILIST_ID = 7952169;
 
 export interface NavigationShellProps {
   children: React.ReactNode;
+  /** anilist_id de la sesión (cookie); en desarrollo puede faltar */
+  anilistId?: number;
   initialUsername?: string;
   initialAvatarUrl?: string | null;
   initialEpisodesWatched?: number;
@@ -89,12 +92,15 @@ export interface NavigationShellProps {
 
 export function NavigationShell({
   children,
-  initialUsername = 'Rozas22',
-  initialAvatarUrl = DEFAULT_AVATAR_URL,
-  initialEpisodesWatched = 5428,
+  anilistId,
+  initialUsername,
+  initialAvatarUrl = null,
+  initialEpisodesWatched,
 }: NavigationShellProps): React.JSX.Element {
-  const pathname = usePathname();
-  const { profile } = useSupabaseUser(7952169);
+  const pathname = usePathname() ?? '/';
+  const { profile } = useSupabaseUser(
+    anilistId ?? (process.env.NODE_ENV !== 'production' ? DEV_ANILIST_ID : undefined)
+  );
   const [avatarError, setAvatarError] = useState<boolean>(false);
 
   // Registro y auto-actualización silenciosa del Service Worker (PWA)
@@ -123,7 +129,7 @@ export function NavigationShell({
   );
 
   const frameStyle = FRAME_STYLES[unifiedLevel.unlockedFrame];
-  const displayUsername = profile?.username ?? initialUsername;
+  const displayUsername = profile?.username ?? initialUsername ?? 'Tu perfil';
   const resolvedAvatar =
     !avatarError && initialAvatarUrl ? initialAvatarUrl : '/logo.png';
 
@@ -131,6 +137,9 @@ export function NavigationShell({
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
+
+  // La pantalla de entrada va sin menú
+  if (pathname === '/entrar') return <>{children}</>;
 
   return (
     <div className="relative flex min-h-screen w-full bg-background text-foreground">
@@ -240,6 +249,14 @@ export function NavigationShell({
                 <Bell className="h-4 w-4" />
                 <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-kurama" />
               </Link>
+              <a
+                href="/salir"
+                aria-label="Cerrar sesión"
+                title="Cerrar sesión"
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-white"
+              >
+                <LogOut className="h-4 w-4" />
+              </a>
               <Link
                 href="/ajustes"
                 aria-label="Ajustes de Cuenta"

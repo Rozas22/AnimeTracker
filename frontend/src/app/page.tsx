@@ -73,6 +73,21 @@ const MOCK_ACHIEVEMENTS: UserAchievementRow[] = [
   },
 ];
 
+function emptyAniListUser(id: number, name?: string | null): AniListUser {
+  return {
+    id,
+    name: name ?? 'Tu perfil',
+    about: null,
+    avatar: { large: null, medium: null },
+    bannerImage: null,
+    siteUrl: `https://anilist.co/user/${id}`,
+    updatedAt: Math.floor(Date.now() / 1000),
+    statistics: {
+      anime: { count: 0, meanScore: 0, standardDeviation: 0, minutesWatched: 0, episodesWatched: 0, statuses: [], genres: [] },
+    },
+  };
+}
+
 async function DashboardContent(): Promise<React.JSX.Element> {
   const [authData, airingResult] = await Promise.all([
     getServerAuthenticatedUser(),
@@ -83,10 +98,15 @@ async function DashboardContent(): Promise<React.JSX.Element> {
     userId: authData.anilistId,
   });
 
-  const anilistUser = authData.anilistViewer ?? MOCK_ANILIST_USER;
-  const supabaseProfile = authData.profile ?? MOCK_SUPABASE_PROFILE;
+  // Los datos de ejemplo solo se usan en desarrollo local; en producción, si AniList
+  // no responde, se muestra el perfil del usuario con las estadísticas a cero.
+  const isDev = process.env.NODE_ENV !== 'production';
+  const anilistUser =
+    authData.anilistViewer ??
+    (isDev ? MOCK_ANILIST_USER : emptyAniListUser(authData.anilistId, authData.profile?.username));
+  const supabaseProfile = authData.profile ?? (isDev ? MOCK_SUPABASE_PROFILE : null);
   const achievements =
-    authData.achievements.length > 0 ? authData.achievements : MOCK_ACHIEVEMENTS;
+    authData.achievements.length > 0 ? authData.achievements : isDev ? MOCK_ACHIEVEMENTS : [];
 
   // ÚNICA FUENTE DE VERDAD del nivel y episodios vistos
   const unifiedEpisodes = authData.unifiedLevel.totalEpisodesWatched;

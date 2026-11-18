@@ -1,7 +1,9 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import { Lexend } from 'next/font/google';
+import { cookies } from 'next/headers';
 import { NavigationShell } from '@/components/layout/NavigationShell';
+import { SESSION_COOKIES } from '@/lib/session';
 import './globals.css';
 
 const lexend = Lexend({
@@ -80,7 +82,13 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>): Rea
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
-        <NavigationShell>{children}</NavigationShell>
+        <NavigationShell
+          anilistId={Number(cookies().get(SESSION_COOKIES.id)?.value) || undefined}
+          initialUsername={cookies().get(SESSION_COOKIES.name)?.value}
+          initialAvatarUrl={cookies().get(SESSION_COOKIES.avatar)?.value ?? null}
+        >
+          {children}
+        </NavigationShell>
       </body>
     </html>
   );

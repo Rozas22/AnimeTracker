@@ -40,8 +40,8 @@ export function MyListClientView({
   anilistUserId,
 }: MyListClientViewProps): React.JSX.Element {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const pathname = usePathname() ?? '/';
+  const searchParams = useSearchParams() ?? new URLSearchParams();
 
   // Estado sincronizado con URL searchParams (?status=CURRENT&q=...)
   const currentStatusParam =

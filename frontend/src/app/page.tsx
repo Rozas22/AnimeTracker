@@ -1,5 +1,9 @@
 import React, { Suspense } from 'react';
 import { getServerAuthenticatedUser } from '@/lib/auth';
+import {
+  getWeeklyAiringScheduleAction,
+  getUserAnimeCollectionAction,
+} from '@/lib/anilist/actions';
 import { ProfileHeroBento } from '@/components/dashboard/ProfileHeroBento';
 import { StatsBentoGrid } from '@/components/dashboard/StatsBentoGrid';
 import { AiringScheduleBento } from '@/components/dashboard/AiringScheduleBento';
@@ -70,7 +74,14 @@ const MOCK_ACHIEVEMENTS: UserAchievementRow[] = [
 ];
 
 async function DashboardContent(): Promise<React.JSX.Element> {
-  const authData = await getServerAuthenticatedUser();
+  const [authData, airingResult] = await Promise.all([
+    getServerAuthenticatedUser(),
+    getWeeklyAiringScheduleAction(),
+  ]);
+
+  const collectionResult = await getUserAnimeCollectionAction({
+    userId: authData.anilistId,
+  });
 
   const anilistUser = authData.anilistViewer ?? MOCK_ANILIST_USER;
   const supabaseProfile = authData.profile ?? MOCK_SUPABASE_PROFILE;
@@ -92,7 +103,10 @@ async function DashboardContent(): Promise<React.JSX.Element> {
 
       <StatsBentoGrid statistics={anilistUser.statistics.anime} />
 
-      <AiringScheduleBento />
+      <AiringScheduleBento
+        schedules={airingResult.data ?? []}
+        watchingEntries={collectionResult.data ?? []}
+      />
 
       <TrophyShowcase
         currentLevel={unifiedLevelNumber}

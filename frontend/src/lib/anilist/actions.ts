@@ -10,6 +10,7 @@ import type {
   Media,
   MediaListEntry,
   MediaListCollection,
+  AiringScheduleNode,
   AnimeSearchFilters,
   SaveMediaListEntryVariables,
   GraphQLResponse,
@@ -570,4 +571,125 @@ export async function updateProfileVisibilityAction(params: {
   revalidatePath('/ajustes');
 
   return { success: true, error: null };
+}
+
+// ─── 5. CALENDARIO SEMANAL DE EMISIÓN REAL Y VALIDADO (revalidate: 1800) ────
+
+export async function getWeeklyAiringScheduleAction(): Promise<
+  AniListActionResult<AiringScheduleNode[]>
+> {
+  // Ventana de 7 días que cubre toda la semana en curso
+  const nowSec = Math.floor(Date.now() / 1000);
+  const startWindowSec = nowSec - 86400; // Desde hace 24h para cubrir el día actual completo
+  const endWindowSec = nowSec + 7 * 86400; // Hasta dentro de 7 días
+
+  const airingQuery = `
+    query WeeklyAiringSchedules($start: Int!, $end: Int!, $page: Int = 1) {
+      Page(page: $page, perPage: 50) {
+        pageInfo {
+          hasNextPage
+        }
+        airingSchedules(
+          airingAt_greater: $start
+          airingAt_lesser: $end
+          sort: [TIME]
+        ) {
+          id
+          airingAt
+          timeUntilAiring
+          episode
+          mediaId
+          media {
+            id
+            idMal
+            title {
+              romaji
+              english
+              native
+              userPreferred
+            }
+            format
+            status
+            description(asHtml: false)
+            season
+            seasonYear
+            episodes
+            duration
+            coverImage {
+              extraLarge
+              large
+              medium
+              color
+            }
+            bannerImage
+            genres
+            averageScore
+            meanScore
+            popularity
+            favourites
+            isAdult
+            siteUrl
+          }
+        }
+      }
+    }
+  `;
+
+  const [page1Res, page2Res] = await Promise.all([
+    executeAniListGraphQL<{
+      Page: { airingSchedules: AiringScheduleNode[] };
+    }>(
+      airingQuery,
+      { start: startWindowSec, end: endWindowSec, page: 1 },
+      { revalidateSeconds: 1800, tags: ['anilist-airing-schedule'] }
+    ),
+    executeAniListGraphQL<{
+      Page: { airingSchedules: AiringScheduleNode[] };
+    }>(
+      airingQuery,
+      { start: startWindowSec, end: endWindowSec, page: 2 },
+      { revalidateSeconds: 1800, tags: ['anilist-airing-schedule'] }
+    ),
+  ]);
+
+  const rawSchedules: AiringScheduleNode[] = [
+    ...(page1Res.data?.Page?.airingSchedules ?? []),
+    ...(page2Res.data?.Page?.airingSchedules ?? []),
+  ];
+
+  // VALIDACIÓN ESTRICTA:
+  // 1. Excluir cualquier anime con estado FINISHED, CANCELLED, HIATUS o NOT_YET_RELEASED (solo RELEASING real).
+  // 2. Excluir contenido para adultos (isAdult).
+  // 3. Exigir póster oficial válido (coverImage.large o coverImage.medium).
+  // 4. Priorizar series con tracción real (popularity >= 1500) y deduplicar por mediaId + episode.
+  const seenKeys = new Set<string>();
+  const validatedSchedules: AiringScheduleNode[] = [];
+
+  for (const item of rawSchedules) {
+    const media = item.media;
+    if (!media) continue;
+    if (media.status !== 'RELEASING') continue;
+    if (media.isAdult) continue;
+
+    const posterUrl =
+      media.coverImage?.extraLarge ||
+      media.coverImage?.large ||
+      media.coverImage?.medium;
+    if (!posterUrl) continue;
+
+    if ((media.popularity ?? 0) < 1500) continue;
+
+    const uniqueKey = `${item.mediaId}-${item.episode}`;
+    if (seenKeys.has(uniqueKey)) continue;
+    seenKeys.add(uniqueKey);
+
+    validatedSchedules.push(item);
+  }
+
+  return {
+    data: validatedSchedules,
+    error: page1Res.error,
+    rateLimited: page1Res.rateLimited,
+    fromFallback: page1Res.fromFallback,
+  };
 }

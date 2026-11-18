@@ -9,14 +9,15 @@ import {
   Radio,
   Sparkles,
   ExternalLink,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AiringScheduleNode, MediaListEntry } from '@/types/anilist';
 
 export interface AiringScheduleBentoProps {
-  /** Lista de horarios de emisión directos de AniList */
+  /** Lista de horarios de emisión reales y validados desde AniList */
   schedules?: AiringScheduleNode[];
-  /** Alternativamente, entradas de la lista del usuario en estado CURRENT */
+  /** Entradas de la lista del usuario en estado CURRENT */
   watchingEntries?: MediaListEntry[];
 }
 
@@ -42,114 +43,16 @@ export interface NormalizedAiringItem {
   title: string;
   coverUrl: string;
   episode: number;
-  airingAt: number; // Unix timestamp (segundos)
+  airingAt: number; // Unix timestamp en segundos
   dayOfWeek: number; // 0-6
+  averageScore: number | null;
   siteUrl: string | null;
-}
-
-/**
- * Genera horarios de demostración distribuidos en la semana actual si no se pasan datos reales.
- */
-function buildDemoSchedules(): NormalizedAiringItem[] {
-  const nowSec = Math.floor(Date.now() / 1000);
-  const currentDay = new Date().getDay();
-
-  const demoList: Array<{
-    mediaId: number;
-    title: string;
-    episode: number;
-    dayOffset: number;
-    hour: number;
-    minute: number;
-  }> = [
-    {
-      mediaId: 171018,
-      title: 'Dan Da Dan',
-      episode: 8,
-      dayOffset: 0,
-      hour: 17,
-      minute: 0,
-    },
-    {
-      mediaId: 163134,
-      title: 'Re:ZERO -Starting Life in Another World- Season 3',
-      episode: 7,
-      dayOffset: 0,
-      hour: 15,
-      minute: 30,
-    },
-    {
-      mediaId: 170942,
-      title: 'Blue Lock vs. U-20 Japan',
-      episode: 6,
-      dayOffset: 1,
-      hour: 16,
-      minute: 0,
-    },
-    {
-      mediaId: 169755,
-      title: 'Bleach: Thousand-Year Blood War - The Conflict',
-      episode: 7,
-      dayOffset: 2,
-      hour: 16,
-      minute: 30,
-    },
-    {
-      mediaId: 21,
-      title: 'One Piece: Egghead Arc',
-      episode: 1123,
-      dayOffset: 3,
-      hour: 9,
-      minute: 30,
-    },
-    {
-      mediaId: 166240,
-      title: 'Shangri-La Frontier Season 2',
-      episode: 6,
-      dayOffset: 4,
-      hour: 10,
-      minute: 0,
-    },
-    {
-      mediaId: 154587,
-      title: 'Solo Leveling: Arise from the Shadow',
-      episode: 1,
-      dayOffset: 5,
-      hour: 18,
-      minute: 0,
-    },
-    {
-      mediaId: 16498,
-      title: 'Dragon Ball DAIMA',
-      episode: 6,
-      dayOffset: 6,
-      hour: 16,
-      minute: 45,
-    },
-  ];
-
-  return demoList.map((item, idx) => {
-    const targetDay = (currentDay + item.dayOffset) % 7;
-    const date = new Date();
-    date.setDate(date.getDate() + item.dayOffset);
-    date.setHours(item.hour, item.minute, 0, 0);
-
-    return {
-      id: `demo-airing-${idx}`,
-      mediaId: item.mediaId,
-      title: item.title,
-      coverUrl: '/icon-192.png',
-      episode: item.episode,
-      airingAt: Math.max(nowSec + 3600, Math.floor(date.getTime() / 1000)),
-      dayOfWeek: targetDay,
-      siteUrl: `https://anilist.co/anime/${item.mediaId}`,
-    };
-  });
+  isUserWatching: boolean;
 }
 
 function formatTimeRemaining(airingAtSec: number): string {
   const diffSec = airingAtSec - Math.floor(Date.now() / 1000);
-  if (diffSec <= 0) return 'Emitido recientemente';
+  if (diffSec <= 0) return 'Emitido hoy';
 
   const days = Math.floor(diffSec / 86400);
   const hours = Math.floor((diffSec % 86400) / 3600);
@@ -161,74 +64,113 @@ function formatTimeRemaining(airingAtSec: number): string {
 }
 
 export function AiringScheduleBento({
-  schedules,
-  watchingEntries,
+  schedules = [],
+  watchingEntries = [],
 }: AiringScheduleBentoProps): React.JSX.Element {
   const todayDayIndex = useMemo<number>(() => new Date().getDay(), []);
   const [selectedDay, setSelectedDay] = useState<number>(todayDayIndex);
+  const [onlyMyWatching, setOnlyMyWatching] = useState<boolean>(false);
 
-  // Normalizar entradas desde `schedules`, `watchingEntries` o fallback demo
+  // Conjunto de mediaIds que el usuario está viendo actualmente
+  const watchingMediaIds = useMemo<Set<number>>(() => {
+    return new Set(
+      watchingEntries
+        .filter((e) => e.status === 'CURRENT' || e.status === 'PLANNING')
+        .map((e) => e.mediaId)
+    );
+  }, [watchingEntries]);
+
+  // Normalizar y validar estrictamente: SOLO animes con status === 'RELEASING' y póster real de AniList
   const normalizedItems = useMemo<NormalizedAiringItem[]>(() => {
-    if (schedules && schedules.length > 0) {
-      return schedules.map((node) => {
-        const airingDate = new Date(node.airingAt * 1000);
-        return {
-          id: `sched-${node.id}`,
-          mediaId: node.media.id,
-          title:
-            node.media.title.userPreferred ||
-            node.media.title.romaji ||
-            node.media.title.english ||
-            'Anime',
-          coverUrl:
-            node.media.coverImage.large ||
-            node.media.coverImage.medium ||
-            '/icon-192.png',
-          episode: node.episode,
-          airingAt: node.airingAt,
-          dayOfWeek: airingDate.getDay(),
-          siteUrl: node.media.siteUrl,
-        };
+    const itemsMap = new Map<string, NormalizedAiringItem>();
+
+    // 1. Añadir desde entradas que el usuario está viendo (si siguen en emisión y tienen próximo episodio)
+    for (const entry of watchingEntries) {
+      const media = entry.media;
+      const nextEp = media.nextAiringEpisode;
+      if (!nextEp) continue;
+      if (media.status !== 'RELEASING') continue; // Excluir FINISHED estrictamente
+
+      const posterUrl =
+        media.coverImage?.extraLarge ||
+        media.coverImage?.large ||
+        media.coverImage?.medium;
+      if (!posterUrl) continue;
+
+      const airingDate = new Date(nextEp.airingAt * 1000);
+      const key = `${media.id}-${nextEp.episode}`;
+
+      itemsMap.set(key, {
+        id: `watch-${key}`,
+        mediaId: media.id,
+        title:
+          media.title.userPreferred ||
+          media.title.romaji ||
+          media.title.english ||
+          'Anime',
+        coverUrl: posterUrl,
+        episode: nextEp.episode,
+        airingAt: nextEp.airingAt,
+        dayOfWeek: airingDate.getDay(),
+        averageScore: media.averageScore,
+        siteUrl: media.siteUrl ?? `https://anilist.co/anime/${media.id}`,
+        isUserWatching: true,
       });
     }
 
-    if (watchingEntries && watchingEntries.length > 0) {
-      const withNextEp = watchingEntries.filter(
-        (entry) => entry.media.nextAiringEpisode !== null
-      );
+    // 2. Añadir desde el calendario semanal validado de AniList
+    for (const node of schedules) {
+      const media = node.media;
+      if (!media) continue;
+      if (media.status !== 'RELEASING') continue; // Nunca mostrar animes FINISHED
 
-      if (withNextEp.length > 0) {
-        return withNextEp.map((entry) => {
-          const nextEp = entry.media.nextAiringEpisode!;
-          const airingDate = new Date(nextEp.airingAt * 1000);
-          return {
-            id: `watch-${entry.id}-${nextEp.episode}`,
-            mediaId: entry.media.id,
-            title:
-              entry.media.title.userPreferred ||
-              entry.media.title.romaji ||
-              'Anime',
-            coverUrl:
-              entry.media.coverImage.large ||
-              entry.media.coverImage.medium ||
-              '/icon-192.png',
-            episode: nextEp.episode,
-            airingAt: nextEp.airingAt,
-            dayOfWeek: airingDate.getDay(),
-            siteUrl: entry.media.siteUrl,
-          };
+      const posterUrl =
+        media.coverImage?.extraLarge ||
+        media.coverImage?.large ||
+        media.coverImage?.medium;
+      if (!posterUrl) continue;
+
+      const airingDate = new Date(node.airingAt * 1000);
+      const key = `${media.id}-${node.episode}`;
+
+      if (!itemsMap.has(key)) {
+        itemsMap.set(key, {
+          id: `sched-${node.id}-${key}`,
+          mediaId: media.id,
+          title:
+            media.title.userPreferred ||
+            media.title.romaji ||
+            media.title.english ||
+            'Anime',
+          coverUrl: posterUrl,
+          episode: node.episode,
+          airingAt: node.airingAt,
+          dayOfWeek: airingDate.getDay(),
+          averageScore: media.averageScore,
+          siteUrl: media.siteUrl ?? `https://anilist.co/anime/${media.id}`,
+          isUserWatching: watchingMediaIds.has(media.id),
         });
       }
     }
 
-    return buildDemoSchedules();
-  }, [schedules, watchingEntries]);
+    return Array.from(itemsMap.values());
+  }, [schedules, watchingEntries, watchingMediaIds]);
 
   const filteredByDay = useMemo<NormalizedAiringItem[]>(() => {
     return normalizedItems
-      .filter((item) => item.dayOfWeek === selectedDay)
-      .sort((a, b) => a.airingAt - b.airingAt);
-  }, [normalizedItems, selectedDay]);
+      .filter((item) => {
+        if (item.dayOfWeek !== selectedDay) return false;
+        if (onlyMyWatching && !item.isUserWatching) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        // Priorizar los que el usuario sigue y luego por hora de emisión
+        if (a.isUserWatching !== b.isUserWatching) {
+          return a.isUserWatching ? -1 : 1;
+        }
+        return a.airingAt - b.airingAt;
+      });
+  }, [normalizedItems, selectedDay, onlyMyWatching]);
 
   return (
     <section
@@ -243,17 +185,46 @@ export function AiringScheduleBento({
           </div>
           <div>
             <h2 className="font-display text-lg sm:text-xl font-extrabold text-white flex items-center gap-2">
-              Calendario de Emisión
+              Calendario de Emisión Oficial
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-400/35 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
                 <Radio className="h-3 w-3 animate-pulse" />
-                En Vivo
+                Solo En Emisión (RELEASING)
               </span>
             </h2>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Horarios de estreno adaptados automáticamente a tu zona horaria local.
+              Sincronizado en tiempo real con AniList AiringSchedule (excluyendo series finalizadas).
             </p>
           </div>
         </div>
+
+        {watchingMediaIds.size > 0 && (
+          <div className="flex items-center gap-1.5 rounded-xl bg-background/70 border border-white/[0.08] p-1 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setOnlyMyWatching(false)}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-bold transition-all',
+                !onlyMyWatching
+                  ? 'bg-kurama text-slate-950 shadow-sm'
+                  : 'text-muted-foreground hover:text-white'
+              )}
+            >
+              Todos ({normalizedItems.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setOnlyMyWatching(true)}
+              className={cn(
+                'rounded-lg px-3 py-1.5 text-xs font-bold transition-all',
+                onlyMyWatching
+                  ? 'bg-kurama text-slate-950 shadow-sm'
+                  : 'text-muted-foreground hover:text-white'
+              )}
+            >
+              En Mi Lista
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Selector de Días de la Semana */}
@@ -262,7 +233,9 @@ export function AiringScheduleBento({
           const isSelected = selectedDay === day.dayIndex;
           const isToday = todayDayIndex === day.dayIndex;
           const countForDay = normalizedItems.filter(
-            (i) => i.dayOfWeek === day.dayIndex
+            (i) =>
+              i.dayOfWeek === day.dayIndex &&
+              (!onlyMyWatching || i.isUserWatching)
           ).length;
 
           return (
@@ -302,13 +275,17 @@ export function AiringScheduleBento({
                     HOY
                   </span>
                 )}
-                {countForDay > 0 && !isToday && (
+                {countForDay > 0 && (
                   <span
                     className={cn(
-                      'h-1.5 w-1.5 rounded-full',
-                      isSelected ? 'bg-slate-950' : 'bg-emerald-400'
+                      'text-[10px] font-bold px-1 rounded-full',
+                      isSelected
+                        ? 'text-slate-950'
+                        : 'text-emerald-400'
                     )}
-                  />
+                  >
+                    {countForDay}
+                  </span>
                 )}
               </div>
             </button>
@@ -316,10 +293,10 @@ export function AiringScheduleBento({
         })}
       </div>
 
-      {/* Lista de Episodios del Día Seleccionado */}
+      {/* Lista de Episodios del Día Seleccionado con Póster Oficial */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={selectedDay}
+          key={`${selectedDay}-${onlyMyWatching ? 'mine' : 'all'}`}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
@@ -327,49 +304,69 @@ export function AiringScheduleBento({
           className="grid grid-cols-1 md:grid-cols-2 gap-3.5"
         >
           {filteredByDay.length > 0 ? (
-            filteredByDay.map((item) => {
-              const airingTimeStr = new Date(item.airingAt * 1000).toLocaleTimeString(
-                'es-ES',
-                {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                }
-              );
+            filteredByDay.slice(0, 12).map((item) => {
+              const airingDateObj = new Date(item.airingAt * 1000);
+              const airingTimeStr = airingDateObj.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              const airingDateShort = airingDateObj.toLocaleDateString('es-ES', {
+                day: '2-digit',
+                month: 'short',
+              });
 
               return (
                 <div
                   key={item.id}
-                  className="group flex items-center gap-4 rounded-2xl border border-white/[0.07] bg-background/60 p-3.5 transition-all hover:border-kurama/40 hover:bg-white/[0.03]"
+                  className={cn(
+                    'group flex items-center gap-4 rounded-2xl border p-3.5 transition-all hover:border-kurama/40 hover:bg-white/[0.03]',
+                    item.isUserWatching
+                      ? 'border-kurama/35 bg-kurama/[0.05]'
+                      : 'border-white/[0.07] bg-background/60'
+                  )}
                 >
-                  {/* Portada */}
-                  <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-slate-900">
+                  {/* Póster Oficial del Anime desde AniList (coverImage.large / medium) */}
+                  <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-slate-900 shadow-md">
                     <Image
                       src={item.coverUrl}
                       alt={item.title}
                       fill
-                      sizes="48px"
+                      sizes="56px"
+                      unoptimized={item.coverUrl.startsWith('http')}
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
 
                   {/* Información del Episodio */}
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <span className="rounded-md bg-emerald-500/20 border border-emerald-400/40 px-2 py-0.5 text-[10px] font-extrabold uppercase text-emerald-300">
                         Ep. {item.episode}
                       </span>
+                      {item.isUserWatching && (
+                        <span className="rounded-md bg-kurama/20 border border-kurama/40 px-1.5 py-0.5 text-[10px] font-bold text-kurama">
+                          Siguiendo
+                        </span>
+                      )}
                       <span className="inline-flex items-center gap-1 text-xs font-semibold text-kurama">
                         <Clock className="h-3 w-3" />
                         {airingTimeStr}
                       </span>
                       <span className="text-[11px] text-muted-foreground">
-                        • {formatTimeRemaining(item.airingAt)}
+                        ({airingDateShort} • {formatTimeRemaining(item.airingAt)})
                       </span>
                     </div>
 
-                    <h3 className="font-display text-sm font-bold text-white truncate">
+                    <h3 className="font-display text-sm font-bold text-white truncate group-hover:text-kurama transition-colors">
                       {item.title}
                     </h3>
+
+                    {item.averageScore && (
+                      <div className="flex items-center gap-1 text-[11px] text-amber-300 font-semibold">
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        <span>{(item.averageScore / 10).toFixed(1)} en AniList</span>
+                      </div>
+                    )}
                   </div>
 
                   {item.siteUrl && (
@@ -390,10 +387,10 @@ export function AiringScheduleBento({
             <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 py-10 text-center">
               <Sparkles className="h-7 w-7 text-muted-foreground/50 mb-2" />
               <p className="text-sm font-semibold text-slate-300">
-                Sin estrenos programados para este día
+                No hay episodios en emisión para este filtro en el día seleccionado
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Selecciona otro día de la semana o añade animes en emisión a tu lista.
+                Prueba seleccionando otro día de la semana.
               </p>
             </div>
           )}

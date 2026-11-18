@@ -32,6 +32,7 @@ export const metadata: Metadata = {
     'seguimiento de anime',
   ],
   manifest: '/manifest.json',
+  other: { 'mobile-web-app-capable': 'yes' },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

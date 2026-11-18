@@ -1,138 +1,49 @@
 // ─── VERSIÓN DEL CACHÉ ───────────────────────────────────────────────────────
-// Incrementa este número en cada despliegue para forzar limpieza completa.
-const CACHE_VERSION = "v9"; 
+// v10: service worker para la app Next.js. Las navegaciones las gestiona el
+// navegador (redirecciones de login incluidas); solo se cachean los archivos
+// estáticos con hash de /_next/static/, que nunca cambian de contenido.
+const CACHE_VERSION = "v10";
 const CACHE_NAME    = `kuramatracker-${CACHE_VERSION}`;
 
-// Shell mínimo de la SPA
-const SHELL_ASSETS = [
-  "/",
-  "/index.html",
-  "/manifest.json"
-];
-
-// Rutas de marca que NUNCA deben quedar obsoletas en caché
-const NEVER_CACHE = [
-  "/sw.js",
-  "/logo.png",
-  "/favicon.png",
-  "/apple-touch-icon.png",
-  "/icon-192.png",
-  "/icon-512.png"
-];
-
 // ─── INSTALL ─────────────────────────────────────────────────────────────────
-self.addEventListener("install", (event) => {
-  console.log(`[SW] Instalando ${CACHE_NAME}`);
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(SHELL_ASSETS).catch((err) => {
-        console.warn("[SW] Precaching opcional fallo (normal en desarrollo):", err);
-      })
-    )
-  );
-  // Permitir activación inmediata
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
-// ─── ACTIVATE ────────────────────────────────────────────────────────────────
+// ─── ACTIVATE: borra todas las cachés anteriores (incluida la de la SPA Vite) ──
 self.addEventListener("activate", (event) => {
-  console.log(`[SW] Activando ${CACHE_NAME} y limpiando versiones obsoletas`);
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((k) => k !== CACHE_NAME)
-          .map((k) => {
-            console.log(`[SW] Eliminando caché antiguo: ${k}`);
-            return caches.delete(k);
-          })
-      )
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
 // ─── MESSAGE ─────────────────────────────────────────────────────────────────
 self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    console.log("[SW] SKIP_WAITING recibido del cliente");
-    self.skipWaiting();
-  }
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 
-// ─── FETCH (Estrategia Network-First con fallback resiliente) ─────────────────
+// ─── FETCH ───────────────────────────────────────────────────────────────────
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  const url = request.url;
+  if (request.method !== "GET") return;
 
-  // Ignorar: peticiones no-GET, APIs externas, GraphQL, hot-updates, extensiones
-  if (
-    request.method !== "GET" ||
-    url.includes("graphql.anilist.co") ||
-    url.includes("/api/") ||
-    url.includes("hot-update") ||
-    url.includes("@vite") ||
-    url.includes("@id") ||
-    url.includes("socket") ||
-    url.includes("chrome-extension")
-  ) {
-    return;
-  }
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
 
-  const urlObj = new URL(url);
-  const pathname = urlObj.pathname;
+  // Solo archivos estáticos inmutables de Next.js → caché primero
+  if (!url.pathname.startsWith("/_next/static/")) return;
 
-  // 1. Assets de marca y sw.js → Red siempre, no almacenar
-  if (NEVER_CACHE.some((p) => pathname === p)) {
-    event.respondWith(
-      fetch(request, { cache: "no-store" }).catch(() => caches.match(request))
-    );
-    return;
-  }
-
-  // 2. Navegación HTML (páginas y raíz) → Network-First para siempre recibir los hashes JS más recientes
-  if (request.mode === "navigate" || pathname === "/" || pathname === "/index.html") {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match("/index.html"))
-    );
-    return;
-  }
-
-  // 3. Assets estáticos con hash de Vite (/assets/*) → Cache-First con actualización de fondo
-  if (pathname.startsWith("/assets/")) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).then((response) => {
-          if (response && response.status === 200) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        });
-      })
-    );
-    return;
-  }
-
-  // 4. Resto de peticiones → Network con fallback a caché
   event.respondWith(
-    fetch(request)
-      .then((response) => {
-        if (response && response.status === 200 && (response.type === "basic" || response.type === "cors")) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(request))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cached = await cache.match(request);
+      if (cached) return cached;
+      const response = await fetch(request);
+      if (response.ok) cache.put(request, response.clone());
+      return response;
+    })
   );
 });
 

@@ -1,11 +1,27 @@
 import React from 'react';
 import { BarChart3 } from 'lucide-react';
 import { getServerAuthenticatedUser } from '@/lib/auth';
+import { getUserAnimeCollectionAction } from '@/lib/anilist/actions';
 import { StatsBentoGrid } from '@/components/dashboard/StatsBentoGrid';
 import { TrophyShowcase } from '@/components/dashboard/TrophyShowcase';
 
 export default async function AnalisisPage(): Promise<React.JSX.Element> {
   const authUser = await getServerAuthenticatedUser();
+  const collection = await getUserAnimeCollectionAction({ userId: authUser.anilistId });
+
+  // Los estados se cuentan desde la lista real (como en el perfil): el resumen
+  // `statistics.statuses` de AniList se recalcula con retraso y puede venir a cero.
+  const entries = collection.data ?? [];
+  const statusCounts =
+    entries.length > 0
+      ? {
+          CURRENT: entries.filter((e) => e.status === 'CURRENT').length,
+          COMPLETED: entries.filter((e) => e.status === 'COMPLETED' || e.status === 'REPEATING').length,
+          PLANNING: entries.filter((e) => e.status === 'PLANNING').length,
+          PAUSED: entries.filter((e) => e.status === 'PAUSED').length,
+          DROPPED: entries.filter((e) => e.status === 'DROPPED').length,
+        }
+      : undefined;
   const episodesWatched = authUser.unifiedLevel.totalEpisodesWatched;
   const computedLevel = authUser.unifiedLevel.computedLevel;
 
@@ -25,7 +41,7 @@ export default async function AnalisisPage(): Promise<React.JSX.Element> {
         </div>
       </div>
 
-      <StatsBentoGrid statistics={authUser.anilistViewer?.statistics?.anime} />
+      <StatsBentoGrid statistics={authUser.anilistViewer?.statistics?.anime} statusCounts={statusCounts} />
 
       <TrophyShowcase
         currentLevel={computedLevel}

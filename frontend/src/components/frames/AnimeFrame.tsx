@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FrameType } from '@/lib/league';
 import { FRAME_ART, type FrameArt } from '@/lib/frames/art';
+import { AlphaVideo } from './AlphaVideo';
 
 export interface AnimeFrameProps {
   frame: FrameType;
@@ -181,19 +182,52 @@ function ArtLayers({ art, size, children }: { art: FrameArt; size: number; child
   const box: React.CSSProperties = { position: 'absolute', left, top, width: px, height: px, maxWidth: 'none', pointerEvents: 'none' };
   const mask = `url(${art.src})`;
 
+  // Vídeo solo si existe y el usuario no pide movimiento reducido
+  const [useVideo, setUseVideo] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  useEffect(() => {
+    if (!art.video) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = (): void => setUseVideo(!mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, [art.video]);
+
+  const showVideo = Boolean(art.video && useVideo);
+  const onVideoReady = React.useCallback(() => setVideoReady(true), []);
+  const onVideoFail = React.useCallback(() => setUseVideo(false), []);
+
   return (
     <>
       {/* Aura: la propia ilustración desenfocada, que respira detrás del avatar */}
       <img src={art.src} alt="" aria-hidden="true" className="af-art-glow" style={{ ...box, zIndex: 0 }} />
       {children}
-      {/* Marco: PNG/WebP con transparencia real (fondo negro convertido en alfa) */}
-      <img src={art.src} alt="" aria-hidden="true" className="af-art" style={{ ...box, zIndex: 2 }} />
-      {/* Destello que recorre solo las zonas brillantes del marco */}
-      <span
+      {/* Marco fijo (con transparencia real); se oculta cuando el vídeo ya se reproduce */}
+      <img
+        src={art.src}
+        alt=""
         aria-hidden="true"
-        className="af-art-shine"
-        style={{ ...box, zIndex: 3, WebkitMaskImage: mask, maskImage: mask }}
+        className={cn('af-art', showVideo && videoReady && 'opacity-0')}
+        style={{ ...box, zIndex: 2 }}
       />
+      {showVideo && (
+        <AlphaVideo
+          src={art.video!}
+          className={cn('af-art-video', !videoReady && 'opacity-0')}
+          style={{ ...box, zIndex: 2 }}
+          onReady={onVideoReady}
+          onFail={onVideoFail}
+        />
+      )}
+      {/* Destello que recorre solo las zonas brillantes del marco (no hace falta con vídeo) */}
+      {!(showVideo && videoReady) && (
+        <span
+          aria-hidden="true"
+          className="af-art-shine"
+          style={{ ...box, zIndex: 3, WebkitMaskImage: mask, maskImage: mask }}
+        />
+      )}
     </>
   );
 }

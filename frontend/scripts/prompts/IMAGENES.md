@@ -198,3 +198,29 @@ The frame is iridescent chroma metal shifting from amber orange through magenta 
 
 Background outside the frame and tails: perfectly flat pure black (#000000). Centered, generous margin. No text, no watermark, no logo, no character inside the opening.
 ```
+
+---
+
+## Vídeos animados de marcos (Google Flow)
+
+**Cómo:** en Flow usa **Frames to Video** en formato **16:9**. Sube la versión `-16x9.jpg` del marco (el marco centrado sobre negro, ya preparada en `frontend/design-assets/originales/frames/`) como fotograma **inicial y final** (la misma imagen en los dos, para que el bucle sea perfecto), 8 s. Así Flow no recorta las llamas; luego se recorta el cuadrado central del vídeo. Descarga el MP4 y guárdalo con el nombre indicado en `frontend/design-assets/originales/frames/`.
+
+### Oro → `oro-llamas.mp4` (imagen: `oro-16x9.jpg`)
+```
+Static locked-off camera, no camera movement, no zoom. The ornate golden frame stays perfectly still and identical in every frame. Only the flames around the frame move: they flicker, curl and rise naturally like real fire, with small glowing embers drifting upward and fading. The center opening and the background stay pure black. Seamless loop: the last frame matches the first frame exactly.
+```
+
+### Rubí → `rubi-magia.mp4` (imagen: `rubi-16x9.jpg`)
+```
+Static locked-off camera, no camera movement, no zoom. The dark gold frame and its rubies stay perfectly still and identical in every frame. Only the magic moves: the crimson magic circle behind the frame slowly rotates clockwise around the center, its rings and runic marks pulse with soft red light, and the rubies catch a gentle glint that travels from one gem to the next. The center opening and the background stay pure black. Seamless loop: the last frame matches the first frame exactly.
+```
+
+### Diamante → `diamante-cristales.mp4` (imagen: `diamante-16x9.jpg`)
+```
+Static locked-off camera, no camera movement, no zoom. The platinum frame and every crystal stay perfectly still and identical in every frame. Only the light moves: bright four-point sparkles twinkle on and off across the diamond crystals, a slow wave of cyan light refracts through the crystal clusters, and a few tiny frost particles drift and fade around the frame. The center opening and the background stay pure black. Seamless loop: the last frame matches the first frame exactly.
+```
+
+### Croma → `croma-colas.mp4` (imagen: `croma-16x9.jpg`)
+```
+Static locked-off camera, no camera movement, no zoom. The iridescent frame stays perfectly still and identical in every frame. Only the nine fox tails move: they sway gently and gracefully, one after another like a slow wave, their fur rippling softly, while their orange-magenta-cyan glow shimmers and tiny light particles float upward. The center opening and the background stay pure black. Seamless loop: the last frame matches the first frame exactly.
+```

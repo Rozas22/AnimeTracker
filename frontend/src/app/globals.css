@@ -311,6 +311,11 @@
   /* ═══ Marcos ilustrados (imagen con fondo negro → screen) ═══ */
   .af-art {
     user-select: none;
+    transition: opacity 0.4s ease-out;
+  }
+  /* Vídeo de Flow: el negro se convierte en alfa en WebGL (AlphaVideo) */
+  .af-art-video {
+    transition: opacity 0.4s ease-out;
   }
   .af-art-glow {
     opacity: 0.5;

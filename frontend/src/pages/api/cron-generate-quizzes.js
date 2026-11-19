@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseUrl, getSupabaseServerKey } from '../../lib/supabase/env';
+import { awardChallengePodium } from '../../lib/reto/league';
 
 // Inicializar Supabase
 const supabaseUrl = getSupabaseUrl();
@@ -18,6 +19,18 @@ export default async function handler(req, res) {
     const authHeader = req.headers.authorization;
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // 1b. Bonus del podio del Reto diario de ayer (top 3 → PL de liga).
+    //     El día 1 lo hace cron-reset-monthly ANTES de cerrar la liga, para que
+    //     el último día del mes cuente en su mes.
+    let podium = null;
+    if (new Date().getUTCDate() !== 1) {
+        try {
+            podium = await awardChallengePodium();
+        } catch (podiumErr) {
+            console.error('Podio del reto:', podiumErr.message || podiumErr);
+        }
     }
 
     try {
@@ -172,7 +185,7 @@ Ejemplo de respuesta esperada:
             console.warn('Comprobación de planeados en cron falló levemente:', planningErr);
         }
 
-        return res.status(200).json({ success: true, count: generatedQuizzes.length, animes: selectedAnimes });
+        return res.status(200).json({ success: true, count: generatedQuizzes.length, animes: selectedAnimes, podium });
 
     } catch (err) {
         console.error('Error Crítico en Cron Job:', err.message || err);

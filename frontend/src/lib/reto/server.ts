@@ -1,9 +1,11 @@
 // Solo servidor: lógica del Reto diario con respuestas y tiempos verificados.
 import { createAdminClient } from '@/lib/supabase/server';
 import { buildChallenge, type FullRound } from './generate';
+import { addLeaguePoints } from './league';
 import {
   HINT_STEP_SECONDS,
   SCORE_PAIRS,
+  leaguePointsFor,
   type PublicRound,
   type RetoOption,
   type RetoState,
@@ -21,6 +23,7 @@ export interface PlayRow {
   round_state: { picks?: Array<'a' | 'b' | null> } | null;
   round_started_at: string | null;
   finished_at: string | null;
+  league_points?: number;
 }
 
 /* Las tablas del reto no están en los tipos generados de Supabase */
@@ -96,7 +99,30 @@ async function commitRound(play: PlayRow, rounds: FullRound[], result: RoundResu
     .eq('day', play.day)
     .eq('round_started_at', play.round_started_at)
     .select('*');
-  return (data?.[0] as PlayRow) ?? null;
+  const saved = (data?.[0] as PlayRow) ?? null;
+
+  if (saved && finished) return grantLeaguePoints(saved);
+  return saved;
+}
+
+/**
+ * Suma a la liga mensual los PL de una partida terminada, una sola vez:
+ * `league_points` pasa de null al valor con una escritura condicional, y solo
+ * quien la gana suma. También recupera partidas terminadas antes de existir esto.
+ */
+export async function grantLeaguePoints(play: PlayRow): Promise<PlayRow> {
+  if (!play.finished_at || (play.league_points !== null && play.league_points !== undefined)) return play;
+  const pl = leaguePointsFor(play.score);
+  const { data, error } = await db()
+    .from('challenge_plays')
+    .update({ league_points: pl })
+    .eq('anilist_id', play.anilist_id)
+    .eq('day', play.day)
+    .is('league_points', null)
+    .select('*');
+  if (error || !data?.[0]) return play; // ya sumado, o falta supabase_migration_reto_liga.sql
+  await addLeaguePoints(play.anilist_id, pl);
+  return data[0] as PlayRow;
 }
 
 function timeoutResult(r: FullRound, play: PlayRow): RoundResult {
@@ -152,6 +178,7 @@ export function stateOf(day: string, rounds: FullRound[], play: PlayRow | null):
           score: play.score,
           results: play.results,
           finished: Boolean(play.finished_at) || play.results.length >= rounds.length,
+          leaguePoints: play.league_points ?? 0,
           current,
         }
       : null,
@@ -258,7 +285,7 @@ export async function ranking(
 ): Promise<Array<{ anilistId: number; username: string; score: number; plays: number; isMe: boolean; place: number }>> {
   const day = todayUTC();
   const monthStart = `${day.slice(0, 7)}-01`;
-  let q = db().from('challenge_plays').select('anilist_id, score, day').not('finished_at', 'is', null);
+  let q = db().from('challenge_plays').select('anilist_id, score, day, finished_at').not('finished_at', 'is', null).order('finished_at', { ascending: true });
   q = scope === 'day' ? q.eq('day', day) : q.gte('day', monthStart);
   const { data } = await q.limit(5000);
   const rows = (data ?? []) as Array<{ anilist_id: number; score: number }>;

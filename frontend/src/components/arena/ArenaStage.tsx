@@ -116,7 +116,7 @@ export function ArenaStage({ monthly, currentUserId, activePrize, onPlay }: Aren
             Liga de {monthName}
           </h1>
           <p className="mt-3 max-w-md text-base text-white/70">
-            Cada acierto del quiz diario suma puntos. El día 1, quien esté arriba se lleva la corona y el premio.
+            El quiz diario y el reto diario suman puntos de liga. El día 1, quien esté arriba se lleva la corona y el premio.
           </p>
 
           <dl className="mt-6 grid grid-cols-2 gap-3">

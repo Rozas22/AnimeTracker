@@ -16,7 +16,7 @@ export function RetoEntryCard(): React.JSX.Element {
         <p className="text-xs font-semibold uppercase tracking-wider text-kurama">Nuevo · Minijuego</p>
         <h2 className="mt-1 font-display text-2xl font-bold text-white">Reto diario</h2>
         <p className="mt-1 max-w-lg text-sm text-white/70">
-          5 rondas: portadas pixeladas, pistas, personajes y duelos de nota. Una partida al día y ranking propio.
+          5 rondas: portadas pixeladas, pistas, personajes y duelos de nota. Una partida al día que <b className="text-white">suma PL a la liga</b>, y el top 3 de cada día gana un bonus de hasta +150 PL.
         </p>
         <ol className="mt-4 flex gap-2" aria-hidden="true">
           {icons.map((Icon, i) => (

@@ -45,6 +45,8 @@ export interface RetoState {
     score: number;
     results: RoundResult[];
     finished: boolean;
+    /** PL sumados a la liga mensual por esta partida */
+    leaguePoints: number;
     /** Ronda en curso: ms transcurridos según el servidor */
     current: { index: number; elapsedMs: number; hints: string[]; pairIndex: number; pairResults: RoundResult['pairs'] } | null;
   } | null;
@@ -66,3 +68,9 @@ export const PIXEL_STEP_SECONDS = 3;
 export const HINT_STEP_SECONDS = 4;
 export const SCORE_PAIRS = 5;
 export const MAX_SCORE = 1000;
+
+/** Liga mensual: al terminar el reto se suman puntuación ÷ 10 en PL (máx. 100)… */
+export const LEAGUE_DIVISOR = 10;
+/** …y al cerrar el día (00:00 UTC) el top 3 recibe este bonus. */
+export const PODIUM_BONUS = [150, 100, 50] as const;
+export const leaguePointsFor = (score: number): number => Math.max(0, Math.round(score / LEAGUE_DIVISOR));

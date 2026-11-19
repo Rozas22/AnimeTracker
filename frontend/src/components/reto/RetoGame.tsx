@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Check, Clock, Eye, Lightbulb, Loader2, Play, Share2, Star, UserRound, X, Zap } from 'lucide-react';
+import { ArrowLeft, Check, Clock, Crown, Eye, Lightbulb, Loader2, Play, Share2, Star, UserRound, X, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   answerRetoPairAction,
@@ -14,6 +14,7 @@ import {
   HINT_STEP_SECONDS,
   MAX_SCORE,
   PIXEL_STEPS,
+  PODIUM_BONUS,
   PIXEL_STEP_SECONDS,
   type PublicRound,
   type RetoOption,
@@ -198,6 +199,7 @@ function Intro({ rounds, busy, onStart }: { rounds: PublicRound[]; busy: boolean
         <Zap className="mr-1.5 inline h-4 w-4 text-kurama" aria-hidden="true" />
         Hasta 200 puntos por ronda: 100 por acertar y hasta 100 más por rapidez. <b className="text-white">Solo tienes un intento</b>: si sales a mitad, el reloj sigue corriendo.
       </p>
+      <LeagueBox />
       <button type="button" onClick={onStart} disabled={busy} className="mt-6 inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-[14px] bg-kurama font-display text-lg font-bold text-ink transition-transform active:scale-[0.98] disabled:opacity-60 sm:w-auto sm:px-10">
         {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Play className="h-5 w-5 fill-current" />}
         Empezar el reto
@@ -540,6 +542,12 @@ function Summary({ state }: { state: RetoState }): React.JSX.Element {
         {nf.format(play.score)}
         <span className="text-xl font-medium text-muted-foreground"> / {nf.format(MAX_SCORE)}</span>
       </p>
+      <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-kurama/15 px-4 py-2 text-sm font-semibold text-kurama">
+        <Crown className="h-4 w-4" aria-hidden="true" />+{nf.format(play.leaguePoints)} PL sumados a la liga del mes
+      </p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Si acabas el día en el top 3 del reto, a la 1:00 recibes además +{PODIUM_BONUS[0]}, +{PODIUM_BONUS[1]} o +{PODIUM_BONUS[2]} PL.
+      </p>
       <ul className="mt-5 divide-y divide-white/[0.06]">
         {state.rounds.map((r, i) => {
           const res = play.results[i];
@@ -562,5 +570,20 @@ function Summary({ state }: { state: RetoState }): React.JSX.Element {
         <p className="text-sm text-muted-foreground">Mañana a la 1:00 (hora de España) hay un reto nuevo.</p>
       </div>
     </section>
+  );
+}
+
+function LeagueBox(): React.JSX.Element {
+  return (
+    <div className="mt-3 rounded-[12px] border border-[#e3b341]/25 bg-[#e3b341]/[0.07] px-4 py-3 text-sm text-white/85">
+      <p className="flex items-center gap-1.5 font-semibold text-[#e3b341]">
+        <Crown className="h-4 w-4" aria-hidden="true" />
+        Suma a la liga mensual
+      </p>
+      <p className="mt-1">
+        Al terminar sumas <b className="text-white">tu puntuación ÷ 10 en PL</b> (hasta 100). Y el <b className="text-white">top 3 del día</b> gana{' '}
+        <b className="text-white">+{PODIUM_BONUS[0]} / +{PODIUM_BONUS[1]} / +{PODIUM_BONUS[2]} PL</b> extra al cerrar el día.
+      </p>
+    </div>
   );
 }

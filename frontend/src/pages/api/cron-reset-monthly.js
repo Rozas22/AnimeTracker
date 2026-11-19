@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseUrl, getSupabaseServerKey } from '../../lib/supabase/env';
+import { awardChallengePodium } from '../../lib/reto/league';
 
 const supabaseUrl = getSupabaseUrl();
 const supabaseKey = getSupabaseServerKey();
@@ -12,6 +13,13 @@ async function runMonthlyReset(res) {
     const closing = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0)); // last day of prev month
     const prevMonth = closing.getUTCMonth() + 1; // 1-12
     const prevYear  = closing.getUTCFullYear();
+
+    // 1b. Antes de decidir el ganador, el podio del Reto del último día del mes
+    try {
+        await awardChallengePodium();
+    } catch (podiumErr) {
+        console.error('Podio del reto (cierre de mes):', podiumErr.message || podiumErr);
+    }
 
     // 2. Get the top scorer with points > 0
     const { data: topUsers, error: topError } = await supabase

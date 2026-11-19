@@ -5,6 +5,7 @@ import {
   answerOptionRound,
   answerScorePair,
   getOrCreateChallenge,
+  grantLeaguePoints,
   loadPlay,
   ranking,
   settle,
@@ -32,7 +33,7 @@ export async function getRetoStateAction(): Promise<Res<RetoState>> {
     const day = todayUTC();
     const rounds = await getOrCreateChallenge(day);
     let play = await loadPlay(id, day);
-    if (play) play = await settle(play, rounds);
+    if (play) play = await grantLeaguePoints(await settle(play, rounds));
     return stateOf(day, rounds, play);
   });
 }

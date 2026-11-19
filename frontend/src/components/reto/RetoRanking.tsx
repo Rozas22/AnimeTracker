@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Crown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRetoRankingAction } from '@/lib/reto/actions';
-import type { RetoRankingRow } from '@/lib/reto/types';
+import { PODIUM_BONUS, type RetoRankingRow } from '@/lib/reto/types';
 
 const nf = new Intl.NumberFormat('es-ES');
 
@@ -76,6 +76,11 @@ export function RetoRanking(): React.JSX.Element {
               </span>
               {scope === 'month' && r.plays !== undefined && (
                 <span className="hidden text-xs text-muted-foreground sm:inline">{r.plays} {r.plays === 1 ? 'reto' : 'retos'}</span>
+              )}
+              {scope === 'day' && r.place <= PODIUM_BONUS.length && (
+                <span className="rounded-full bg-[#e3b341]/15 px-2 py-0.5 text-xs font-semibold text-[#e3b341]" title="Bonus de liga al cerrar el día">
+                  +{PODIUM_BONUS[r.place - 1]} PL
+                </span>
               )}
               <span className="font-display font-bold text-white tabular">{nf.format(r.score)}</span>
             </li>

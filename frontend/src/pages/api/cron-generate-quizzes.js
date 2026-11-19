@@ -6,6 +6,9 @@ const supabaseUrl = getSupabaseUrl();
 const supabaseKey = getSupabaseServerKey();
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Margen para Gemini + reintentos (Vercel corta a los 10 s por defecto)
+export const config = { maxDuration: 60 };
+
 export default async function handler(req, res) {
     if (req.method !== 'GET' && req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -86,9 +89,13 @@ Ejemplo de respuesta esperada:
 
         while (attempt <= maxRetries) {
             try {
-                const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                // gemini-1.5-flash fue retirado por Google (404 → «respuesta vacía»).
+                // gemini-2.5-flash responde en ~5 s; GEMINI_MODEL permite cambiarlo sin tocar código.
+                const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+                const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+                    signal: AbortSignal.timeout(18000),
                     body: JSON.stringify({
                         contents: [{ parts: [{ text: prompt }] }],
                         generationConfig: { responseMimeType: "application/json" }
@@ -98,7 +105,7 @@ Ejemplo de respuesta esperada:
                 geminiData = await geminiRes.json();
 
                 if (!geminiData.candidates || geminiData.candidates.length === 0) {
-                     throw new Error('Gemini API devolvió una respuesta vacía');
+                     throw new Error(`Gemini API sin respuesta: ${geminiData.error?.message || 'vacía'}`);
                 }
 
                 let generatedText = geminiData.candidates[0].content.parts[0].text;
@@ -119,6 +126,20 @@ Ejemplo de respuesta esperada:
                 await new Promise(res => setTimeout(res, 2000));
             }
         }
+
+        // Solo preguntas bien formadas: 4 opciones distintas y la correcta entre ellas.
+        // Las opciones se barajan para que la correcta no caiga siempre en la misma posición.
+        generatedQuizzes = (Array.isArray(generatedQuizzes) ? generatedQuizzes : [])
+            .filter((q) => q && typeof q.question === 'string' && Array.isArray(q.options)
+                && q.options.length === 4 && new Set(q.options).size === 4
+                && q.options.includes(q.correct_answer))
+            .map((q) => ({
+                anime_title: String(q.anime_title || '').slice(0, 200),
+                question: q.question.slice(0, 500),
+                options: [...q.options].map(String).sort(() => Math.random() - 0.5),
+                correct_answer: String(q.correct_answer),
+                difficulty: q.difficulty === 'hard' ? 'hard' : 'medium',
+            }));
 
         if (!generatedQuizzes || generatedQuizzes.length === 0) {
             throw new Error("No se pudo generar quizzes válidos");

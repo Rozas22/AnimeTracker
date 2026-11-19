@@ -37,11 +37,10 @@ function useCountdown(target: () => Date): { d: number; h: number; m: number; s:
 
 const pad = (n: number): string => String(n).padStart(2, '0');
 
-/** Medianoche local siguiente: el quiz diario se renueva en hora local. */
+/** Próximas 00:00 UTC: el quiz diario cambia entonces (lo elige el servidor por día UTC). */
 const nextLocalMidnight = (): Date => {
-  const d = new Date();
-  d.setHours(24, 0, 0, 0);
-  return d;
+  const n = new Date();
+  return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1));
 };
 /** Día 1 del mes siguiente a las 00:00 UTC: el cron cierra la liga entonces. */
 const nextMonthCloseUTC = (): Date => {

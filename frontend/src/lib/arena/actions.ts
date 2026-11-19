@@ -81,16 +81,46 @@ const FALLBACK_QUIZ_POOL: QuizRow[] = [
  */
 export async function getDailyQuizQuestionsAction(): Promise<PublicQuizQuestion[]> {
   const supabase = createAdminClient();
+  const day = new Date().toISOString().slice(0, 10); // el quiz cambia a las 00:00 UTC, igual que el cron
 
   const { data } = await supabase
     .from('quizzes')
     .select('*')
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(500);
 
-  const sourcePool = data && data.length >= 5 ? data : FALLBACK_QUIZ_POOL;
+  const pool = data && data.length >= 5 ? data : FALLBACK_QUIZ_POOL;
 
-  return sourcePool.slice(0, 5).map(({ correct_answer: _hidden, ...publicQuestion }) => publicQuestion);
+  // Si el cron ha generado preguntas hoy, se juegan esas. Si no, se eligen 5 del
+  // banco con una semilla del día: todos ven las mismas y cambian cada día.
+  const fresh = pool.filter((q) => (q.created_at ?? '').slice(0, 10) === day);
+  const picked = fresh.length >= 5 ? fresh.slice(0, 5) : seededShuffle(pool, `dia-${day}`).slice(0, 5);
+
+  return picked.map(({ correct_answer: _hidden, ...publicQuestion }) => ({
+    ...publicQuestion,
+    // Las opciones se barajan (la correcta solía venir la primera); el orden es
+    // estable durante el día para que recargar no lo cambie.
+    options: seededShuffle(publicQuestion.options ?? [], `${publicQuestion.id}-${day}`),
+  }));
+}
+
+/** Barajado determinista (Fisher-Yates con mulberry32 sembrado por texto). */
+function seededShuffle<T>(items: readonly T[], seedText: string): T[] {
+  let seed = 2166136261;
+  for (let i = 0; i < seedText.length; i++) seed = Math.imul(seed ^ seedText.charCodeAt(i), 16777619);
+  const rand = (): number => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
 }
 
 /**

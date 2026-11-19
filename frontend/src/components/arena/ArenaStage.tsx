@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Crown, Gift, Play, Timer } from 'lucide-react';
+import { Crown, Play, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimeFrame } from '@/components/frames/AnimeFrame';
+import { PrizeGallery } from './PrizeGallery';
 import { FRAME_STYLES, resolveDisplayFrame, resolveUnifiedUserLevel } from '@/lib/league';
 import type { MonthlyPrizeRow, UserProfileRow } from '@/types/database';
 
@@ -214,15 +215,7 @@ export function ArenaStage({ monthly, currentUserId, activePrize, onPlay }: Aren
       {activePrize && (
         <div className="border-t border-white/[0.06] p-6 sm:p-8 lg:px-10">
           <div className="arena-prize flex flex-col items-center gap-5 sm:flex-row">
-            <div className="arena-prize__case relative grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-[18px] bg-gradient-to-b from-white/[0.08] to-white/[0.02] sm:h-32 sm:w-32">
-              {activePrize.images?.[0] ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={activePrize.images[0]} alt={activePrize.title} className="h-full w-full object-cover" />
-              ) : (
-                <Gift className="h-12 w-12 text-[#e3b341]" aria-hidden="true" />
-              )}
-              <span aria-hidden="true" className="arena-prize__shine pointer-events-none absolute inset-0" />
-            </div>
+            <PrizeGallery images={activePrize.images ?? []} title={activePrize.title} />
             <div className="min-w-0 text-center sm:text-left">
               <h2 className="font-display text-2xl font-bold text-white">{activePrize.title}</h2>
               <p className="mt-1 text-sm font-medium text-[#e3b341]">Para quien acabe 1.º en la liga de {monthName}</p>

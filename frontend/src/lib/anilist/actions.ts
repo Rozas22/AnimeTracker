@@ -3,7 +3,8 @@
 import dns from 'node:dns';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { cookies } from 'next/headers';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { getVerifiedAniListId } from '@/lib/session-server';
 import { calculateLevel, resolveUnifiedUserLevel, isFrameUnlocked, type FrameType } from '@/lib/league';
 import { fetchPublicAniListUserById } from '@/lib/auth';
 import type {
@@ -422,19 +423,23 @@ export async function saveAnimeProgressAction(
     );
   }
 
-  // 2. Sincronizar puntos de episodios (`anime_points`) y `level` en `public.users`
-  if (input.anilistUserId && input.totalEpisodesDelta && input.totalEpisodesDelta !== 0) {
-    const supabase = createClient();
+  // 2. Sincronizar puntos de episodios (`anime_points`) y `level` en `public.users`.
+  //    Solo para el usuario verificado (nunca el id que manda el navegador) y con un
+  //    delta acotado: nadie puede sumarse cientos de episodios de golpe.
+  const verifiedId = await getVerifiedAniListId();
+  const delta = Math.max(-30, Math.min(30, Math.trunc(input.totalEpisodesDelta ?? 0)));
+  if (verifiedId && delta !== 0) {
+    const supabase = createAdminClient();
     const { data: currentUser } = await supabase
       .from('users')
       .select('anime_points, level')
-      .eq('anilist_id', input.anilistUserId)
+      .eq('anilist_id', verifiedId)
       .maybeSingle();
 
     if (currentUser) {
       const nextAnimePoints = Math.max(
         0,
-        (currentUser.anime_points || 0) + input.totalEpisodesDelta * 10
+        (currentUser.anime_points || 0) + delta * 10
       );
       const totalEpisodes = Math.floor(nextAnimePoints / 10);
       const { computedLevel } = calculateLevel(totalEpisodes);
@@ -446,12 +451,12 @@ export async function saveAnimeProgressAction(
           level: computedLevel,
           last_updated_at: new Date().toISOString(),
         })
-        .eq('anilist_id', input.anilistUserId);
+        .eq('anilist_id', verifiedId);
     }
   }
 
   // 3. Revalidar únicamente la colección del usuario
-  revalidateTag(`anilist-collection-${input.anilistUserId}`);
+  revalidateTag(`anilist-collection-${verifiedId ?? input.anilistUserId}`);
   revalidateTag('anilist-collection');
 
   return {
@@ -477,14 +482,19 @@ export interface SyncAccountResult {
 }
 
 export async function syncAccountWithAniListAction(
-  anilistUserId: number
+  requestedId: number
 ): Promise<AniListActionResult<SyncAccountResult>> {
   try {
+    const verifiedId = await getVerifiedAniListId();
+    if (!verifiedId || verifiedId !== requestedId) {
+      return { data: null, error: 'Solo puedes sincronizar tu propia cuenta.', rateLimited: false, fromFallback: false };
+    }
+    const anilistUserId = verifiedId;
     revalidateTag('anilist-viewer');
     revalidateTag(`anilist-user-${anilistUserId}`);
     revalidateTag(`anilist-collection-${anilistUserId}`);
 
-    const supabase = createClient();
+    const supabase = createAdminClient();
     const [anilistUser, { data: existingRow }] = await Promise.all([
       fetchPublicAniListUserById(anilistUserId),
       supabase
@@ -552,7 +562,14 @@ export async function updateProfileVisibilityAction(params: {
   anilistUserId: number;
   visibility: 'public' | 'friends' | 'private';
 }): Promise<{ success: boolean; error: string | null }> {
-  const supabase = createClient();
+  const verifiedId = await getVerifiedAniListId();
+  if (!verifiedId || verifiedId !== params.anilistUserId) {
+    return { success: false, error: 'Solo puedes cambiar la visibilidad de tu propia cuenta.' };
+  }
+  if (!['public', 'friends', 'private'].includes(params.visibility)) {
+    return { success: false, error: 'Visibilidad no válida.' };
+  }
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from('users')
@@ -560,7 +577,7 @@ export async function updateProfileVisibilityAction(params: {
       profile_visibility: params.visibility,
       last_updated_at: new Date().toISOString(),
     })
-    .eq('anilist_id', params.anilistUserId);
+    .eq('anilist_id', verifiedId);
 
   if (error) {
     return { success: false, error: error.message };
@@ -578,13 +595,17 @@ export async function updateSelectedFrameAction(params: {
   /** null = automático */
   frame: FrameType | null;
 }): Promise<{ success: boolean; error: string | null }> {
-  const supabase = createClient();
+  const verifiedId = await getVerifiedAniListId();
+  if (!verifiedId || verifiedId !== params.anilistUserId) {
+    return { success: false, error: 'Solo puedes cambiar tu propio marco.' };
+  }
+  const supabase = createAdminClient();
 
   if (params.frame) {
     const { data: row } = await supabase
       .from('users')
       .select('anime_points, level')
-      .eq('anilist_id', params.anilistUserId)
+      .eq('anilist_id', verifiedId)
       .maybeSingle();
     const lvl = resolveUnifiedUserLevel({
       supabaseAnimePoints: row?.anime_points,
@@ -598,7 +619,7 @@ export async function updateSelectedFrameAction(params: {
   const { error } = await supabase
     .from('users')
     .update({ selected_frame: params.frame })
-    .eq('anilist_id', params.anilistUserId);
+    .eq('anilist_id', verifiedId);
 
   if (error) {
     const missingColumn = /selected_frame/.test(error.message);

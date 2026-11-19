@@ -1,7 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
+import { getVerifiedAniListId } from '@/lib/session-server';
 import type { QuizRow } from '@/types/database';
 
 /**
@@ -79,7 +80,7 @@ const FALLBACK_QUIZ_POOL: QuizRow[] = [
  * Obtiene 5 preguntas para el Quiz Diario ocultando `correct_answer` al cliente.
  */
 export async function getDailyQuizQuestionsAction(): Promise<PublicQuizQuestion[]> {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   const { data } = await supabase
     .from('quizzes')
@@ -101,8 +102,10 @@ export async function submitQuizAnswerAction(params: {
   anilistUserId: number;
   timeRemainingSeconds: number;
 }): Promise<VerifyAnswerResult> {
-  const { questionId, selectedOption, anilistUserId, timeRemainingSeconds } = params;
-  const supabase = createClient();
+  const { questionId, selectedOption, timeRemainingSeconds } = params;
+  // La identidad sale de la sesión verificada, nunca del navegador
+  const anilistUserId = await getVerifiedAniListId();
+  const supabase = createAdminClient();
 
   // 1. Buscar la respuesta correcta en la base de datos o en el pool de respaldo
   let correctAnswer = '';
@@ -124,9 +127,24 @@ export async function submitQuizAnswerAction(params: {
     Boolean(correctAnswer) &&
     selectedOption.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
 
-  // Base 100 PL + bonus por velocidad (hasta +30 PL)
-  const speedBonus = Math.max(0, Math.min(30, Math.floor(timeRemainingSeconds * 2)));
-  const pointsAwarded = isCorrect ? 100 + speedBonus : 0;
+  // Base 100 PL + bonus por velocidad (hasta +30 PL). El tiempo lo manda el
+  // navegador, así que se acota: como mucho cuenta el máximo de 15 s.
+  const safeTime = Math.max(0, Math.min(15, Number(timeRemainingSeconds) || 0));
+  const speedBonus = Math.max(0, Math.min(30, Math.floor(safeTime * 2)));
+  let pointsAwarded = isCorrect ? 100 + speedBonus : 0;
+
+  // Anti-repetición: cada pregunta solo puntúa una vez por usuario.
+  // (tabla quiz_answers, ver supabase_migration_seguridad.sql)
+  if (anilistUserId && pointsAwarded > 0) {
+    const { error: replayError } = await supabase
+      .from('quiz_answers' as never)
+      .insert({ anilist_id: anilistUserId, question_id: questionId, correct: true } as never);
+    if (replayError) {
+      // 23505 = ya respondida → sin puntos. 42P01 = tabla aún no creada → se permite.
+      if (replayError.code === '23505') pointsAwarded = 0;
+      else if (replayError.code !== '42P01') console.warn('[quiz] quiz_answers:', replayError.message);
+    }
+  }
 
   // 2. Si acertó, actualizar `quiz_points` y `monthly_quiz_points` en Supabase
   let newMonthlyPoints = 0;

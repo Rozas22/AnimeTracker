@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-
-const ADMIN_ID = '7952169';
+import { verifyAniListToken, readCookie, TOKEN_COOKIE, ADMIN_ANILIST_ID } from '../../lib/session-verify';
 
 export default async function handler(req, res) {
     const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -61,10 +60,11 @@ export default async function handler(req, res) {
 
     // ─── POST: Guardar o actualizar premio mensual (Solo Admin) ─────
     if (req.method === 'POST') {
-        const { adminId, month, year, title, description, images, is_active } = req.body || {};
+        const { month, year, title, description, images, is_active } = req.body || {};
 
-        // Verificación estricta de administrador
-        if (!adminId || adminId.toString() !== ADMIN_ID) {
+        // Verificación de administrador con el token de AniList de la sesión (no con datos del navegador)
+        const callerId = await verifyAniListToken(readCookie(req.headers.cookie, TOKEN_COOKIE));
+        if (callerId !== ADMIN_ANILIST_ID) {
             return res.status(403).json({ error: 'Acceso no autorizado. Se requieren permisos de administrador.' });
         }
 

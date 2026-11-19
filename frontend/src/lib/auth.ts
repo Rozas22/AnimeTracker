@@ -1,6 +1,6 @@
 import dns from 'node:dns';
 import { cookies } from 'next/headers';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { resolveUnifiedUserLevel, type UnifiedLevelSnapshot } from '@/lib/league';
 import type { UserProfileRow, UserAchievementRow, TablesInsert } from '@/types/database';
 import type { AniListUser, GraphQLResponse } from '@/types/anilist';
@@ -220,7 +220,9 @@ export async function getServerAuthenticatedUser(): Promise<AuthenticatedKuramaU
     (finalProfile.level !== unifiedLevel.computedLevel ||
       finalProfile.anime_points !== unifiedLevel.totalAnimePoints)
   ) {
-    const { data: syncedRow } = await supabase
+    // Escritura con clave de servicio: los valores salen de AniList para ese id,
+    // nunca de lo que mande el navegador.
+    const { data: syncedRow } = await createAdminClient()
       .from('users')
       .update({
         level: unifiedLevel.computedLevel,
@@ -259,7 +261,7 @@ export async function getServerAuthenticatedUser(): Promise<AuthenticatedKuramaU
 export async function upsertSupabaseUserProfile(
   payload: TablesInsert<'users'>
 ): Promise<UserProfileRow | null> {
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('users')

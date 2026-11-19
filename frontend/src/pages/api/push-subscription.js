@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { verifyAniListToken, readCookie, TOKEN_COOKIE } from '../../lib/session-verify';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -14,6 +15,12 @@ export default async function handler(req, res) {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
   const { action, anilist_id, endpoint, p256dh, auth, user_agent, animes } = req.body || {};
+
+  // Solo puedes gestionar tus propias suscripciones: el id sale de la sesión verificada
+  const callerId = await verifyAniListToken(readCookie(req.headers.cookie, TOKEN_COOKIE));
+  if (!callerId || (anilist_id && Number(anilist_id) !== callerId)) {
+    return res.status(403).json({ error: 'No autorizado' });
+  }
 
   if (!anilist_id) {
     return res.status(400).json({ error: 'Falta anilist_id' });

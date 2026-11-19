@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SESSION_COOKIES, getAniListRedirectUri } from '@/lib/session';
+import { createAdminClient } from '@/lib/supabase/server';
 
 interface TokenResponse {
   access_token?: string;
@@ -55,6 +56,15 @@ export async function GET(request: Request): Promise<NextResponse> {
     });
     const viewer = ((await viewerRes.json()) as ViewerResponse).data?.Viewer;
     if (!viewer?.id) return fail('perfil');
+
+    // Alta del usuario en la liga si es su primera vez (no pisa datos existentes)
+    try {
+      await createAdminClient()
+        .from('users')
+        .upsert({ anilist_id: viewer.id, username: viewer.name }, { onConflict: 'anilist_id', ignoreDuplicates: true });
+    } catch {
+      /* el perfil se completa en la siguiente carga */
+    }
 
     const maxAge = Math.max(3600, Math.min(token.expires_in ?? 60 * 60 * 24 * 30, 60 * 60 * 24 * 365));
     const secure = url.protocol === 'https:';

@@ -248,9 +248,14 @@
       --ry: 0deg;
       --rx: 0deg;
     }
-    .anime-frame * {
+    /* Con reducir movimiento, marcos quietos salvo que Ajustes diga "Siempre" */
+    html:not([data-frame-motion='always']) .anime-frame * {
       animation: none !important;
     }
+  }
+  /* Ajustes → "Nunca": marcos quietos aunque el sistema permita animar */
+  html[data-frame-motion='never'] .anime-frame * {
+    animation: none !important;
   }
 
   /* ═══ Marcos anime por nivel ═══ */
@@ -410,8 +415,9 @@
     50% { transform: translateY(-10px) rotateY(6deg); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .frame-showcase__stage { animation: none; }
+    html:not([data-frame-motion='always']) .frame-showcase__stage { animation: none; }
   }
+  html[data-frame-motion='never'] .frame-showcase__stage { animation: none; }
 
   /* ═══ Emblemas de trofeo ═══ */
   .emblem-3d {

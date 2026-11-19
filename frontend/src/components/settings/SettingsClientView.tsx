@@ -27,6 +27,7 @@ import {
   updateProfileVisibilityAction,
 } from '@/lib/anilist/actions';
 import { saveSelectedFrame } from '@/lib/frames/saveFrame';
+import { useFrameMotionPref, setFrameMotionPref, type FrameMotionPref } from '@/lib/frames/motion';
 import type { ProfileVisibility, UserProfileRow } from '@/types/database';
 
 export interface SettingsClientViewProps {
@@ -88,6 +89,7 @@ export function SettingsClientView({
     (initialProfile?.selected_frame as FrameType | null | undefined) ?? 'auto'
   );
   const [isSavingFrame, startFrameSave] = useTransition();
+  const frameMotion = useFrameMotionPref();
   const setSelectedFrame = (value: FrameType | 'auto'): void => {
     const previous = selectedFrame;
     setSelectedFrameState(value);
@@ -397,6 +399,34 @@ export function SettingsClientView({
                   {FRAME_STYLES[frameKey].label}
                 </button>
               ))}
+            </div>
+
+            <div className="border-t border-white/[0.07] pt-4">
+              <p className="text-sm font-medium text-white">Animar marcos</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                «Auto» respeta la opción de reducir movimiento de tu sistema; «Siempre» anima los marcos igualmente. Se guarda en este dispositivo.
+              </p>
+              <div role="radiogroup" aria-label="Animar marcos" className="mt-3 grid w-full grid-cols-3 gap-1 rounded-[12px] bg-background p-1">
+                {([
+                  ['auto', 'Auto'],
+                  ['always', 'Siempre'],
+                  ['never', 'Nunca'],
+                ] as const).map(([value, text]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={frameMotion === value}
+                    onClick={() => setFrameMotionPref(value as FrameMotionPref)}
+                    className={cn(
+                      'rounded-[9px] px-1 py-2 text-xs font-medium transition-colors',
+                      frameMotion === value ? 'bg-popover text-white' : 'text-muted-foreground hover:text-white'
+                    )}
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

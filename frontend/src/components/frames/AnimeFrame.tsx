@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import type { FrameType } from '@/lib/league';
 import { FRAME_ART, type FrameArt } from '@/lib/frames/art';
 import { AlphaVideo } from './AlphaVideo';
+import { useShouldAnimateFrames } from '@/lib/frames/motion';
 
 export interface AnimeFrameProps {
   frame: FrameType;
@@ -182,21 +183,15 @@ function ArtLayers({ art, size, children }: { art: FrameArt; size: number; child
   const box: React.CSSProperties = { position: 'absolute', left, top, width: px, height: px, maxWidth: 'none', pointerEvents: 'none' };
   const mask = `url(${art.src})`;
 
-  // Vídeo solo si existe y el usuario no pide movimiento reducido
-  const [useVideo, setUseVideo] = useState(false);
+  // Vídeo solo si existe y la preferencia (Ajustes / sistema) permite animar
+  const animate = useShouldAnimateFrames();
+  const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
-  useEffect(() => {
-    if (!art.video) return;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = (): void => setUseVideo(!mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, [art.video]);
+  const useVideo = animate && !videoFailed;
 
   const showVideo = Boolean(art.video && useVideo);
   const onVideoReady = React.useCallback(() => setVideoReady(true), []);
-  const onVideoFail = React.useCallback(() => setUseVideo(false), []);
+  const onVideoFail = React.useCallback(() => setVideoFailed(true), []);
 
   return (
     <>

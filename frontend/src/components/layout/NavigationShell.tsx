@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { AnimeFrame } from '@/components/frames/AnimeFrame';
+import { useFrameMotionPref } from '@/lib/frames/motion';
 import { resolveUnifiedUserLevel, FRAME_STYLES, resolveDisplayFrame } from '@/lib/league';
 
 export interface NavItem {
@@ -98,6 +99,8 @@ export function NavigationShell({
   initialEpisodesWatched,
 }: NavigationShellProps): React.JSX.Element {
   const pathname = usePathname() ?? '/';
+  // Aplica al <html> la preferencia de animación de marcos guardada en este dispositivo
+  useFrameMotionPref();
   const { profile } = useSupabaseUser(
     anilistId ?? (process.env.NODE_ENV !== 'production' ? DEV_ANILIST_ID : undefined)
   );

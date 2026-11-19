@@ -7,17 +7,16 @@ import {
   Trophy,
   Crown,
   Medal,
-  Play,
   Timer,
   CheckCircle2,
   XCircle,
-  Gift,
   ChevronDown,
   ChevronUp,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimeFrame } from '@/components/frames/AnimeFrame';
+import { ArenaStage } from './ArenaStage';
 import {
   resolveUnifiedUserLevel,
   calculatePL,
@@ -203,38 +202,24 @@ export function ArenaClientView({
     });
   }, [users, activeLeague, crownsByUser]);
 
+  const monthlySorted = useMemo(
+    () =>
+      [...users]
+        .filter((u) => u.profile_visibility !== 'private')
+        .sort((a, b) => (b.monthly_quiz_points || 0) - (a.monthly_quiz_points || 0)),
+    [users]
+  );
+
   const currentQuestion = questions[currentQIndex] ?? null;
 
-  const myRank = sortedLeaderboard.findIndex((u) => u.anilist_id === currentUserId);
 
   return (
     <div className="space-y-8">
-      {/* Cabecera de la Arena */}
-      <section className="flex flex-col gap-6 rounded-[18px] bg-card p-6 sm:p-8 md:flex-row md:items-end md:justify-between" style={{ boxShadow: 'var(--shadow-tile)' }}>
-        <div className="max-w-xl">
-          <h1 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">Arena</h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            Cada mes la liga empieza de cero: responde el quiz diario para sumar puntos. La liga global suma además todo tu historial de AniList.
-          </p>
-          {myRank >= 0 && (
-            <p className="mt-4 text-sm text-white tabular">
-              Vas <strong className="font-semibold">{myRank + 1}.º</strong> de {sortedLeaderboard.length} en{' '}
-              {activeLeague === 'monthly' ? 'la liga mensual' : activeLeague === 'global' ? 'la liga global' : 'leyendas'}
-            </p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => void handleStartQuiz()}
-          className="inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-[12px] bg-kurama px-7 font-display text-base font-semibold text-ink transition-transform duration-200 hover:scale-[1.03] active:scale-[0.97]"
-        >
-          <Play className="h-4 w-4 fill-current" aria-hidden="true" />
-          Jugar quiz diario
-        </button>
-      </section>
+      {/* Escenario del torneo: cuentas atrás, rival, podio 3D y premio */}
+      <ArenaStage monthly={monthlySorted} currentUserId={currentUserId} activePrize={activePrize} onPlay={() => void handleStartQuiz()} />
 
       {/* Campeón vigente y premio del mes */}
-      <section className="grid grid-cols-1 gap-px overflow-hidden rounded-[18px] bg-white/[0.06] lg:grid-cols-[1.4fr_1fr]" style={{ boxShadow: 'var(--shadow-tile)' }}>
+      <section className="grid grid-cols-1 overflow-hidden rounded-[18px] bg-white/[0.06]" style={{ boxShadow: 'var(--shadow-tile)' }}>
         <div className="min-w-0 bg-card p-6 sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
@@ -284,21 +269,6 @@ export function ArenaClientView({
           )}
         </div>
 
-        <div className="min-w-0 bg-card p-6 sm:p-7">
-          <div className="flex items-center gap-4">
-            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-[12px] bg-popover text-white">
-              <Gift className="h-6 w-6" aria-hidden="true" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">Premio de este mes</p>
-              <h3 className="truncate font-display text-xl font-bold text-white">{activePrize?.title ?? 'Premio de temporada'}</h3>
-            </div>
-          </div>
-          <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            {activePrize?.description ??
-              'Quien termine primero en la liga mensual el día 1 se lleva el premio y una corona permanente.'}
-          </p>
-        </div>
       </section>
 
       {/* Clasificación */}

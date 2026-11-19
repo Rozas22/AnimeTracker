@@ -58,12 +58,12 @@ export default async function ArenaPage(): Promise<React.JSX.Element> {
   const users =
     usersResult.data && usersResult.data.length > 0
       ? usersResult.data
-      : FALLBACK_USERS;
+      : process.env.NODE_ENV !== 'production' ? FALLBACK_USERS : [];
 
   const winners =
     winnersResult.data && winnersResult.data.length > 0
       ? winnersResult.data
-      : FALLBACK_WINNERS;
+      : process.env.NODE_ENV !== 'production' ? FALLBACK_WINNERS : [];
 
   return (
     <ArenaClientView

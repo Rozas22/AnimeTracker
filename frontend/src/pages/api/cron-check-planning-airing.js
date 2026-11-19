@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseUrl, getSupabaseServerKey } from '../../lib/supabase/env';
 import webpush from 'web-push';
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BHjVEryVua0lJzNu7ZHPFzvjDdcXX8bDv_cN2wl-yRszJlnjpmHYom99AV4890V4sdtaiA-1s9oiFUhhJMwiNSc';
@@ -21,8 +22,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'No autorizado' });
   }
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseKey = getSupabaseServerKey();
 
   if (!supabaseUrl || !supabaseKey) {
     return res.status(500).json({ error: 'Configuración de Supabase incompleta.' });

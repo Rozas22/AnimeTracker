@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseUrl, getSupabaseServerKey } from '../../lib/supabase/env';
 
 /**
  * /api/close-month
@@ -16,8 +17,8 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseUrl = getSupabaseUrl();
+    const supabaseKey = getSupabaseServerKey();
     const supabase   = createClient(supabaseUrl, supabaseKey);
 
     try {

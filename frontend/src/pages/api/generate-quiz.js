@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseUrl, getSupabaseServerKey } from '../../lib/supabase/env';
 
 // Helper de timeout
 const fetchWithTimeout = async (promise, ms) => {
@@ -24,8 +25,8 @@ export default async function handler(req, res) {
     }
 
     try {
-        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+        const supabaseUrl = getSupabaseUrl();
+        const supabaseKey = getSupabaseServerKey();
 
         if (!supabaseUrl || !supabaseKey) {
             throw new Error("Faltan variables de entorno de Supabase en Vercel.");

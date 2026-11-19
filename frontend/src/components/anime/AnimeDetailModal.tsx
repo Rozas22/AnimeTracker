@@ -15,6 +15,7 @@ import {
   Play,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SeasonScores } from './SeasonScores';
 import type {
   Media,
   MediaListEntry,
@@ -84,6 +85,22 @@ export function AnimeDetailModal({
   );
 
   const maxEpisodes = media.episodes ?? 9999;
+  const totalEpisodes = media.episodes && media.episodes > 0 ? media.episodes : null;
+
+  // El estado sigue al progreso: al marcar el último episodio pasa a Completado,
+  // y al empezar algo que tenías en "Planeo ver" pasa a Viendo.
+  const changeProgress = (raw: number): void => {
+    const next = Math.min(maxEpisodes, Math.max(0, Math.trunc(raw) || 0));
+    setProgress(next);
+    if (totalEpisodes && next >= totalEpisodes) setStatus('COMPLETED');
+    else if (status === 'COMPLETED' && totalEpisodes && next < totalEpisodes) setStatus('CURRENT');
+    else if (status === 'PLANNING' && next > 0) setStatus('CURRENT');
+  };
+
+  const changeStatus = (next: MediaListStatus): void => {
+    setStatus(next);
+    if (next === 'COMPLETED' && totalEpisodes) setProgress(totalEpisodes);
+  };
 
   const handleSave = async (): Promise<void> => {
     if (!onSaveProgress) {
@@ -207,6 +224,8 @@ export function AnimeDetailModal({
               </p>
             </div>
 
+            <SeasonScores mediaId={media.id} />
+
             {/* Dónde verlo (Streaming Links) */}
             {streamingLinks.length > 0 && (
               <div className="space-y-2">
@@ -241,7 +260,7 @@ export function AnimeDetailModal({
                   </label>
                   <select
                     value={status}
-                    onChange={(e) => setStatus(e.target.value as MediaListStatus)}
+                    onChange={(e) => changeStatus(e.target.value as MediaListStatus)}
                     className="w-full rounded-xl bg-card border border-white/15 px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-kurama"
                   >
                     {STATUS_OPTIONS.map((opt) => (
@@ -260,7 +279,8 @@ export function AnimeDetailModal({
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setProgress((p) => Math.max(0, p - 1))}
+                      onClick={() => changeProgress(progress - 1)}
+                      aria-label="Un episodio menos"
                       className="rounded-xl bg-white/[0.07] hover:bg-white/15 p-2 text-white"
                     >
                       <Minus className="h-3.5 w-3.5" />
@@ -270,16 +290,13 @@ export function AnimeDetailModal({
                       min={0}
                       max={maxEpisodes}
                       value={progress}
-                      onChange={(e) =>
-                        setProgress(
-                          Math.min(maxEpisodes, Math.max(0, Number(e.target.value) || 0))
-                        )
-                      }
+                      onChange={(e) => changeProgress(Number(e.target.value))}
                       className="w-full rounded-xl bg-card border border-white/15 px-2 py-1.5 text-center text-xs font-bold text-white"
                     />
                     <button
                       type="button"
-                      onClick={() => setProgress((p) => Math.min(maxEpisodes, p + 1))}
+                      onClick={() => changeProgress(progress + 1)}
+                      aria-label="Un episodio más"
                       className="rounded-xl bg-kurama/20 hover:bg-kurama/30 border border-kurama/40 p-2 text-kurama"
                     >
                       <Plus className="h-3.5 w-3.5" />

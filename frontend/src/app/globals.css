@@ -121,8 +121,15 @@
   /* Fila horizontal con scroll por cartel */
   .rail-scroll {
     scroll-snap-type: x mandatory;
+    /* el encaje respeta el margen interior (px-4 / md:px-8) */
+    scroll-padding-inline: 1rem;
     scrollbar-width: none;
     overscroll-behavior-x: contain;
+  }
+  @media (min-width: 768px) {
+    .rail-scroll {
+      scroll-padding-inline: 2rem;
+    }
   }
   .rail-scroll::-webkit-scrollbar {
     display: none;
@@ -171,15 +178,19 @@
   }
   /* Destacado: giro permanente, visible sin ratón y en táctil */
   .poster-tile--featured .poster-card {
-    --ry: -14deg;
-    --rx: 4deg;
     box-shadow: var(--shadow-lift);
+  }
+  @media (hover: hover) and (min-width: 768px) {
+    .poster-tile--featured .poster-card {
+      --ry: -14deg;
+      --rx: 4deg;
+    }
   }
 
   /* Estantería 3D en reposo: los carteles giran al entrar y salir de la fila
      al desplazarla (también en táctil). Solo navegadores con scroll-driven animations. */
   @supports (animation-timeline: view()) {
-    .rail-scroll > .poster-tile {
+    .rail-scroll > .poster-tile:not(.poster-tile--featured) {
       animation: shelf-turn linear both;
       animation-timeline: view(inline);
     }
@@ -325,16 +336,16 @@
   }
   /* Oro: el fuego parpadea y crece un poco desde abajo */
   .af-fx-flame .af-art {
-    transform-origin: 50% 75%;
     animation: af-flame-img 1.3s ease-in-out infinite alternate;
   }
   .af-fx-flame .af-art-glow {
     animation-duration: 1.6s;
   }
+  /* Solo luz: el marco nunca se mueve respecto a la foto */
   @keyframes af-flame-img {
-    0% { transform: scale(1, 0.985); filter: brightness(0.95) saturate(1.05); }
-    50% { transform: scale(1.005, 1.02); filter: brightness(1.15) saturate(1.2); }
-    100% { transform: scale(0.998, 1); filter: brightness(1.02) saturate(1.1); }
+    0% { filter: brightness(0.92) saturate(1.05); }
+    50% { filter: brightness(1.18) saturate(1.22); }
+    100% { filter: brightness(1.02) saturate(1.1); }
   }
   /* Croma: el color recorre el arcoíris */
   .af-fx-hue .af-art {

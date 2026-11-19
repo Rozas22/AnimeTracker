@@ -114,14 +114,14 @@ export function AnimeDetailModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 overflow-y-auto"
+        className="fixed inset-0 z-50 overflow-y-auto overscroll-contain bg-black/75 px-4 pb-6 pt-[max(1rem,env(safe-area-inset-top))]"
       >
         <motion.div
           initial={{ scale: 0.94, y: 18, opacity: 0 }}
           animate={{ scale: 1, y: 0, opacity: 1 }}
           exit={{ scale: 0.94, y: 18, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bento-card relative w-full max-w-2xl overflow-hidden border-kurama/35 my-8"
+          className="bento-card relative mx-auto my-4 w-full max-w-2xl overflow-hidden sm:my-12"
         >
           {/* Botón Cerrar */}
           <button

@@ -32,6 +32,8 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // En desarrollo (next dev) los chunks no llevan hash: nunca cachear en local
+  if (self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1") return;
 
   // Solo archivos estáticos inmutables de Next.js → caché primero
   if (!url.pathname.startsWith("/_next/static/")) return;

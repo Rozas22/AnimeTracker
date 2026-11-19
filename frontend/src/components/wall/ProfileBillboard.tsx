@@ -148,8 +148,8 @@ export function ProfileBillboard({
       <div className="grid gap-6 p-5 sm:gap-8 sm:p-8 lg:grid-cols-[1fr_minmax(300px,380px)] lg:items-end lg:p-10">
         {/* Identidad y nivel */}
         <div className="min-w-0">
-          <div className="flex items-center gap-7 pl-2 pt-4 sm:gap-10 sm:pl-4 sm:pt-4">
-            <AnimeFrame frame={effectiveFrame} size={104} detail="full" label={frameStyle.label}>
+          <div className="flex flex-col items-center gap-12 pt-10 text-center sm:flex-row sm:gap-16 sm:pl-10 sm:pt-6 sm:text-left">
+            <AnimeFrame frame={effectiveFrame} size={104} detail="full" label={frameStyle.label} showcase={{ title: anilistUser.name, subtitle: `Nv. ${level.computedLevel} · ${level.userTitle}` }}>
               <Image
                 src={avatarUrl}
                 alt={anilistUser.name}
@@ -165,7 +165,7 @@ export function ProfileBillboard({
               <h1 className="truncate font-display text-3xl font-bold tracking-tight text-white sm:text-5xl">
                 {anilistUser.name}
               </h1>
-              <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/75">
+              <p className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-white/75 sm:justify-start">
                 <span className="font-semibold text-white">{level.userTitle}</span>
                 {crowns > 0 && (
                   <span className="inline-flex items-center gap-1">

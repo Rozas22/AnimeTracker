@@ -1,28 +1,115 @@
-import React, { useId } from 'react';
+'use client';
+
+import React, { useEffect, useId, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FrameType } from '@/lib/league';
+import { FRAME_ART, type FrameArt } from '@/lib/frames/art';
 
 export interface AnimeFrameProps {
   frame: FrameType;
   /** Lado del avatar en px */
   size: number;
   children: React.ReactNode;
-  /** 'auto': decoración completa desde 64px; por debajo solo el borde del marco */
+  /** 'auto': decoración completa desde 56px; por debajo solo el borde del marco */
   detail?: 'auto' | 'full' | 'compact';
   className?: string;
   /** Texto accesible del marco (p. ej. "Marco de Oro") */
   label?: string;
+  /** Si se pasa, al pulsar el avatar se abre la vitrina del marco en grande */
+  showcase?: { title: string; subtitle?: string };
 }
 
 /**
- * Marcos de avatar "épicos" por nivel, en lenguaje anime:
- * bronce = viñeta de manga con trama · plata = corte de katana · oro = aura de llamas ·
- * rubí = círculo mágico · diamante = cristales · croma = las nueve colas del zorro.
- *
- * Geometría: viewBox 160×160, el avatar ocupa el cuadrado 30..130 (radio 22).
- * Las capas "back" se pintan detrás del avatar y las "front" encima del borde.
+ * Marcos de avatar por nivel. Si existe ilustración (FRAME_ART) se usa la imagen,
+ * encajando su hueco central con el avatar y animándola en CSS; si no, el marco SVG.
  */
-export function AnimeFrame({
+export function AnimeFrame(props: AnimeFrameProps): React.JSX.Element {
+  const { showcase, frame, size, children, label } = props;
+  const [open, setOpen] = useState(false);
+
+  if (!showcase) return <FrameBody {...props} />;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`Ver ${label ?? 'marco'} de ${showcase.title}`}
+        className="group/frame shrink-0 rounded-[14px] transition-transform duration-300 hover:scale-[1.03] active:scale-[0.98]"
+      >
+        <FrameBody {...props} />
+      </button>
+      {open && (
+        <FrameShowcase frame={frame} label={label} title={showcase.title} subtitle={showcase.subtitle} onClose={() => setOpen(false)}>
+          {children}
+        </FrameShowcase>
+      )}
+    </>
+  );
+}
+
+function FrameShowcase({
+  frame,
+  label,
+  title,
+  subtitle,
+  onClose,
+  children,
+}: {
+  frame: FrameType;
+  label?: string;
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}): React.JSX.Element | null {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${label ?? 'Marco'} de ${title}`}
+      onClick={onClose}
+      className="frame-showcase fixed inset-0 z-[60] grid place-items-center bg-black/90 p-6"
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Cerrar"
+        className="absolute right-5 top-5 rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <X className="h-5 w-5" />
+      </button>
+      <div className="flex flex-col items-center text-center" onClick={(e) => e.stopPropagation()}>
+        <div className="frame-showcase__stage mt-20">
+          <FrameBody frame={frame} size={200} detail="full" label={label}>
+            {children}
+          </FrameBody>
+        </div>
+        <p className="mt-28 font-display text-2xl font-bold text-white">{label ?? 'Marco'}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {title}
+          {subtitle ? ` · ${subtitle}` : ''}
+        </p>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function FrameBody({
   frame,
   size,
   children,
@@ -31,11 +118,29 @@ export function AnimeFrame({
   label,
 }: AnimeFrameProps): React.JSX.Element {
   const uid = useId().replace(/:/g, '');
-  const full = detail === 'full' || (detail === 'auto' && size >= 64);
+  const full = detail === 'full' || (detail === 'auto' && size >= 56);
   const radius = Math.round(size * 0.22);
+  const art = full ? FRAME_ART[frame] : undefined;
+
+  if (art) {
+    return (
+      <div
+        className={cn('anime-frame relative shrink-0', `anime-frame--${frame}`, `af-fx-${art.fx}`, className)}
+        style={{ width: size, height: size }}
+        role={label ? 'img' : undefined}
+        aria-label={label}
+      >
+        <ArtLayers art={art} size={size}>
+          <div className="relative z-[1] h-full w-full overflow-hidden bg-popover" style={{ borderRadius: radius }}>
+            {children}
+          </div>
+        </ArtLayers>
+      </div>
+    );
+  }
+
   const overlay = size * 1.6;
   const offset = -size * 0.3;
-
   const svgBox: React.CSSProperties = {
     position: 'absolute',
     left: offset,
@@ -61,6 +166,35 @@ export function AnimeFrame({
 
       <FrontLayer frame={frame} uid={uid} style={{ ...svgBox, zIndex: 2 }} full={full} />
     </div>
+  );
+}
+
+/**
+ * Coloca la ilustración para que su hueco central quede justo sobre el avatar
+ * (ligeramente más pequeño, para que el marco tape las esquinas de la foto).
+ */
+function ArtLayers({ art, size, children }: { art: FrameArt; size: number; children: React.ReactNode }): React.JSX.Element {
+  const { opening: o } = art;
+  const px = (size * 0.94) / Math.min(o.w, o.h);
+  const left = size / 2 - (o.x + o.w / 2) * px;
+  const top = size / 2 - (o.y + o.h / 2) * px;
+  const box: React.CSSProperties = { position: 'absolute', left, top, width: px, height: px, maxWidth: 'none', pointerEvents: 'none' };
+  const mask = `url(${art.src})`;
+
+  return (
+    <>
+      {/* Aura: la propia ilustración desenfocada, que respira detrás del avatar */}
+      <img src={art.src} alt="" aria-hidden="true" className="af-art-glow" style={{ ...box, zIndex: 0 }} />
+      {children}
+      {/* Marco: PNG/WebP con transparencia real (fondo negro convertido en alfa) */}
+      <img src={art.src} alt="" aria-hidden="true" className="af-art" style={{ ...box, zIndex: 2 }} />
+      {/* Destello que recorre solo las zonas brillantes del marco */}
+      <span
+        aria-hidden="true"
+        className="af-art-shine"
+        style={{ ...box, zIndex: 3, WebkitMaskImage: mask, maskImage: mask }}
+      />
+    </>
   );
 }
 

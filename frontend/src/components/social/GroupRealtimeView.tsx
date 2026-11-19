@@ -188,7 +188,7 @@ export function GroupRealtimeView({
                     style={{ boxShadow: 'var(--shadow-tile)' }}
                   >
                     <div className="flex items-center gap-3.5">
-                      <AnimeFrame frame={resolveDisplayFrame(levelData.computedLevel, member.selected_frame)} size={48} label={frame.label}>
+                      <AnimeFrame frame={resolveDisplayFrame(levelData.computedLevel, member.selected_frame)} size={48} label={FRAME_STYLES[resolveDisplayFrame(levelData.computedLevel, member.selected_frame)].label} showcase={{ title: name, subtitle: `Nv. ${levelData.computedLevel} · ${levelData.userTitle}` }}>
                         <span className="grid h-full w-full place-items-center bg-[#252a36] text-sm font-semibold text-white">
                           {name.slice(0, 2).toUpperCase()}
                         </span>

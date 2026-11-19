@@ -59,7 +59,7 @@ export function TrophyShowcase({
       {next && (
         <div className="flex flex-col gap-5 rounded-[18px] bg-card p-5 sm:flex-row sm:items-center sm:p-6" style={{ boxShadow: 'var(--shadow-tile)' }}>
           <div className="emblem-3d mx-auto shrink-0 sm:mx-0">
-            <TrophyEmblem level={next.level} tier={nextIdx} accent={next.accentHex} unlocked size={92} />
+            <TrophyEmblem level={next.level} tier={nextIdx} accent={next.accentHex} unlocked size={128} />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm text-muted-foreground">Tu siguiente misión</p>
@@ -114,7 +114,7 @@ export function TrophyShowcase({
                 style={{ boxShadow: 'var(--shadow-tile)' }}
               >
                 <span className="emblem-3d">
-                  <TrophyEmblem level={m.level} tier={idx} accent={m.accentHex} unlocked={unlocked} size={84} />
+                  <TrophyEmblem level={m.level} tier={idx} accent={m.accentHex} unlocked={unlocked} size={124} />
                 </span>
                 <span className={cn('mt-3 font-display text-sm font-semibold leading-tight', unlocked ? 'text-white' : 'text-muted-foreground')}>
                   {m.title}
@@ -162,7 +162,7 @@ export function TrophyShowcase({
                   tier={selected.tier}
                   accent={selected.m.accentHex}
                   unlocked={level >= selected.m.level}
-                  size={140}
+                  size={240}
                 />
               </div>
               <h3 className="mt-4 font-display text-2xl font-bold text-white">{selected.m.title}</h3>

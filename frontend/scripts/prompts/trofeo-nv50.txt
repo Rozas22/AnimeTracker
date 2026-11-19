@@ -1,0 +1,9 @@
+A single collectible achievement emblem for an anime fan app, rendered as a high-end 3D game trophy icon.
+
+Subject: a hexagonal crest of polished gold metal with beveled edges and fine engraved filigree, framed by two stylized feathered wings made of gold plates (four feathers per wing), three small gold stars floating above the crest. In the center of the crest, a recessed dark ink-navy panel with the number "50" deeply engraved in bold geometric numerals, catching warm rim light.
+
+Style: anime / JRPG rank-badge aesthetic, crisp cel-shaded highlights combined with realistic metal reflections, subtle warm orange energy aura glowing behind the crest, a few small sparkles. Three-quarter front view with a slight 3D tilt, centered, the whole emblem fully inside the frame with generous margin.
+
+Background: perfectly flat pure black (#000000), no gradient, no floor, no shadow on the background, no other objects.
+
+No text other than the number 50. No watermark, no logo, no border.

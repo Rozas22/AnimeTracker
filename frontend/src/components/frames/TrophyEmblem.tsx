@@ -1,5 +1,6 @@
 import React, { useId } from 'react';
 import { cn } from '@/lib/utils';
+import { TROPHY_ART } from '@/lib/frames/art';
 
 export interface TrophyEmblemProps {
   /** Nivel del hito (10, 20 … 100) */
@@ -46,6 +47,31 @@ function Wing({ feathers, fill }: { feathers: number; fill: string }): React.JSX
  */
 export function TrophyEmblem({ level, tier, accent, unlocked, size = 96, className }: TrophyEmblemProps): React.JSX.Element {
   const uid = useId().replace(/:/g, '');
+  const art = TROPHY_ART[level];
+
+  if (art) {
+    const mask = `url(${art})`;
+    return (
+      <span
+        className={cn('trophy-emblem trophy-art relative inline-block', unlocked ? 'trophy-emblem--on' : 'trophy-art--locked', className)}
+        style={{ width: size, height: size }}
+        aria-hidden="true"
+      >
+        {unlocked && <img src={art} alt="" className="trophy-art__glow" />}
+        <img src={art} alt="" className="trophy-art__img" loading="lazy" decoding="async" />
+        {unlocked && <span className="trophy-art__shine" style={{ WebkitMaskImage: mask, maskImage: mask }} />}
+        {!unlocked && (
+          <span className="absolute bottom-[6%] left-1/2 grid h-[22%] w-[22%] -translate-x-1/2 place-items-center rounded-full bg-[#161922] ring-1 ring-white/15">
+            <svg viewBox="0 0 24 24" className="h-1/2 w-1/2" fill="none" stroke="#9aa0b0" strokeWidth="2">
+              <rect x="5" y="11" width="14" height="10" rx="2" fill="#9aa0b0" stroke="none" />
+              <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+            </svg>
+          </span>
+        )}
+      </span>
+    );
+  }
+
   const metalLight = unlocked ? shade(accent, 70) : '#4a5162';
   const metalMid = unlocked ? accent : '#353b49';
   const metalDark = unlocked ? shade(accent, -70) : '#20242e';

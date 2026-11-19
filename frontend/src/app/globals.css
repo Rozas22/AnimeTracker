@@ -297,6 +297,106 @@
     filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.5));
   }
 
+  /* ═══ Marcos ilustrados (imagen con fondo negro → screen) ═══ */
+  .af-art {
+    user-select: none;
+  }
+  .af-art-glow {
+    opacity: 0.5;
+    filter: blur(12px) brightness(1.35) saturate(1.3);
+    animation: af-breathe 3.4s ease-in-out infinite;
+  }
+  .af-art-shine {
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    background: linear-gradient(115deg, transparent 38%, rgb(255 255 255 / 0.85) 50%, transparent 62%);
+    background-size: 260% 100%;
+    background-position: 130% 0;
+    mix-blend-mode: overlay;
+    animation: af-sweep 4.2s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  }
+  @keyframes af-breathe {
+    0%, 100% { opacity: 0.38; }
+    50% { opacity: 0.72; }
+  }
+  @keyframes af-sweep {
+    0%, 55% { background-position: 130% 0; }
+    100% { background-position: -30% 0; }
+  }
+  /* Oro: el fuego parpadea y crece un poco desde abajo */
+  .af-fx-flame .af-art {
+    transform-origin: 50% 75%;
+    animation: af-flame-img 1.3s ease-in-out infinite alternate;
+  }
+  .af-fx-flame .af-art-glow {
+    animation-duration: 1.6s;
+  }
+  @keyframes af-flame-img {
+    0% { transform: scale(1, 0.985); filter: brightness(0.95) saturate(1.05); }
+    50% { transform: scale(1.005, 1.02); filter: brightness(1.15) saturate(1.2); }
+    100% { transform: scale(0.998, 1); filter: brightness(1.02) saturate(1.1); }
+  }
+  /* Croma: el color recorre el arcoíris */
+  .af-fx-hue .af-art {
+    animation: af-hue 7s linear infinite;
+  }
+  .af-fx-hue .af-art-glow {
+    animation: af-breathe 3.4s ease-in-out infinite, af-hue-glow 7s linear infinite;
+  }
+  @keyframes af-hue-glow {
+    from { filter: blur(12px) brightness(1.35) saturate(1.3) hue-rotate(0deg); }
+    to { filter: blur(12px) brightness(1.35) saturate(1.3) hue-rotate(360deg); }
+  }
+  /* Rubí: el círculo mágico late */
+  .af-fx-pulse .af-art-glow {
+    animation-duration: 1.7s;
+  }
+  .af-fx-pulse .af-art {
+    animation: af-pulse-img 1.7s ease-in-out infinite;
+  }
+  @keyframes af-pulse-img {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.25) saturate(1.15); }
+  }
+  /* Diamante: destellos más rápidos */
+  .af-fx-twinkle .af-art-shine {
+    animation-duration: 2.6s;
+  }
+  /* Avatar pulsable: el aura se intensifica al pasar el ratón */
+  .group\/frame:hover .af-art-glow,
+  .group\/frame:focus-visible .af-art-glow {
+    opacity: 0.9;
+  }
+
+  /* Vitrina del marco: entra girando en 3D y luego flota */
+  .frame-showcase {
+    perspective: 1000px;
+    animation: af-fade 0.25s ease-out both;
+  }
+  .frame-showcase__stage {
+    transform-style: preserve-3d;
+    animation:
+      af-showcase-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) both,
+      af-float 4.5s ease-in-out 0.8s infinite;
+  }
+  .frame-showcase__stage .af-art-glow {
+    opacity: 0.85;
+  }
+  @keyframes af-fade {
+    from { opacity: 0; }
+  }
+  @keyframes af-showcase-in {
+    from { transform: rotateY(-80deg) scale(0.55); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+  @keyframes af-float {
+    0%, 100% { transform: translateY(0) rotateY(-6deg); }
+    50% { transform: translateY(-10px) rotateY(6deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .frame-showcase__stage { animation: none; }
+  }
+
   /* ═══ Emblemas de trofeo ═══ */
   .emblem-3d {
     display: inline-block;
@@ -311,6 +411,51 @@
     transform: rotateY(22deg) rotateX(6deg) translateZ(14px);
     filter: drop-shadow(-8px 16px 14px rgb(0 0 0 / 0.65));
   }
+  /* Trofeos ilustrados */
+  .trophy-art > img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+  }
+  .trophy-art__glow {
+    opacity: 0;
+    filter: blur(14px) brightness(1.4) saturate(1.3);
+    transition: opacity 0.4s ease-out;
+  }
+  .trophy-art__shine {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    background: linear-gradient(115deg, transparent 38%, rgb(255 255 255 / 0.9) 50%, transparent 62%);
+    background-size: 260% 100%;
+    background-position: 130% 0;
+    mix-blend-mode: overlay;
+    animation: af-sweep 5s cubic-bezier(0.45, 0, 0.2, 1) infinite;
+  }
+  .trophy-art--locked .trophy-art__img {
+    filter: grayscale(1) brightness(0.45) contrast(1.1);
+  }
+  /* Al pasar el ratón o tocar: aura encendida y destello inmediato */
+  .group:hover .trophy-art__glow,
+  .group:focus-visible .trophy-art__glow,
+  .group:active .trophy-art__glow,
+  .emblem-3d:hover .trophy-art__glow {
+    opacity: 0.75;
+  }
+  .group:hover .trophy-art__shine,
+  .group:focus-visible .trophy-art__shine,
+  .group:active .trophy-art__shine {
+    animation-duration: 1.4s;
+  }
+  .group:active .emblem-3d > .trophy-emblem {
+    transform: rotateY(22deg) rotateX(6deg) translateZ(14px);
+  }
+
   .trophy-shine {
     animation: trophy-shine 4.5s ease-in-out infinite;
   }

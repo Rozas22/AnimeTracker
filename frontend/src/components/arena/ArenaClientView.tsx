@@ -360,7 +360,7 @@ export function ArenaClientView({
                   <span className={cn('w-7 shrink-0 text-center font-display text-lg tabular', idx < 3 ? 'font-bold text-white' : 'text-muted-foreground')}>
                     {idx + 1}
                   </span>
-                  <AnimeFrame frame={resolveDisplayFrame(levelData.computedLevel, player.selected_frame)} size={44} label={frame.label}>
+                  <AnimeFrame frame={resolveDisplayFrame(levelData.computedLevel, player.selected_frame)} size={44} label={FRAME_STYLES[resolveDisplayFrame(levelData.computedLevel, player.selected_frame)].label} showcase={{ title: player.username ?? `Usuario #${player.anilist_id}`, subtitle: `Nv. ${levelData.computedLevel}` }}>
                     <span className="grid h-full w-full place-items-center bg-[#252a36] text-xs font-semibold text-white">
                       {(player.username ?? 'KT').slice(0, 2).toUpperCase()}
                     </span>

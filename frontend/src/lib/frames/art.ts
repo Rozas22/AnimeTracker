@@ -29,8 +29,8 @@ export const FRAME_ART: Partial<Record<FrameType, FrameArt>> = {
   silver: { src: '/frames/plata.webp', opening: { x: 0.246, y: 0.243, w: 0.508, h: 0.511 }, fx: 'shine' },
   gold: { src: '/frames/oro.webp', opening: { x: 0.275, y: 0.362, w: 0.45, h: 0.416 }, fx: 'flame', video: '/frames/oro-llamas.mp4' },
   ruby: { src: '/frames/rubi.webp', opening: { x: 0.274, y: 0.275, w: 0.451, h: 0.45 }, fx: 'pulse', video: '/frames/rubi-magia.mp4' },
-  diamond: { src: '/frames/diamante.webp', opening: { x: 0.292, y: 0.292, w: 0.416, h: 0.417 }, fx: 'twinkle' },
-  chroma: { src: '/frames/croma.webp', opening: { x: 0.33, y: 0.333, w: 0.34, h: 0.33 }, fx: 'hue' },
+  diamond: { src: '/frames/diamante.webp', opening: { x: 0.292, y: 0.292, w: 0.416, h: 0.417 }, fx: 'twinkle', video: '/frames/diamante-cristales.mp4' },
+  chroma: { src: '/frames/croma.webp', opening: { x: 0.33, y: 0.333, w: 0.34, h: 0.33 }, fx: 'hue', video: '/frames/croma-colas.mp4' },
 };
 
 /** Emblemas de trofeo ilustrados por nivel de hito. */

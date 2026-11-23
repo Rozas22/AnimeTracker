@@ -1,6 +1,5 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/server';
 import { getVerifiedAniListId } from '@/lib/session-server';
 import type { QuizRow } from '@/types/database';
@@ -76,10 +75,27 @@ const FALLBACK_QUIZ_POOL: QuizRow[] = [
   },
 ];
 
+export interface DailyQuizState {
+  questions: PublicQuizQuestion[];
+  /** Primera pregunta sin responder hoy (igual a `questions.length` si ya terminó). */
+  nextIndex: number;
+  /** Aciertos de hoy en las preguntas ya respondidas. */
+  correctToday: number;
+}
+
+interface QuizAnswerRow {
+  question_id: string;
+  correct: boolean;
+  answered_at: string;
+}
+
+const startOfUTCDay = (): string => `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`;
+
 /**
- * Obtiene 5 preguntas para el Quiz Diario ocultando `correct_answer` al cliente.
+ * Obtiene las 5 preguntas del Quiz Diario ocultando `correct_answer` al cliente,
+ * y por dónde sigue el usuario: lo ya respondido hoy no se vuelve a preguntar.
  */
-export async function getDailyQuizQuestionsAction(): Promise<PublicQuizQuestion[]> {
+export async function getDailyQuizQuestionsAction(): Promise<DailyQuizState> {
   const supabase = createAdminClient();
   const day = new Date().toISOString().slice(0, 10); // el quiz cambia a las 00:00 UTC, igual que el cron
 
@@ -96,12 +112,31 @@ export async function getDailyQuizQuestionsAction(): Promise<PublicQuizQuestion[
   const fresh = pool.filter((q) => (q.created_at ?? '').slice(0, 10) === day);
   const picked = fresh.length >= 5 ? fresh.slice(0, 5) : seededShuffle(pool, `dia-${day}`).slice(0, 5);
 
-  return picked.map(({ correct_answer: _hidden, ...publicQuestion }) => ({
+  const questions = picked.map(({ correct_answer: _hidden, ...publicQuestion }) => ({
     ...publicQuestion,
     // Las opciones se barajan (la correcta solía venir la primera); el orden es
     // estable durante el día para que recargar no lo cambie.
     options: seededShuffle(publicQuestion.options ?? [], `${publicQuestion.id}-${day}`),
   }));
+
+  const anilistUserId = await getVerifiedAniListId();
+  if (!anilistUserId) return { questions, nextIndex: 0, correctToday: 0 };
+
+  const { data: rows } = await supabase
+    .from('quiz_answers' as never)
+    .select('question_id, correct, answered_at')
+    .eq('anilist_id' as never, anilistUserId as never)
+    .in('question_id' as never, questions.map((q) => q.id) as never)
+    .gte('answered_at' as never, startOfUTCDay() as never);
+
+  const answered = new Map(((rows ?? []) as unknown as QuizAnswerRow[]).map((r) => [r.question_id, r.correct]));
+  const firstOpen = questions.findIndex((q) => !answered.has(q.id));
+
+  return {
+    questions,
+    nextIndex: firstOpen === -1 ? questions.length : firstOpen,
+    correctToday: Array.from(answered.values()).filter(Boolean).length,
+  };
 }
 
 /** Barajado determinista (Fisher-Yates con mulberry32 sembrado por texto). */
@@ -163,16 +198,47 @@ export async function submitQuizAnswerAction(params: {
   const speedBonus = Math.max(0, Math.min(30, Math.floor(safeTime * 2)));
   let pointsAwarded = isCorrect ? 100 + speedBonus : 0;
 
-  // Anti-repetición: cada pregunta solo puntúa una vez por usuario.
+  // Cada pregunta se responde una sola vez al día, se acierte o se falle: si no,
+  // bastaría fallar, ver la solución y volver a empezar.
   // (tabla quiz_answers, ver supabase_migration_seguridad.sql)
-  if (anilistUserId && pointsAwarded > 0) {
-    const { error: replayError } = await supabase
+  if (anilistUserId) {
+    const { data: prevRaw } = await supabase
       .from('quiz_answers' as never)
-      .insert({ anilist_id: anilistUserId, question_id: questionId, correct: true } as never);
-    if (replayError) {
-      // 23505 = ya respondida → sin puntos. 42P01 = tabla aún no creada → se permite.
-      if (replayError.code === '23505') pointsAwarded = 0;
-      else if (replayError.code !== '42P01') console.warn('[quiz] quiz_answers:', replayError.message);
+      .select('question_id, correct, answered_at')
+      .eq('anilist_id' as never, anilistUserId as never)
+      .eq('question_id' as never, questionId as never)
+      .maybeSingle();
+    const prev = prevRaw as unknown as QuizAnswerRow | null;
+
+    if (prev && new Date(prev.answered_at).getTime() >= new Date(startOfUTCDay()).getTime()) {
+      return {
+        isCorrect: prev.correct,
+        correctAnswer,
+        pointsAwarded: 0,
+        newMonthlyPoints: 0,
+        newTotalQuizPoints: 0,
+      };
+    }
+
+    if (prev) {
+      // La pregunta vuelve a salir otro día: puntúa solo si nunca se había acertado.
+      const { data: claimed } = await supabase
+        .from('quiz_answers' as never)
+        .update({ correct: prev.correct || isCorrect, answered_at: new Date().toISOString() } as never)
+        .eq('anilist_id' as never, anilistUserId as never)
+        .eq('question_id' as never, questionId as never)
+        .eq('answered_at' as never, prev.answered_at as never)
+        .select('question_id');
+      if (!claimed?.length || prev.correct) pointsAwarded = 0;
+    } else {
+      const { error: insertError } = await supabase
+        .from('quiz_answers' as never)
+        .insert({ anilist_id: anilistUserId, question_id: questionId, correct: isCorrect } as never);
+      if (insertError) {
+        // 23505 = otra petición la respondió a la vez. Sin registro no hay puntos.
+        if (insertError.code !== '23505') console.warn('[quiz] quiz_answers:', insertError.message);
+        pointsAwarded = 0;
+      }
     }
   }
 
@@ -190,7 +256,9 @@ export async function submitQuizAnswerAction(params: {
     newMonthlyPoints = (userRow?.monthly_quiz_points ?? 0) + pointsAwarded;
     newTotalQuizPoints = (userRow?.quiz_points ?? 0) + pointsAwarded;
 
-    if (isCorrect && userRow) {
+    // Sin revalidatePath aquí: refrescar la ruta en mitad de la partida vuelve a
+    // montar la Arena y cierra el quiz. El cliente refresca al cerrarlo.
+    if (pointsAwarded > 0 && userRow) {
       await supabase
         .from('users')
         .update({
@@ -199,9 +267,6 @@ export async function submitQuizAnswerAction(params: {
           last_updated_at: new Date().toISOString(),
         })
         .eq('anilist_id', anilistUserId);
-
-      revalidatePath('/arena');
-      revalidatePath('/');
     }
   }
 

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import {
@@ -89,6 +90,11 @@ export function ArenaClientView({
   const [sessionPoints, setSessionPoints] = useState<number>(0);
   const [quizFinished, setQuizFinished] = useState<boolean>(false);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [correctCount, setCorrectCount] = useState<number>(0);
+  const [alreadyPlayed, setAlreadyPlayed] = useState<boolean>(false);
+  const router = useRouter();
+  const nextQuestionTimer = useRef<number | null>(null);
+  const earnedPoints = useRef<boolean>(false);
 
   const lastWinner = monthlyWinners[0] ?? null;
 
@@ -117,16 +123,47 @@ export function ArenaClientView({
     return () => clearTimeout(timer);
   }, [quizOpen, quizFinished, selectedOption, timeLeft]);
 
+  const clearNextQuestionTimer = (): void => {
+    if (nextQuestionTimer.current !== null) window.clearTimeout(nextQuestionTimer.current);
+    nextQuestionTimer.current = null;
+  };
+
+  useEffect(() => clearNextQuestionTimer, []);
+
   const handleStartQuiz = async (): Promise<void> => {
-    const fetched = await getDailyQuizQuestionsAction();
+    clearNextQuestionTimer();
+    const { questions: fetched, nextIndex, correctToday } = await getDailyQuizQuestionsAction();
+    const finished = nextIndex >= fetched.length;
     setQuestions(fetched);
-    setCurrentQIndex(0);
+    setCurrentQIndex(finished ? 0 : nextIndex);
+    setCorrectCount(correctToday);
+    setAlreadyPlayed(finished);
     setTimeLeft(15);
     setSelectedOption(null);
     setRevealedCorrect(null);
     setSessionPoints(0);
-    setQuizFinished(false);
+    setQuizFinished(finished);
     setQuizOpen(true);
+  };
+
+  // Cerrar con una pregunta en pantalla la da por fallada: si no, se podría
+  // cerrar, buscar la respuesta y volver con el tiempo entero.
+  const handleCloseQuiz = (): void => {
+    const abandoned = !quizFinished && selectedOption === null ? questions[currentQIndex] : undefined;
+    if (abandoned) {
+      void submitQuizAnswerAction({
+        questionId: abandoned.id,
+        selectedOption: '__TIMEOUT__',
+        anilistUserId: currentUserId,
+        timeRemainingSeconds: 0,
+      });
+    }
+    clearNextQuestionTimer();
+    setQuizOpen(false);
+    if (earnedPoints.current) {
+      earnedPoints.current = false;
+      router.refresh();
+    }
   };
 
   const handleSelectAnswer = async (option: string): Promise<void> => {
@@ -146,7 +183,9 @@ export function ArenaClientView({
 
       setRevealedCorrect(result.correctAnswer);
 
-      if (result.isCorrect) {
+      if (result.isCorrect) setCorrectCount((prev) => prev + 1);
+      if (result.pointsAwarded > 0) {
+        earnedPoints.current = true;
         setSessionPoints((prev) => prev + result.pointsAwarded);
         setUsers((prev) =>
           prev.map((u) =>
@@ -162,7 +201,8 @@ export function ArenaClientView({
         );
       }
 
-      setTimeout(() => {
+      nextQuestionTimer.current = window.setTimeout(() => {
+        nextQuestionTimer.current = null;
         if (currentQIndex + 1 < questions.length) {
           setCurrentQIndex((i) => i + 1);
           setSelectedOption(null);
@@ -394,7 +434,7 @@ export function ArenaClientView({
             >
               <button
                 type="button"
-                onClick={() => setQuizOpen(false)}
+                onClick={handleCloseQuiz}
                 aria-label="Cerrar quiz"
                 className="absolute right-4 top-4 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-white/10 hover:text-white"
               >
@@ -464,13 +504,21 @@ export function ArenaClientView({
                   <div className="mx-auto grid h-16 w-16 place-items-center rounded-[14px] bg-card text-white">
                     <Trophy className="h-8 w-8" aria-hidden="true" />
                   </div>
-                  <h3 className="font-display text-2xl font-bold text-white">Quiz de hoy completado</h3>
+                  <h3 className="font-display text-2xl font-bold text-white">
+                    {alreadyPlayed ? 'Ya has jugado hoy' : 'Quiz de hoy completado'}
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    Has sumado <strong className="font-semibold text-white tabular">+{sessionPoints} PL</strong> a tu liga mensual y global.
+                    Has acertado <strong className="font-semibold text-white tabular">{correctCount} de {questions.length}</strong>
+                    {sessionPoints > 0 && (
+                      <>
+                        {' '}y sumado <strong className="font-semibold text-white tabular">+{sessionPoints} PL</strong> a tu liga
+                      </>
+                    )}
+                    .{alreadyPlayed && ' Mañana habrá preguntas nuevas.'}
                   </p>
                   <button
                     type="button"
-                    onClick={() => setQuizOpen(false)}
+                    onClick={handleCloseQuiz}
                     className="rounded-[10px] bg-kurama px-6 py-3 text-sm font-semibold text-ink"
                   >
                     Volver a la clasificación

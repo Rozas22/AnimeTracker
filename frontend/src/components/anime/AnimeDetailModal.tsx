@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { getAnimeMediaAction, getFranchiseScoresAction, type FranchiseEntry } from '@/lib/anilist/franchise';
 import { completeSeasonsAction } from '@/lib/anilist/actions';
 import { refreshCollectionCache } from '@/lib/anilist/client-save';
+import { getSpanishSynopsisAction } from '@/lib/anilist/synopsis';
 import { SagaPanel } from './SagaPanel';
 import type { Media, MediaListEntry, MediaListStatus } from '@/types/anilist';
 
@@ -57,6 +58,7 @@ export function AnimeDetailModal({ media, entry, onClose, onSaveProgress }: Anim
   const [score, setScore] = useState<number>(8);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
+  const [synopsis, setSynopsis] = useState<{ id: number; text: string | null; loading: boolean } | null>(null);
   const dirty = useRef(false);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -86,6 +88,20 @@ export function AnimeDetailModal({ media, entry, onClose, onSaveProgress }: Anim
       alive = false;
     };
   }, [current?.id, reloadKey]);
+
+  // Sinopsis en español: se muestra la original mientras llega la traducción
+  useEffect(() => {
+    if (!current?.description) return;
+    let alive = true;
+    const id = current.id;
+    setSynopsis({ id, text: null, loading: true });
+    void getSpanishSynopsisAction(id)
+      .then((text) => alive && setSynopsis({ id, text, loading: false }))
+      .catch(() => alive && setSynopsis({ id, text: null, loading: false }));
+    return () => {
+      alive = false;
+    };
+  }, [current?.id, current?.description]);
 
   // Lo guardado en esta tarjeta manda sobre lo que tarde en llegar de AniList
   const entries = useMemo<FranchiseEntry[] | null>(
@@ -189,7 +205,8 @@ export function AnimeDetailModal({ media, entry, onClose, onSaveProgress }: Anim
 
   const title = titleOf(current);
   const coverUrl = current.coverImage.extraLarge || current.coverImage.large || '/icon-192.png';
-  const cleanDescription = (current.description ?? 'Sin sinopsis disponible.').replace(/<[^>]*>?/gm, '').trim();
+  const cleanDescription = (current.description ?? 'Sin sinopsis disponible.').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>?/gm, '').trim();
+  const translated = synopsis?.id === current.id ? synopsis : null;
   const streamingLinks = (current.externalLinks ?? []).filter((link) => !link.isDisabled && (link.type === 'STREAMING' || link.site));
   const maxEpisodes = current.episodes ?? 9999;
   const totalEpisodes = current.episodes && current.episodes > 0 ? current.episodes : null;
@@ -418,8 +435,21 @@ export function AnimeDetailModal({ media, entry, onClose, onSaveProgress }: Anim
 
             {/* Sinopsis */}
             <div className="space-y-1.5">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sinopsis</h3>
-              <p className="max-h-28 overflow-y-auto pr-1 text-xs leading-relaxed text-slate-300 sm:text-sm">{cleanDescription}</p>
+              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Sinopsis
+                {translated?.loading && (
+                  <span className="inline-flex items-center gap-1 normal-case tracking-normal text-kurama">
+                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" />
+                    traduciendo…
+                  </span>
+                )}
+              </h3>
+              <p className="max-h-40 overflow-y-auto whitespace-pre-line pr-1 text-xs leading-relaxed text-slate-300 sm:text-sm" lang={translated?.text ? 'es' : 'en'}>
+                {translated?.text ?? cleanDescription}
+              </p>
+              {translated && !translated.loading && !translated.text && current.description && (
+                <p className="text-[11px] text-muted-foreground">Traducción no disponible ahora mismo: se muestra la original en inglés.</p>
+              )}
             </div>
 
             {/* Dónde verlo (Streaming Links) */}

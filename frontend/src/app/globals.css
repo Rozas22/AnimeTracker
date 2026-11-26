@@ -62,11 +62,18 @@
        contenedor de scroll, que en iOS rompe el scroll hasta arriba y el sticky */
     overflow-x: clip;
     scrollbar-color: hsl(224 18% 26%) transparent;
+    /* Como una app: sin rebote elástico ni zoom con gestos (el scroll sigue igual) */
+    overscroll-behavior: none;
+    touch-action: pan-x pan-y;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
     overflow-x: clip;
+    overscroll-behavior: none;
+    touch-action: pan-x pan-y;
     font-feature-settings: 'tnum' 0;
   }
 

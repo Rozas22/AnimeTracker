@@ -10,6 +10,9 @@ export const viewport: Viewport = {
   themeColor: '#0c0e14',
   width: 'device-width',
   initialScale: 1,
+  // Como una app nativa: sin zoom con dos dedos ni al tocar un campo de texto
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: 'cover',
 };
 

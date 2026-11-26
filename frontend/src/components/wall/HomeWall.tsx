@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { saveAnimeProgressAction } from '@/lib/anilist/actions';
+import { saveProgress } from '@/lib/anilist/client-save';
 import { AnimeDetailModal } from '@/components/anime/AnimeDetailModal';
 import { PosterRow } from './PosterRow';
 import { PosterTile } from './PosterTile';
@@ -113,7 +113,7 @@ export function HomeWall({ entries: initialEntries, schedules, anilistUserId, af
     setBusyId(entry.mediaId);
     setEntries((prev) => prev.map((e) => (e.mediaId === entry.mediaId ? { ...e, progress: next, status, updatedAt: Math.floor(Date.now() / 1000) } : e)));
     startTransition(async () => {
-      await saveAnimeProgressAction({
+      await saveProgress({
         anilistUserId,
         mediaId: entry.mediaId,
         progress: next,
@@ -131,7 +131,7 @@ export function HomeWall({ entries: initialEntries, schedules, anilistUserId, af
       prev.map((e) => (e.mediaId === payload.mediaId ? { ...e, status: payload.status, progress: payload.progress, score: payload.score } : e))
     );
     startTransition(async () => {
-      await saveAnimeProgressAction({
+      await saveProgress({
         anilistUserId,
         mediaId: payload.mediaId,
         status: payload.status,

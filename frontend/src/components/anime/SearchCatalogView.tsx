@@ -10,10 +10,8 @@ import {
 } from 'lucide-react';
 import { AnimeCard, AnimeGridSkeleton } from './AnimeCard';
 import { AnimeDetailModal } from './AnimeDetailModal';
-import {
-  searchAnimeCatalogAction,
-  saveAnimeProgressAction,
-} from '@/lib/anilist/actions';
+import { searchAnimeCatalogAction } from '@/lib/anilist/actions';
+import { saveProgress } from '@/lib/anilist/client-save';
 import type {
   Media,
   MediaFormat,
@@ -250,7 +248,7 @@ export function SearchCatalogView({
           progress: number;
           score: number;
         }) => {
-          await saveAnimeProgressAction({
+          await saveProgress({
             anilistUserId,
             mediaId: payload.mediaId,
             status: payload.status,

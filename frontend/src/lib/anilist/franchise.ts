@@ -2,7 +2,8 @@
 
 import { getVerifiedAniListId } from '@/lib/session-server';
 import { getUserAnimeCollectionAction } from './actions';
-import type { MediaFormat, MediaListStatus } from '@/types/anilist';
+import type { Media, MediaFormat, MediaListStatus, MediaStatus } from '@/types/anilist';
+import { MEDIA_CORE_FRAGMENT } from './fragments';
 
 const ANILIST_ENDPOINT = process.env.NEXT_PUBLIC_ANILIST_GRAPHQL_URL || 'https://graphql.anilist.co';
 
@@ -11,13 +12,18 @@ const SEASON_FORMATS: ReadonlySet<string> = new Set(['TV', 'TV_SHORT', 'ONA', 'M
 /** Formatos por los que se puede pasar para no romper la cadena, aunque no se muestren
  *  (p. ej. Slime T1 → OVA → T2). */
 const BRIDGE_FORMATS: ReadonlySet<string> = new Set(['TV', 'TV_SHORT', 'ONA', 'MOVIE', 'OVA', 'SPECIAL']);
-const MAX_VISITED = 32;
+const MAX_VISITED = 40;
+const MAX_SIDE = 20;
 const MAX_HOPS = 14;
 
 export interface FranchiseEntry {
   mediaId: number;
   title: string;
   format: MediaFormat | null;
+  /** 'side' = película o historia paralela colgada de una temporada */
+  kind: 'main' | 'side';
+  /** Estado de emisión en AniList (terminada, en emisión, próximamente…) */
+  releaseStatus: MediaStatus | null;
   year: number | null;
   episodes: number | null;
   /** Media de AniList sobre 10, o null si no hay. */
@@ -37,6 +43,7 @@ interface RelationNode {
 interface FranchiseMedia {
   id: number;
   format: MediaFormat | null;
+  status: MediaStatus | null;
   episodes: number | null;
   averageScore: number | null;
   startDate: { year: number | null; month: number | null; day: number | null } | null;
@@ -64,6 +71,7 @@ const MEDIA_FIELDS = `
   id
   type
   format
+  status
   episodes
   averageScore
   startDate { year month day }
@@ -102,6 +110,24 @@ function chainEdges<N extends RelationNode>(edges: Array<Edge<N>> | undefined): 
     .filter((n) => n.type === 'ANIME' && !!n.format && BRIDGE_FORMATS.has(n.format));
 }
 
+/** Películas e historias paralelas: se muestran, pero no se sigue la cadena por ellas. */
+function sideEdges<N extends RelationNode>(edges: Array<Edge<N>> | undefined): N[] {
+  return (edges ?? [])
+    .filter((e) => e.relationType === 'SIDE_STORY' && e.node)
+    .map((e) => e.node as N)
+    .filter((n) => n.type === 'ANIME' && !!n.format && SEASON_FORMATS.has(n.format));
+}
+
+const SIDE_QUERY = `
+  query ($ids: [Int]) {
+    Page(perPage: 50) {
+      media(id_in: $ids, type: ANIME) {
+        ${MEDIA_FIELDS}
+      }
+    }
+  }
+`;
+
 /**
  * Recorre la cadena PRECUELA/SECUELA de un anime y devuelve sus temporadas en
  * orden de emisión, con tu nota de cada una y la media de AniList.
@@ -112,6 +138,7 @@ export async function getFranchiseScoresAction(mediaId: number): Promise<Franchi
 
   const found = new Map<number, FranchiseMedia>();
   const expanded = new Set<number>();
+  const side = new Set<number>();
   let frontier = [startId];
 
   for (let hop = 0; hop < MAX_HOPS && frontier.length > 0; hop++) {
@@ -121,18 +148,31 @@ export async function getFranchiseScoresAction(mediaId: number): Promise<Franchi
     const next = new Set<number>();
     for (const m of data.Page.media) {
       found.set(m.id, m);
+      for (const s of sideEdges(m.relations?.edges)) {
+        side.add(s.id);
+        if (!found.has(s.id)) found.set(s.id, s);
+      }
       for (const n of chainEdges(m.relations?.edges)) {
         found.set(n.id, n);
+        side.delete(n.id);
         // Los vecinos ya tienen datos; se expanden sus propios vecinos.
         expanded.add(n.id);
         for (const nn of chainEdges(n.relations?.edges)) {
           if (!found.has(nn.id) && !expanded.has(nn.id)) next.add(nn.id);
         }
+        for (const s of sideEdges(n.relations?.edges)) side.add(s.id);
       }
     }
     // Un vecino visto en esta vuelta puede ser también "vecino de vecino" de otro.
     frontier = Array.from(next).filter((id) => !found.has(id)).slice(0, MAX_VISITED);
     if (found.size >= MAX_VISITED) break;
+  }
+
+  // Películas colgadas de temporadas que solo vimos como vecinas: una petición más
+  const missing = Array.from(side).filter((id) => !found.has(id)).slice(0, MAX_SIDE);
+  if (missing.length) {
+    const extra = await gql<{ Page: { media: FranchiseMedia[] } }>(SIDE_QUERY, { ids: missing }, { revalidate: 86_400 });
+    for (const m of extra?.Page.media ?? []) found.set(m.id, m);
   }
 
   const medias = Array.from(found.values()).filter((m) => m.id === startId || (m.format && SEASON_FORMATS.has(m.format)));
@@ -159,6 +199,8 @@ export async function getFranchiseScoresAction(mediaId: number): Promise<Franchi
       mediaId: m.id,
       title: m.title.userPreferred || m.title.romaji || m.title.english || 'Anime',
       format: m.format,
+      kind: side.has(m.id) && m.id !== startId ? 'side' : 'main',
+      releaseStatus: m.status ?? null,
       year: m.startDate?.year ?? null,
       episodes: m.episodes,
       averageScore: m.averageScore ? m.averageScore / 10 : null,
@@ -167,4 +209,16 @@ export async function getFranchiseScoresAction(mediaId: number): Promise<Franchi
       myProgress: own?.progress ?? null,
     };
   });
+}
+
+/** Ficha completa de un anime para abrirlo dentro de la misma tarjeta. */
+export async function getAnimeMediaAction(mediaId: number): Promise<Media | null> {
+  const id = Math.trunc(mediaId);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  const data = await gql<{ Media: Media | null }>(
+    `query ($id: Int) { Media(id: $id, type: ANIME) { ${MEDIA_CORE_FRAGMENT} } }`,
+    { id },
+    { revalidate: 3600 }
+  );
+  return data?.Media ?? null;
 }

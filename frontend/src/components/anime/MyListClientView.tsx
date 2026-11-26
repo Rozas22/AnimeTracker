@@ -11,7 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { AnimeCard } from './AnimeCard';
 import { AnimeDetailModal } from './AnimeDetailModal';
-import { saveAnimeProgressAction } from '@/lib/anilist/actions';
+import { saveProgress } from '@/lib/anilist/client-save';
 import type {
   Media,
   MediaListEntry,
@@ -151,7 +151,7 @@ export function MyListClientView({
         )
       );
 
-      await saveAnimeProgressAction({
+      await saveProgress({
         anilistUserId,
         mediaId: entry.mediaId,
         progress: nextProgress,
@@ -185,7 +185,7 @@ export function MyListClientView({
         )
       );
 
-      await saveAnimeProgressAction({
+      await saveProgress({
         anilistUserId,
         mediaId: payload.mediaId,
         status: payload.status,

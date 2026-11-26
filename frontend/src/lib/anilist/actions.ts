@@ -7,6 +7,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { getVerifiedAniListId } from '@/lib/session-server';
 import { calculateLevel, resolveUnifiedUserLevel, isFrameUnlocked, type FrameType } from '@/lib/league';
 import { fetchPublicAniListUserById } from '@/lib/auth';
+import { MEDIA_CORE_FRAGMENT } from './fragments';
 import type {
   Media,
   MediaListEntry,
@@ -40,62 +41,6 @@ interface FetchAniListOptions {
   accessToken?: string | null;
 }
 
-/**
- * Fragmento GraphQL estándar para Media optimizado para tarjetas y modales.
- */
-const MEDIA_CORE_FRAGMENT = `
-  id
-  idMal
-  title {
-    romaji
-    english
-    native
-    userPreferred
-  }
-  format
-  status
-  description(asHtml: false)
-  season
-  seasonYear
-  episodes
-  duration
-  coverImage {
-    extraLarge
-    large
-    medium
-    color
-  }
-  bannerImage
-  genres
-  averageScore
-  meanScore
-  popularity
-  isAdult
-  siteUrl
-  nextAiringEpisode {
-    id
-    airingAt
-    timeUntilAiring
-    episode
-  }
-  externalLinks {
-    id
-    url
-    site
-    type
-    language
-    color
-    icon
-    isDisabled
-  }
-  studios(isMain: true) {
-    nodes {
-      id
-      name
-      isAnimationStudio
-    }
-  }
-`;
 
 /**
  * Ejecutor centralizado en Servidor hacia AniList GraphQL con:
@@ -455,9 +400,8 @@ export async function saveAnimeProgressAction(
     }
   }
 
-  // 3. Revalidar únicamente la colección del usuario
-  revalidateTag(`anilist-collection-${verifiedId ?? input.anilistUserId}`);
-  revalidateTag('anilist-collection');
+  // 3. La caché de la colección se invalida desde el navegador (refreshCollectionCache):
+  //    hacerlo aquí haría que Next volviera a pintar la página y cerrara la ficha abierta.
 
   return {
     data: {
@@ -467,6 +411,72 @@ export async function saveAnimeProgressAction(
     rateLimited: false,
     fromFallback: false,
   };
+}
+
+/**
+ * Marca varias temporadas como vistas en una sola llamada (la saga desde la
+ * ficha). Guarda en AniList una por una y refresca la colección una sola vez.
+ * Cada temporada suma como mucho 30 episodios, igual que un guardado normal.
+ */
+export async function completeSeasonsAction(
+  items: Array<{ mediaId: number; episodes: number; previousProgress: number; score?: number }>
+): Promise<{ saved: number[]; failed: number[] }> {
+  const verifiedId = await getVerifiedAniListId();
+  const accessToken = cookies().get('kurama_anilist_token')?.value ?? null;
+  const list = (Array.isArray(items) ? items : []).slice(0, 40).map((i) => ({
+    mediaId: Math.trunc(Number(i.mediaId)),
+    episodes: Math.max(0, Math.trunc(Number(i.episodes) || 0)),
+    previousProgress: Math.max(0, Math.trunc(Number(i.previousProgress) || 0)),
+    score: Number(i.score) || 0,
+  })).filter((i) => i.mediaId > 0);
+  if (!verifiedId || !list.length) return { saved: [], failed: list.map((i) => i.mediaId) };
+
+  const mutation = `
+    mutation ($mediaId: Int!, $progress: Int, $scoreRaw: Int) {
+      SaveMediaListEntry(mediaId: $mediaId, status: COMPLETED, progress: $progress, scoreRaw: $scoreRaw) { id }
+    }
+  `;
+  const saved: number[] = [];
+  const failed: number[] = [];
+  let delta = 0;
+  for (const item of list) {
+    if (accessToken) {
+      const res = await executeAniListGraphQL(
+        mutation,
+        {
+          mediaId: item.mediaId,
+          progress: item.episodes || undefined,
+          // Sin nota nueva no se toca la que ya tuviera
+          scoreRaw: item.score > 0 ? Math.round(item.score * 10) : undefined,
+        },
+        { revalidateSeconds: 0, accessToken }
+      );
+      if (res.error && !res.data) {
+        failed.push(item.mediaId);
+        continue;
+      }
+    }
+    saved.push(item.mediaId);
+    delta += Math.max(-30, Math.min(30, item.episodes - item.previousProgress));
+  }
+
+  if (delta !== 0) {
+    const supabase = createAdminClient();
+    const { data: currentUser } = await supabase.from('users').select('anime_points').eq('anilist_id', verifiedId).maybeSingle();
+    if (currentUser) {
+      const nextAnimePoints = Math.max(0, (currentUser.anime_points || 0) + delta * 10);
+      await supabase
+        .from('users')
+        .update({
+          anime_points: nextAnimePoints,
+          level: calculateLevel(Math.floor(nextAnimePoints / 10)).computedLevel,
+          last_updated_at: new Date().toISOString(),
+        })
+        .eq('anilist_id', verifiedId);
+    }
+  }
+
+  return { saved, failed };
 }
 
 // ─── 4. SINCRONIZACIÓN FORZADA ANILIST ↔ SUPABASE (AJUSTES) ─────────────────

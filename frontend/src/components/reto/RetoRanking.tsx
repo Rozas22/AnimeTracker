@@ -66,7 +66,7 @@ export function RetoRanking(): React.JSX.Element {
       {rows && rows.length > 0 && (
         <ol className="mt-4 divide-y divide-white/[0.05]">
           {rows.map((r) => (
-            <li key={r.anilistId} className={cn('flex items-center gap-3 px-2 py-3', r.isMe && 'rounded-[12px] bg-kurama/10')}>
+            <li key={r.place} className={cn('flex items-center gap-3 px-2 py-3', r.isMe && 'rounded-[12px] bg-kurama/10')}>
               <span className={cn('w-7 text-center font-display font-bold tabular', r.place === 1 ? 'text-[#e3b341]' : 'text-muted-foreground')}>
                 {r.place === 1 ? <Crown className="mx-auto h-5 w-5" aria-label="1.º" /> : r.place}
               </span>

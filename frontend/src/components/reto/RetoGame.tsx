@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Check, Clock, Crown, Eye, Lightbulb, Loader2, Play, Share2, Star, UserRound, X, Zap } from 'lucide-react';
+import { ArrowLeft, Check, Clock, Crown, Eye, Lightbulb, Loader2, Play, Star, UserRound, X, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   answerRetoPairAction,
@@ -21,9 +21,15 @@ import {
   type RetoState,
   type RoundResult,
 } from '@/lib/reto/types';
+import { trackRetoMetricAction } from '@/lib/metrics/actions';
+import { squareOf } from '@/lib/reto/share';
 import { RetoRanking } from './RetoRanking';
+import { ShareResult } from './ShareResult';
 
 const nf = new Intl.NumberFormat('es-ES');
+
+/** Vive mientras dura la carga de la página, aunque el juego se vuelva a montar. */
+let visitCounted = false;
 
 const ROUND_ICON: Record<PublicRound['type'], React.ComponentType<{ className?: string }>> = {
   cover: Eye,
@@ -39,16 +45,9 @@ const ROUND_HELP: Record<PublicRound['type'], string> = {
   score: 'Elige el anime con mejor nota media en AniList. 5 parejas.',
 };
 
-function squareOf(r: RoundResult | undefined): string {
-  if (!r) return '⬛';
-  if (r.points >= 150) return '🟩';
-  if (r.points > 0) return '🟨';
-  return '🟥';
-}
-
 /* ------------------------------------------------------------------ */
 
-export function RetoGame({ initial, initialError }: { initial: RetoState | null; initialError?: string | null }): React.JSX.Element {
+export function RetoGame({ initial, initialError, notice, arrival = 'direct' }: { initial: RetoState | null; initialError?: string | null; notice?: string | null; arrival?: 'direct' | 'shared' }): React.JSX.Element {
   const [state, setState] = useState<RetoState | null>(initial);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [busy, setBusy] = useState(false);
@@ -72,6 +71,14 @@ export function RetoGame({ initial, initialError }: { initial: RetoState | null;
 
   const refresh = useCallback(async () => apply(await getRetoStateAction()), [apply]);
 
+  // Visita agregada, sin guardar nada en el dispositivo. Una por carga de página:
+  // al empezar como invitado el servidor refresca la ruta y el juego se vuelve a montar.
+  useEffect(() => {
+    if (visitCounted) return;
+    visitCounted = true;
+    void trackRetoMetricAction('visit', arrival);
+  }, [arrival]);
+
   const play = state?.play ?? null;
   const finished = Boolean(play?.finished);
 
@@ -81,7 +88,7 @@ export function RetoGame({ initial, initialError }: { initial: RetoState | null;
 
   if (!state) {
     return (
-      <Shell>
+      <Shell viewer="guest">
         <div className="rounded-[18px] bg-card p-8 text-center" style={{ boxShadow: 'var(--shadow-tile)' }}>
           <p className="text-white">{error ?? 'No se pudo cargar el reto de hoy.'}</p>
           <button type="button" onClick={() => void refresh()} className="mt-4 h-11 rounded-[12px] bg-kurama px-6 font-semibold text-ink">
@@ -96,7 +103,8 @@ export function RetoGame({ initial, initialError }: { initial: RetoState | null;
   const results = play?.results ?? [];
 
   return (
-    <Shell>
+    <Shell viewer={state.viewer} number={state.number}>
+      {notice && !play?.current && <p className="rounded-[12px] border border-kurama/25 bg-kurama/[0.08] px-4 py-3 text-sm font-medium text-white">{notice}</p>}
       {/* Cabecera: progreso y puntos */}
       <div className="flex items-center justify-between gap-4">
         <ol className="flex gap-1.5" aria-label="Rondas">
@@ -122,7 +130,7 @@ export function RetoGame({ initial, initialError }: { initial: RetoState | null;
 
       {error && <p role="alert" className="rounded-[12px] bg-[#e04a66]/15 px-4 py-3 text-sm text-[#ff8da1]">{error}</p>}
 
-      {!play && <Intro rounds={state.rounds} busy={busy} onStart={() => void start(0)} />}
+      {!play && <Intro rounds={state.rounds} viewer={state.viewer} busy={busy} onStart={() => void start(0)} />}
 
       {play && play.current && (
         <RoundView
@@ -146,25 +154,27 @@ export function RetoGame({ initial, initialError }: { initial: RetoState | null;
       )}
 
       {play && !play.current && !finished && results.length === 0 && (
-        <Intro rounds={state.rounds} busy={busy} onStart={() => void start(0)} />
+        <Intro rounds={state.rounds} viewer={state.viewer} busy={busy} onStart={() => void start(0)} />
       )}
 
       {finished && play && <Summary state={state} />}
 
-      {(finished || !play) && <RetoRanking key={rankingKey} />}
+      {state.viewer === 'account' && (finished || !play) && <RetoRanking key={rankingKey} />}
     </Shell>
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
+function Shell({ children, viewer, number }: { children: React.ReactNode; viewer: RetoState['viewer']; number?: number }): React.JSX.Element {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/arena" aria-label="Volver a la Arena" className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-white/10 hover:text-white">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
+        {viewer === 'account' && (
+          <Link href="/arena" aria-label="Volver a la Arena" className="grid h-10 w-10 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-white/10 hover:text-white">
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+        )}
         <div>
-          <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Reto diario</h1>
+          <h1 className="font-display text-2xl font-bold text-white sm:text-3xl">Reto diario{number ? <span className="text-kurama"> #{number}</span> : null}</h1>
           <p className="text-sm text-muted-foreground">5 rondas · una partida al día · el mismo reto para todos</p>
         </div>
       </div>
@@ -175,7 +185,7 @@ function Shell({ children }: { children: React.ReactNode }): React.JSX.Element {
 
 /* ------------------------------------------------------------------ */
 
-function Intro({ rounds, busy, onStart }: { rounds: PublicRound[]; busy: boolean; onStart: () => void }): React.JSX.Element {
+function Intro({ rounds, viewer, busy, onStart }: { rounds: PublicRound[]; viewer: RetoState['viewer']; busy: boolean; onStart: () => void }): React.JSX.Element {
   return (
     <section className="rounded-[22px] bg-card p-6 sm:p-8" style={{ boxShadow: 'var(--shadow-tile)' }}>
       <h2 className="font-display text-xl font-bold text-white">Hoy te esperan 5 rondas</h2>
@@ -199,7 +209,7 @@ function Intro({ rounds, busy, onStart }: { rounds: PublicRound[]; busy: boolean
         <Zap className="mr-1.5 inline h-4 w-4 text-kurama" aria-hidden="true" />
         Hasta 200 puntos por ronda: 100 por acertar y hasta 100 más por rapidez. <b className="text-white">Solo tienes un intento</b>: si sales a mitad, el reloj sigue corriendo.
       </p>
-      <LeagueBox />
+      {viewer === 'account' ? <LeagueBox /> : <GuestBox />}
       <button type="button" onClick={onStart} disabled={busy} className="mt-6 inline-flex h-14 w-full items-center justify-center gap-2.5 rounded-[14px] bg-kurama font-display text-lg font-bold text-ink transition-transform active:scale-[0.98] disabled:opacity-60 sm:w-auto sm:px-10">
         {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Play className="h-5 w-5 fill-current" />}
         Empezar el reto
@@ -312,7 +322,7 @@ function RoundView({
           {round.type === 'character' && (
             <div className="mx-auto aspect-[2/3] w-44 overflow-hidden rounded-[14px] bg-black/40 sm:w-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`/arena/reto/imagen?r=${cur.index}`} alt="Personaje misterioso" className="h-full w-full object-cover" />
+              <img src={`/reto/imagen?r=${cur.index}`} alt="Personaje misterioso" className="h-full w-full object-cover" />
             </div>
           )}
           {round.type === 'hints' && (
@@ -338,7 +348,7 @@ function PixelCover({ index, ms }: { index: number; ms: number }): React.JSX.Ele
     <div className="mx-auto aspect-[2/3] w-44 overflow-hidden rounded-[14px] bg-black/40 sm:w-full">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={`/arena/reto/imagen?r=${index}&s=${step}`}
+        src={`/reto/imagen?r=${index}&s=${step}`}
         alt="Portada pixelada"
         className="h-full w-full object-cover"
         style={{ imageRendering: 'pixelated' }}
@@ -489,7 +499,7 @@ function RoundReveal({ round, index, result }: { round: PublicRound; index: numb
       {(round.type === 'cover' || round.type === 'character') && (
         <div className="mx-auto aspect-[2/3] w-32 shrink-0 overflow-hidden rounded-[12px] bg-black/40 sm:mx-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/arena/reto/imagen?r=${index}&fin=1`} alt="" className="h-full w-full object-cover" />
+          <img src={`/reto/imagen?r=${index}&fin=1`} alt="" className="h-full w-full object-cover" />
         </div>
       )}
       <div className="min-w-0 text-center sm:text-left">
@@ -518,22 +528,6 @@ function RoundReveal({ round, index, result }: { round: PublicRound; index: numb
 
 function Summary({ state }: { state: RetoState }): React.JSX.Element {
   const play = state.play!;
-  const [copied, setCopied] = useState(false);
-  const [d, m] = [state.day.slice(8, 10), state.day.slice(5, 7)];
-  const shareText = `🦊 Reto diario KuramaTracker · ${d}/${m}\n${state.rounds.map((_, i) => squareOf(play.results[i])).join('')} ${play.score}/${MAX_SCORE}\nwww.kuramatracker.com`;
-
-  const share = async (): Promise<void> => {
-    try {
-      if (navigator.share) await navigator.share({ text: shareText });
-      else {
-        await navigator.clipboard.writeText(shareText);
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 2000);
-      }
-    } catch {
-      /* compartir cancelado */
-    }
-  };
 
   return (
     <section className="rounded-[22px] bg-card p-6 sm:p-8" style={{ boxShadow: 'var(--shadow-tile)' }}>
@@ -542,12 +536,30 @@ function Summary({ state }: { state: RetoState }): React.JSX.Element {
         {nf.format(play.score)}
         <span className="text-xl font-medium text-muted-foreground"> / {nf.format(MAX_SCORE)}</span>
       </p>
-      <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-kurama/15 px-4 py-2 text-sm font-semibold text-kurama">
-        <Crown className="h-4 w-4" aria-hidden="true" />+{nf.format(play.leaguePoints)} PL sumados a la liga del mes
-      </p>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Si acabas el día en el top 3 del reto, a la 1:00 recibes además +{PODIUM_BONUS[0]}, +{PODIUM_BONUS[1]} o +{PODIUM_BONUS[2]} PL.
-      </p>
+      {play.official ? (
+        <>
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-kurama/15 px-4 py-2 text-sm font-semibold text-kurama">
+            <Crown className="h-4 w-4" aria-hidden="true" />+{nf.format(play.leaguePoints)} PL sumados a la liga del mes
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Si acabas el día en el top 3 del reto, a la 1:00 recibes además +{PODIUM_BONUS[0]}, +{PODIUM_BONUS[1]} o +{PODIUM_BONUS[2]} PL.
+          </p>
+        </>
+      ) : state.viewer === 'guest' ? (
+        <div className="mt-4 rounded-[14px] border border-kurama/25 bg-kurama/[0.07] p-4">
+          <p className="font-display text-lg font-bold text-white">Guarda tu resultado</p>
+          <p className="mt-1 text-sm text-white/80">
+            Entra con AniList para conservar esta partida. No sumará a la liga oficial, pero desde tu próximo reto ya podrás competir por premios.
+          </p>
+          <a href="/auth/anilist?next=/reto" className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-[12px] bg-kurama px-5 font-semibold text-ink sm:w-auto">
+            Guardar con AniList
+          </a>
+        </div>
+      ) : (
+        <p className="mt-3 rounded-[12px] bg-white/[0.05] px-4 py-3 text-sm text-white/80">
+          Partida de invitado guardada en tu cuenta. No suma PL ni entra en el podio; <b className="text-white">tu próximo reto ya compite en la liga</b>.
+        </p>
+      )}
       <ul className="mt-5 divide-y divide-white/[0.06]">
         {state.rounds.map((r, i) => {
           const res = play.results[i];
@@ -562,14 +574,21 @@ function Summary({ state }: { state: RetoState }): React.JSX.Element {
           );
         })}
       </ul>
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <button type="button" onClick={() => void share()} className="inline-flex h-12 items-center justify-center gap-2 rounded-[12px] bg-kurama px-6 font-semibold text-ink">
-          <Share2 className="h-4 w-4" />
-          {copied ? '¡Copiado!' : 'Compartir resultado'}
-        </button>
-        <p className="text-sm text-muted-foreground">Mañana a la 1:00 (hora de España) hay un reto nuevo.</p>
-      </div>
+      <ShareResult state={state} />
+      {state.viewer === 'account' && (
+        <Link href="/ligas" className="mt-3 inline-flex text-sm font-semibold text-kurama underline underline-offset-2">
+          Compite con tus amigos en una liga privada
+        </Link>
+      )}
     </section>
+  );
+}
+
+function GuestBox(): React.JSX.Element {
+  return (
+    <p className="mt-3 rounded-[12px] bg-white/[0.04] px-4 py-3 text-sm text-white/80">
+      Juega gratis y sin registrarte. Como invitado no entras en la liga ni optas a premios: para competir solo hace falta entrar con AniList.
+    </p>
   );
 }
 

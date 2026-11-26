@@ -55,10 +55,12 @@ export default async function ArenaPage(): Promise<React.JSX.Element> {
       .maybeSingle(),
   ]);
 
-  const users =
+  const publicUsers =
     usersResult.data && usersResult.data.length > 0
       ? usersResult.data
       : process.env.NODE_ENV !== 'production' ? FALLBACK_USERS : [];
+  const own = authUser?.profile ?? null;
+  const users = own && !publicUsers.some((u) => u.anilist_id === own.anilist_id) ? [...publicUsers, own] : publicUsers;
 
   const winners =
     winnersResult.data && winnersResult.data.length > 0

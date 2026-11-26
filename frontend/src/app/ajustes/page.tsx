@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { getServerAuthenticatedUser } from '@/lib/auth';
 import { SettingsClientView } from '@/components/settings/SettingsClientView';
 import { AdminPrizePanel } from '@/components/settings/AdminPrizePanel';
@@ -48,6 +49,12 @@ export default async function AjustesPage(): Promise<React.JSX.Element> {
       initialProfile={authUser.profile}
       initialUnifiedLevel={authUser.unifiedLevel}
     />
+    {isAdmin && (
+      <Link href="/admin/metricas" className="bento-card flex items-center justify-between p-6 font-display font-bold text-white transition-colors hover:text-kurama">
+        Métricas del reto
+        <span aria-hidden="true">→</span>
+      </Link>
+    )}
     {isAdmin && <AdminPrizePanel initialPrize={currentPrize} />}
     </div>
   );

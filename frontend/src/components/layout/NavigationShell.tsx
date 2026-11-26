@@ -11,6 +11,7 @@ import {
   Search,
   Users,
   Swords,
+  Trophy,
   BarChart3,
   Bell,
   Settings,
@@ -21,6 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSupabaseUser } from '@/hooks/useSupabaseUser';
 import { AnimeFrame } from '@/components/frames/AnimeFrame';
+import { GuestShell } from './GuestShell';
 import { useFrameMotionPref } from '@/lib/frames/motion';
 import { resolveUnifiedUserLevel, FRAME_STYLES, resolveDisplayFrame } from '@/lib/league';
 
@@ -71,6 +73,13 @@ const NAV_ITEMS: readonly NavItem[] = [
     showInMobileBar: true,
   },
   {
+    label: 'Ligas privadas',
+    shortLabel: 'Ligas',
+    href: '/ligas',
+    icon: Trophy,
+    showInMobileBar: false,
+  },
+  {
     label: 'Estadísticas',
     shortLabel: 'Stats',
     href: '/analisis',
@@ -106,9 +115,12 @@ export function NavigationShell({
   );
   const [avatarError, setAvatarError] = useState<boolean>(false);
 
+  // Sin sesión, el reto se juega con un marco propio y sin instalar nada en el dispositivo
+  const guestView = !anilistId && process.env.NODE_ENV === 'production' && (pathname === '/reto' || pathname.startsWith('/reto/') || pathname.startsWith('/unirse/'));
+
   // Registro y auto-actualización silenciosa del Service Worker (PWA)
   useEffect(() => {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    if (guestView || typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
 
     navigator.serviceWorker
       .register('/sw.js')
@@ -118,6 +130,15 @@ export function NavigationShell({
       .catch((err: unknown) => {
         console.warn('[PWA] Error registrando Service Worker:', err);
       });
+  }, [guestView]);
+
+  // Como una app nativa: Safari en iPhone ignora user-scalable=no, así que se
+  // bloquea aquí el gesto de pellizcar para hacer zoom.
+  useEffect(() => {
+    const stop = (e: Event): void => e.preventDefault();
+    const events = ['gesturestart', 'gesturechange', 'gestureend'];
+    events.forEach((name) => document.addEventListener(name, stop, { passive: false }));
+    return () => events.forEach((name) => document.removeEventListener(name, stop));
   }, []);
 
   // Nivel unificado utilizando la misma fuente de verdad que el resto de la app
@@ -141,8 +162,9 @@ export function NavigationShell({
     return pathname.startsWith(href);
   };
 
-  // La pantalla de entrada va sin menú
-  if (pathname === '/entrar') return <>{children}</>;
+  // La entrada y la privacidad se pueden ver sin sesión, así que van sin menú
+  if (pathname === '/entrar' || pathname === '/privacidad') return <>{children}</>;
+  if (guestView) return <GuestShell>{children}</GuestShell>;
 
   return (
     <div className="relative flex min-h-screen w-full bg-background text-foreground">

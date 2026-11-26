@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = { title: 'Entrar' };
@@ -10,6 +11,8 @@ const ERRORS: Record<string, string> = {
   token: 'AniList rechazó el inicio de sesión. Vuelve a intentarlo.',
   perfil: 'No se pudo leer tu perfil de AniList. Vuelve a intentarlo.',
   red: 'No hay conexión con AniList ahora mismo. Inténtalo en unos minutos.',
+  caducado: 'El inicio de sesión ha caducado. Vuelve a intentarlo.',
+  estado: 'No se pudo verificar el inicio de sesión. Vuelve a intentarlo.',
 };
 
 export default function EntrarPage({
@@ -53,6 +56,11 @@ export default function EntrarPage({
         </a>
         <p className="mt-4 text-center text-xs text-muted-foreground">
           Solo leemos tu perfil y tu lista; tus cambios de progreso se guardan en AniList.
+        </p>
+        <p className="mt-2 text-center text-xs">
+          <Link href="/privacidad" className="text-muted-foreground underline underline-offset-2 hover:text-white">
+            Privacidad y cookies
+          </Link>
         </p>
       </div>
     </main>

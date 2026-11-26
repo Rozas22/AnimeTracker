@@ -47,6 +47,7 @@ export async function awardChallengePodium(day: string = yesterdayUTC()): Promis
     .from('challenge_plays')
     .select('anilist_id, score, finished_at')
     .eq('day', day)
+    .eq('source', 'account') // una partida de invitado conservada no entra en el podio
     .not('finished_at', 'is', null)
     .gt('score', 0)
     .order('score', { ascending: false })

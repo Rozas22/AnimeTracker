@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { AnimeFrame } from '@/components/frames/AnimeFrame';
 import { ArenaStage } from './ArenaStage';
 import { RetoEntryCard } from '@/components/reto/RetoEntryCard';
+import { LigasEntryCard } from '@/components/ligas/LigasEntryCard';
 import {
   resolveUnifiedUserLevel,
   calculatePL,
@@ -260,6 +261,8 @@ export function ArenaClientView({
       <ArenaStage monthly={monthlySorted} currentUserId={currentUserId} activePrize={activePrize} onPlay={() => void handleStartQuiz()} />
 
       <RetoEntryCard />
+
+      <LigasEntryCard />
 
       {/* Campeón vigente y premio del mes */}
       <section className="grid grid-cols-1 overflow-hidden rounded-[18px] bg-white/[0.06]" style={{ boxShadow: 'var(--shadow-tile)' }}>

@@ -1,13 +1,17 @@
 // Solo servidor: lógica del Reto diario con respuestas y tiempos verificados.
 import { createAdminClient } from '@/lib/supabase/server';
-import { buildChallenge, type FullRound } from './generate';
+import { ensureChallenge } from './challenge-store';
+import type { FullRound } from './generate';
+import { countMetric } from '@/lib/metrics/server';
 import { addLeaguePoints } from './league';
+import { challengeNumber } from './share';
 import {
   HINT_STEP_SECONDS,
   SCORE_PAIRS,
   leaguePointsFor,
   type PublicRound,
   type RetoOption,
+  type RetoRankingRow,
   type RetoState,
   type RoundResult,
 } from './types';
@@ -15,15 +19,20 @@ import {
 /** Margen para la latencia de red al comprobar el tiempo límite. */
 const GRACE_MS = 1500;
 
+export type RetoPlayer = { kind: 'account'; id: number } | { kind: 'guest'; hash: string };
+
 export interface PlayRow {
-  anilist_id: number;
+  anilist_id?: number;
+  guest_hash?: string;
+  /** 'guest' = partida de invitado conservada al iniciar sesión */
+  source?: 'account' | 'guest';
   day: string;
   score: number;
   results: RoundResult[];
   round_state: { picks?: Array<'a' | 'b' | null> } | null;
   round_started_at: string | null;
   finished_at: string | null;
-  league_points?: number;
+  league_points?: number | null;
 }
 
 /* Las tablas del reto no están en los tipos generados de Supabase */
@@ -32,27 +41,30 @@ const db = (): any => createAdminClient();
 
 export const todayUTC = (): string => new Date().toISOString().slice(0, 10);
 
+const tableOf = (p: RetoPlayer): string => (p.kind === 'account' ? 'challenge_plays' : 'guest_plays');
+const keyOf = (p: RetoPlayer): Record<string, string | number> =>
+  p.kind === 'account' ? { anilist_id: p.id } : { guest_hash: p.hash };
+const playerOf = (play: PlayRow): RetoPlayer =>
+  play.guest_hash ? { kind: 'guest', hash: play.guest_hash } : { kind: 'account', id: play.anilist_id! };
+
 /* ------------------------------------------------------------------ */
 /* Reto del día                                                          */
 /* ------------------------------------------------------------------ */
 
 export async function getOrCreateChallenge(day = todayUTC()): Promise<FullRound[]> {
-  const { data, error } = await db().from('daily_challenges').select('rounds').eq('day', day).maybeSingle();
-  if (error && (error.code === '42P01' || error.code === 'PGRST205')) {
-    throw new Error('Falta crear las tablas del reto (supabase_migration_reto.sql).');
-  }
-  if (data?.rounds) return data.rounds as FullRound[];
-
-  const rounds = await buildChallenge(day);
-  // Si otro servidor lo creó a la vez, se queda el primero
-  await db().from('daily_challenges').upsert({ day, rounds }, { onConflict: 'day', ignoreDuplicates: true });
-  const { data: saved } = await db().from('daily_challenges').select('rounds').eq('day', day).maybeSingle();
-  return (saved?.rounds as FullRound[]) ?? rounds;
+  return ensureChallenge(day);
 }
 
-export function toPublicRound(r: FullRound): PublicRound {
+export function toPublicRound(r: FullRound, index: number): PublicRound {
   if (r.type === 'score') {
-    return { type: r.type, label: r.label, limit: r.limit, pairs: r.pairs.map(({ a, b }) => ({ a, b })) };
+    // Las portadas pasan por el servidor: el navegador no llama a AniList
+    const cover = (pair: number, side: 'a' | 'b'): string => `/reto/imagen?r=${index}&p=${pair}&side=${side}`;
+    return {
+      type: r.type,
+      label: r.label,
+      limit: r.limit,
+      pairs: r.pairs.map(({ a, b }, i) => ({ a: { ...a, cover: cover(i, 'a') }, b: { ...b, cover: cover(i, 'b') } })),
+    };
   }
   return { type: r.type, label: r.label, limit: r.limit, options: r.options };
 }
@@ -61,8 +73,8 @@ export function toPublicRound(r: FullRound): PublicRound {
 /* Partidas                                                              */
 /* ------------------------------------------------------------------ */
 
-export async function loadPlay(anilistId: number, day = todayUTC()): Promise<PlayRow | null> {
-  const { data } = await db().from('challenge_plays').select('*').eq('anilist_id', anilistId).eq('day', day).maybeSingle();
+export async function loadPlay(player: RetoPlayer, day = todayUTC()): Promise<PlayRow | null> {
+  const { data } = await db().from(tableOf(player)).select('*').match(keyOf(player)).eq('day', day).maybeSingle();
   return (data as PlayRow) ?? null;
 }
 
@@ -86,8 +98,9 @@ async function commitRound(play: PlayRow, rounds: FullRound[], result: RoundResu
   const results = [...play.results, result];
   const finished = results.length >= rounds.length;
   const score = results.reduce((a, r) => a + r.points, 0);
+  const player = playerOf(play);
   const { data } = await db()
-    .from('challenge_plays')
+    .from(tableOf(player))
     .update({
       results,
       score,
@@ -95,13 +108,16 @@ async function commitRound(play: PlayRow, rounds: FullRound[], result: RoundResu
       round_started_at: null,
       finished_at: finished ? new Date().toISOString() : null,
     })
-    .eq('anilist_id', play.anilist_id)
+    .match(keyOf(player))
     .eq('day', play.day)
     .eq('round_started_at', play.round_started_at)
     .select('*');
   const saved = (data?.[0] as PlayRow) ?? null;
 
-  if (saved && finished) return grantLeaguePoints(saved);
+  if (saved && finished) {
+    await countMetric('game_finished', saved.guest_hash || saved.source === 'guest' ? 'guest' : 'account');
+    return grantLeaguePoints(saved);
+  }
   return saved;
 }
 
@@ -111,6 +127,7 @@ async function commitRound(play: PlayRow, rounds: FullRound[], result: RoundResu
  * quien la gana suma. También recupera partidas terminadas antes de existir esto.
  */
 export async function grantLeaguePoints(play: PlayRow): Promise<PlayRow> {
+  if (play.guest_hash || play.source === 'guest') return play; // los invitados no compiten
   if (!play.finished_at || (play.league_points !== null && play.league_points !== undefined)) return play;
   const pl = leaguePointsFor(play.score);
   const { data, error } = await db()
@@ -121,7 +138,7 @@ export async function grantLeaguePoints(play: PlayRow): Promise<PlayRow> {
     .is('league_points', null)
     .select('*');
   if (error || !data?.[0]) return play; // ya sumado, o falta supabase_migration_reto_liga.sql
-  await addLeaguePoints(play.anilist_id, pl);
+  await addLeaguePoints(play.anilist_id!, pl);
   return data[0] as PlayRow;
 }
 
@@ -149,10 +166,10 @@ export async function settle(play: PlayRow, rounds: FullRound[]): Promise<PlayRo
   const r = rounds[idx];
   if (!r || !play.round_started_at) return play;
   if (elapsedMs(play) <= r.limit * 1000 + GRACE_MS) return play;
-  return (await commitRound(play, rounds, timeoutResult(r, play))) ?? (await loadPlay(play.anilist_id, play.day)) ?? play;
+  return (await commitRound(play, rounds, timeoutResult(r, play))) ?? (await loadPlay(playerOf(play), play.day)) ?? play;
 }
 
-export function stateOf(day: string, rounds: FullRound[], play: PlayRow | null): RetoState {
+export function stateOf(day: string, rounds: FullRound[], play: PlayRow | null, viewer: RetoPlayer['kind']): RetoState {
   let current: NonNullable<RetoState['play']>['current'] = null;
   if (play && play.round_started_at && play.results.length < rounds.length) {
     const idx = play.results.length;
@@ -172,6 +189,8 @@ export function stateOf(day: string, rounds: FullRound[], play: PlayRow | null):
   }
   return {
     day,
+    number: challengeNumber(day),
+    viewer,
     rounds: rounds.map(toPublicRound),
     play: play
       ? {
@@ -179,6 +198,7 @@ export function stateOf(day: string, rounds: FullRound[], play: PlayRow | null):
           results: play.results,
           finished: Boolean(play.finished_at) || play.results.length >= rounds.length,
           leaguePoints: play.league_points ?? 0,
+          official: !play.guest_hash && play.source !== 'guest',
           current,
         }
       : null,
@@ -189,17 +209,20 @@ export function stateOf(day: string, rounds: FullRound[], play: PlayRow | null):
 /* Acciones de juego                                                     */
 /* ------------------------------------------------------------------ */
 
-export async function startRound(anilistId: number, index: number): Promise<RetoState> {
+export async function startRound(player: RetoPlayer, index: number): Promise<RetoState> {
   const day = todayUTC();
   const rounds = await getOrCreateChallenge(day);
-  let play = await loadPlay(anilistId, day);
+  let play = await loadPlay(player, day);
 
   if (!play) {
-    if (index !== 0) return stateOf(day, rounds, null);
-    await db()
-      .from('challenge_plays')
-      .upsert({ anilist_id: anilistId, day, results: [], score: 0 }, { onConflict: 'anilist_id,day', ignoreDuplicates: true });
-    play = await loadPlay(anilistId, day);
+    if (index !== 0) return stateOf(day, rounds, null, player.kind);
+    const conflict = player.kind === 'account' ? 'anilist_id,day' : 'guest_hash,day';
+    const { data: created } = await db()
+      .from(tableOf(player))
+      .upsert({ ...keyOf(player), day, results: [], score: 0 }, { onConflict: conflict, ignoreDuplicates: true })
+      .select('day');
+    if (created?.length) await countMetric('game_started', player.kind);
+    play = await loadPlay(player, day);
     if (!play) throw new Error('No se pudo crear la partida.');
   }
   play = await settle(play, rounds);
@@ -208,27 +231,27 @@ export async function startRound(anilistId: number, index: number): Promise<Reto
   if (index === play.results.length && index < rounds.length && !play.round_started_at) {
     const now = new Date().toISOString();
     await db()
-      .from('challenge_plays')
+      .from(tableOf(player))
       .update({ round_started_at: now, round_state: rounds[index]!.type === 'score' ? { picks: [] } : null })
-      .eq('anilist_id', anilistId)
+      .match(keyOf(player))
       .eq('day', day)
       .is('round_started_at', null);
-    play = (await loadPlay(anilistId, day)) ?? play;
+    play = (await loadPlay(player, day)) ?? play;
   }
-  return stateOf(day, rounds, play);
+  return stateOf(day, rounds, play, player.kind);
 }
 
 export async function answerOptionRound(
-  anilistId: number,
+  player: RetoPlayer,
   index: number,
   pick: number | null
 ): Promise<{ result: RoundResult | null; state: RetoState }> {
   const day = todayUTC();
   const rounds = await getOrCreateChallenge(day);
-  let play = await loadPlay(anilistId, day);
+  let play = await loadPlay(player, day);
   const r = rounds[index];
   if (!play || !r || r.type === 'score' || index !== play.results.length || !play.round_started_at) {
-    return { result: null, state: stateOf(day, rounds, play) };
+    return { result: null, state: stateOf(day, rounds, play, player.kind) };
   }
   const ms = elapsedMs(play);
   const correct = pick === r.answerId;
@@ -239,53 +262,50 @@ export async function answerOptionRound(
     picked: pick,
     character: r.type === 'character' ? r.name : null,
   };
-  play = (await commitRound(play, rounds, result)) ?? (await loadPlay(anilistId, day));
-  return { result: play?.results[index] ?? result, state: stateOf(day, rounds, play) };
+  play = (await commitRound(play, rounds, result)) ?? (await loadPlay(player, day));
+  return { result: play?.results[index] ?? result, state: stateOf(day, rounds, play, player.kind) };
 }
 
 export async function answerScorePair(
-  anilistId: number,
+  player: RetoPlayer,
   index: number,
   pairIndex: number,
   pick: 'a' | 'b' | null
 ): Promise<RetoState> {
   const day = todayUTC();
   const rounds = await getOrCreateChallenge(day);
-  let play = await loadPlay(anilistId, day);
+  let play = await loadPlay(player, day);
   const r = rounds[index];
   if (!play || !r || r.type !== 'score' || index !== play.results.length || !play.round_started_at) {
-    return stateOf(day, rounds, play);
+    return stateOf(day, rounds, play, player.kind);
   }
   const picks = [...(play.round_state?.picks ?? [])];
   const expired = elapsedMs(play) > r.limit * 1000 + GRACE_MS;
   if (pairIndex === picks.length && !expired) {
     picks.push(pick === 'a' || pick === 'b' ? pick : null);
     const { data } = await db()
-      .from('challenge_plays')
+      .from(tableOf(player))
       .update({ round_state: { picks } })
-      .eq('anilist_id', anilistId)
+      .match(keyOf(player))
       .eq('day', day)
       .eq('round_started_at', play.round_started_at)
       .select('*');
     play = (data?.[0] as PlayRow) ?? play;
   }
   if (expired || (play.round_state?.picks ?? []).length >= SCORE_PAIRS) {
-    play = (await commitRound(play, rounds, timeoutResult(r, play))) ?? (await loadPlay(anilistId, day));
+    play = (await commitRound(play, rounds, timeoutResult(r, play))) ?? (await loadPlay(player, day));
   }
-  return stateOf(day, rounds, play);
+  return stateOf(day, rounds, play, player.kind);
 }
 
 /* ------------------------------------------------------------------ */
 /* Ranking                                                               */
 /* ------------------------------------------------------------------ */
 
-export async function ranking(
-  scope: 'day' | 'month',
-  me: number | null
-): Promise<Array<{ anilistId: number; username: string; score: number; plays: number; isMe: boolean; place: number }>> {
+export async function ranking(scope: 'day' | 'month', me: number | null): Promise<RetoRankingRow[]> {
   const day = todayUTC();
   const monthStart = `${day.slice(0, 7)}-01`;
-  let q = db().from('challenge_plays').select('anilist_id, score, day, finished_at').not('finished_at', 'is', null).order('finished_at', { ascending: true });
+  let q = db().from('challenge_plays').select('anilist_id, score, day, finished_at').eq('source', 'account').not('finished_at', 'is', null).order('finished_at', { ascending: true });
   q = scope === 'day' ? q.eq('day', day) : q.gte('day', monthStart);
   const { data } = await q.limit(5000);
   const rows = (data ?? []) as Array<{ anilist_id: number; score: number }>;
@@ -302,13 +322,19 @@ export async function ranking(
   if (me && totals.has(me) && !ids.includes(me)) ids.push(me);
 
   const { data: users } = ids.length
-    ? await db().from('users').select('anilist_id, username').in('anilist_id', ids)
+    ? await db().from('users').select('anilist_id, username, profile_visibility').in('anilist_id', ids)
     : { data: [] };
-  const names = new Map<number, string>(
-    ((users ?? []) as Array<{ anilist_id: number; username: string | null }>).map((u) => [u.anilist_id, u.username ?? `Usuario #${u.anilist_id}`])
+  const people = new Map(
+    ((users ?? []) as Array<{ anilist_id: number; username: string | null; profile_visibility: string | null }>).map((u) => [u.anilist_id, u])
   );
+  // Al navegador solo llega el nombre visible: nunca el id, y nunca el nombre de un perfil no público
+  const nameOf = (id: number): string => {
+    const u = people.get(id);
+    if (!u?.username) return 'Jugador';
+    return id === me || (u.profile_visibility ?? 'public') === 'public' ? u.username : 'Anónimo';
+  };
 
   return sorted
-    .map(([id, t], i) => ({ anilistId: id, username: names.get(id) ?? `Usuario #${id}`, score: t.score, plays: t.plays, isMe: id === me, place: i + 1 }))
+    .map(([id, t], i) => ({ username: nameOf(id), score: t.score, plays: t.plays, isMe: id === me, place: i + 1 }))
     .filter((r) => r.place <= 50 || r.isMe);
 }

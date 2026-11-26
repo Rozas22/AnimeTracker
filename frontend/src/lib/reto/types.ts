@@ -39,6 +39,10 @@ export interface RoundResult {
 
 export interface RetoState {
   day: string;
+  /** Número público del reto */
+  number: number;
+  /** Quién está viendo el reto: con cuenta o como invitado */
+  viewer: 'account' | 'guest';
   rounds: PublicRound[];
   /** null = aún no ha empezado */
   play: {
@@ -47,13 +51,14 @@ export interface RetoState {
     finished: boolean;
     /** PL sumados a la liga mensual por esta partida */
     leaguePoints: number;
+    /** false = partida de invitado: no suma PL ni entra en el podio */
+    official: boolean;
     /** Ronda en curso: ms transcurridos según el servidor */
     current: { index: number; elapsedMs: number; hints: string[]; pairIndex: number; pairResults: RoundResult['pairs'] } | null;
   } | null;
 }
 
 export interface RetoRankingRow {
-  anilistId: number;
   username: string;
   score: number;
   plays?: number;

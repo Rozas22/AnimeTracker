@@ -1,5 +1,6 @@
 import dns from 'node:dns';
 import { cookies } from 'next/headers';
+import { getVerifiedAniListId } from '@/lib/session-server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { resolveUnifiedUserLevel, type UnifiedLevelSnapshot } from '@/lib/league';
 import type { UserProfileRow, UserAchievementRow, TablesInsert } from '@/types/database';
@@ -186,15 +187,18 @@ export async function getServerAuthenticatedUser(): Promise<AuthenticatedKuramaU
     }
   }
 
-  // 4. Consultar en paralelo Supabase (`users` + `user_achievements`) y el perfil real de AniList
+  // 4. Consultar en paralelo Supabase (`users` + `user_achievements`) y el perfil real de AniList.
+  //    Solo el dueño verificado lee su perfil aunque no sea público: la cookie con el id no prueba nada.
+  const verifiedId = await getVerifiedAniListId();
+  const profileClient = verifiedId === resolvedAniListId ? createAdminClient() : supabase;
   const [{ data: profileRow }, { data: achievements }, publicAniListUser] =
     await Promise.all([
-      supabase
+      profileClient
         .from('users')
         .select('*')
         .eq('anilist_id', resolvedAniListId)
         .maybeSingle(),
-      supabase
+      profileClient
         .from('user_achievements')
         .select('*')
         .eq('anilist_id', resolvedAniListId)

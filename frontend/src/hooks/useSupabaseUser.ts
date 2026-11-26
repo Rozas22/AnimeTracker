@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useId } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getOwnProfileAction } from '@/lib/profile-actions';
 import type {
   UserProfileRow,
   UserAchievementRow,
@@ -114,8 +115,10 @@ export function useSupabaseUser(explicitAniListId?: number | null): UseSupabaseU
         throw new Error(userResult.error.message);
       }
 
-      setProfile(userResult.data ?? null);
-      setAchievements(achievementsResult.data ?? []);
+      // Un perfil no público no se lee con la clave pública: su dueño lo pide al servidor
+      const own = userResult.data ? null : await getOwnProfileAction(targetId);
+      setProfile(userResult.data ?? own?.profile ?? null);
+      setAchievements(own?.achievements ?? achievementsResult.data ?? []);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : 'Error al cargar el perfil de Supabase'

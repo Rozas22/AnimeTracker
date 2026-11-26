@@ -7,7 +7,7 @@ export function RetoEntryCard(): React.JSX.Element {
   const icons = [Eye, Lightbulb, UserRound, Star, Eye];
   return (
     <Link
-      href="/arena/reto"
+      href="/reto"
       className="group relative flex flex-col gap-5 overflow-hidden rounded-[18px] bg-card p-6 transition-transform duration-200 hover:-translate-y-0.5 sm:flex-row sm:items-center sm:p-7"
       style={{ boxShadow: 'var(--shadow-tile)' }}
     >

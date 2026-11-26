@@ -23,6 +23,6 @@ export function middleware(request: NextRequest): NextResponse {
 export const config = {
   // Todo menos: entrar/login, API, estáticos y archivos de la PWA
   matcher: [
-    '/((?!entrar|auth|callback|salir|api|_next|favicon|icon-|apple-touch-icon|logo|manifest|sw\\.js|robots|sitemap|frames|.*\\.(?:png|jpg|jpeg|svg|webp|ico|json|txt|xml|js)$).*)',
+    '/((?!entrar|privacidad|reto|unirse|arena/reto|auth|callback|salir|api|_next|favicon|icon-|apple-touch-icon|logo|manifest|sw\\.js|robots|sitemap|frames|.*\\.(?:png|jpg|jpeg|svg|webp|ico|json|txt|xml|js)$).*)',
   ],
 };

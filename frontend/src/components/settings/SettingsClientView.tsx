@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useState, useTransition } from 'react';
 import Image from 'next/image';
 import {
@@ -447,6 +448,11 @@ export function SettingsClientView({
               <span>Service Worker v9 y Web Push activos</span>
             </div>
           </div>
+
+          <Link href="/privacidad" className="bento-card flex items-center gap-2.5 p-6 text-sm font-semibold text-white transition-colors hover:text-kurama">
+            <Shield className="h-4 w-4 text-kurama" aria-hidden="true" />
+            Privacidad y cookies
+          </Link>
         </div>
       </div>
     </div>

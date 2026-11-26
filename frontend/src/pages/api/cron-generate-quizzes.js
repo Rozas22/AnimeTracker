@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabaseUrl, getSupabaseServerKey } from '../../lib/supabase/env';
 import { awardChallengePodium } from '../../lib/reto/league';
+import { runRetoMaintenance } from '../../lib/reto/challenge-store';
 
 // Inicializar Supabase
 const supabaseUrl = getSupabaseUrl();
@@ -31,6 +32,13 @@ export default async function handler(req, res) {
         } catch (podiumErr) {
             console.error('Podio del reto:', podiumErr.message || podiumErr);
         }
+    }
+
+    // 1c. Reto de hoy y de mañana ya generados: si AniList falla, hay un día de margen
+    try {
+        await runRetoMaintenance();
+    } catch (maintenanceErr) {
+        console.error('Mantenimiento del reto:', maintenanceErr.message || maintenanceErr);
     }
 
     try {

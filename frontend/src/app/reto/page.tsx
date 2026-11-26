@@ -2,9 +2,12 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { RetoGame } from '@/components/reto/RetoGame';
 import { getRetoStateAction } from '@/lib/reto/actions';
+import { retoMetadata, todayChallengeNumber } from '@/lib/reto/share';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'Reto diario' };
+export function generateMetadata(): Metadata {
+  return retoMetadata(todayChallengeNumber(), '/reto');
+}
 
 export default async function RetoPage(): Promise<React.JSX.Element> {
   const res = await getRetoStateAction();
